@@ -1,0 +1,54 @@
+Prowler:
+  version: "5.2.0"
+  output_dir: "./output"
+  reports_dir: "./reports"
+  
+  # Severidade: Critical, High, Medium, Low, Informational
+  severity_levels:
+    - critical
+    - high
+    - medium
+    - low
+    - informational
+  
+  # Benchmarks
+  benchmarks:
+    - cis_1.4_aws
+    - cis_1.5_aws
+    - cis_2.0_gcp
+    - cis_2.0_azure
+    - nist_800_53
+  
+  # Providers habilitados
+  providers:
+    aws:
+      enabled: true
+      regions:
+        - us-east-1
+        - sa-saopaulo-1
+    gcp:
+      enabled: false
+      projects: []
+    azure:
+      enabled: false
+      subscriptions: []
+    oci:
+      enabled: false
+      compartments: []
+  
+  # Scan agentless
+  agentless: true
+  
+  # Módulos CNAPP
+  modules:
+    cspm: true
+    cwpp: true
+    ciem: true
+    kspm: false
+    iac: true
+    container_scanning: true
+    vulnerability_management: true
+    dspm: false
+    api_security: false
+    cdr: false
+    appsec: false

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  harpia-security:
+    build: .
+    container_name: harpia-security
+    volumes:
+      - ./configs:/app/configs:ro
+      - ./output:/app/output
+      - ./reports:/app/reports
+      - ~/.aws:/root/.aws:ro
+      - ~/.config/gcloud:/root/.config/gcloud:ro
+      - ~/.azure:/root/.azure:ro
+      - ~/.oci:/root/.oci:ro
+    environment:
+      - AWS_PROFILE=${AWS_PROFILE:-}
+      - GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT:-}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID:-}
+      - OCI_TENANCY=${OCI_TENANCY:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    networks:
+      - harpia-net
+
+volumes:
+  output:
+  reports:
+
+networks:
+  harpia-net:
+    driver: bridge

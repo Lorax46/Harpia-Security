@@ -1,0 +1,33 @@
+# Binários
+bin/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+*.json.bak
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testes
+*.test
+*.out
+coverage.txt
+
+# Prowler output
+output/
+reports/
