@@ -281,7 +281,7 @@ body {
 <!-- Sidebar -->
 <script>
     if (!localStorage.getItem('harpia_logged')) {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
     }
 </script>
 <aside class="sidebar">
@@ -407,7 +407,7 @@ body {
     document.querySelector('.user').addEventListener('click', () => {
         if (confirm('Deseja sair?')) {
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = '/login';
         }
     });
 </script>

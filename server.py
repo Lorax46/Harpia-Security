@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Servidor simples para Harpia Security Dashboard"""
-
 import http.server
 import os
 from urllib.parse import urlparse
@@ -31,21 +29,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.end_headers()
-                with open(file_path, "rb") as f:
-                    self.wfile.write(f.read())
+                try:
+                    with open(file_path, "rb") as f:
+                        self.wfile.write(f.read())
+                except BrokenPipeError:
+                    pass
                 return
         
-        # Fallback para arquivos estáticos
         super().do_GET()
     
     def log_message(self, format, *args):
-        pass  # Silencia logs
+        pass
 
 if __name__ == "__main__":
     os.chdir(BASE_DIR)
     server = http.server.HTTPServer(("0.0.0.0", PORT), Handler)
+    server.socket.settimeout(1)
     print(f"Harpia Security rodando em http://0.0.0.0:{PORT}")
-    print("Rotas disponíveis:")
-    for route, file in ROUTES.items():
-        print(f"  {route:<12} -> {file}")
     server.serve_forever()
