@@ -36,7 +36,6 @@ func (c *IAMSupportRoleCreated) Metadata() models.CheckMetadata {
 
 func (c *IAMSupportRoleCreated) Execute(ctx context.Context) ([]models.Finding, error) {
 	// TODO: implementar chamada AWS IAM
-	// Por enquanto retorna finding de exemplo
 	finding := models.Finding{
 		ID:             "iam_support_role_created",
 		Title:          c.metadata.CheckTitle,
