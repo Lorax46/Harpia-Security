@@ -8,6 +8,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/cloudguard"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/oracle/oci-go-sdk/v65/events"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	objectstorage "github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
@@ -102,6 +103,16 @@ func (p *Provider) CloudGuard() (cloudguard.CloudGuardClient, error) {
 	client, err := cloudguard.NewCloudGuardClientWithConfigurationProvider(p.config)
 	if err != nil {
 		return client, fmt.Errorf("falha ao criar cloud guard client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Events retorna o cliente Events
+func (p *Provider) Events() (events.EventsClient, error) {
+	client, err := events.NewEventsClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar events client: %w", err)
 	}
 	client.SetRegion(p.region)
 	return client, nil
