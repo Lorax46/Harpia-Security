@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harpia Security — Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: #0b0f19;
+    --surface: #141925;
+    --surface-hover: #1a2030;
+    --border: #1e2636;
+    --text: #e4e7ec;
+    --text-dim: #6b7385;
+    --accent: #00d4aa;
+    --accent-hover: #00b894;
+    --error: #ef4444;
+    --warning: #f59e0b;
+    --sidebar-w: 220px;
+    --header-h: 56px;
+    --radius: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+/* Sidebar (mesmo do dashboard) */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+    z-index: 100;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+
+.sidebar-brand svg { width: 28px; height: 28px; }
+.sidebar-brand span { font-size: 16px; font-weight: 700; }
+.sidebar-brand span::after { content: 'Security'; color: var(--accent); font-weight: 400; }
+
+.nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; }
+
+.nav a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    transition: all 0.15s;
+}
+
+.nav a:hover { background: var(--surface-hover); color: var(--text); }
+.nav a.active { background: rgba(0, 212, 170, 0.1); color: var(--accent); }
+.nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.nav-section {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    padding: 16px 12px 6px;
+}
+
+.sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
+
+.user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.user:hover { background: var(--surface-hover); }
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--bg);
+}
+
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 11px; color: var(--text-dim); }
+
+/* Main */
+.main { margin-left: var(--sidebar-w); min-height: 100vh; }
+
+.header {
+    position: sticky;
+    top: 0;
+    height: var(--header-h);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 50;
+}
+
+.header h1 { font-size: 16px; font-weight: 600; }
+
+.badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-success { background: rgba(0, 212, 170, 0.15); color: var(--accent); }
+.badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+.badge-error { background: rgba(239, 68, 68, 0.15); color: var(--error); }
+
+/* Content */
+.content { padding: 24px; max-width: 1000px; }
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+}
+
+.tab {
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+}
+
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Section */
+.section { display: none; }
+.section.active { display: block; }
+
+/* Provider cards */
+.providers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.provider-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.15s;
+}
+
+.provider-card:hover { border-color: var(--accent); }
+
+.provider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.provider-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.provider-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.aws { background: #ff9900; }
+.gcp { background: #4285f4; }
+.azure { background: #0078d4; }
+.oci { background: #f80000; }
+
+/* Toggle switch */
+.toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+}
+
+.toggle input { display: none; }
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+}
+
+.toggle input:checked + .toggle-slider { background: var(--accent); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+/* Form */
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.form-group input::placeholder { color: var(--text-dim); }
+.form-group input:focus { border-color: var(--accent); }
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-hover); }
+
+.btn-danger { background: transparent; color: var(--error); border: 1px solid var(--error); }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+.provider-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+/* Status */
+.status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-dot.connected { background: var(--accent); }
+.status-dot.disconnected { background: var(--text-dim); }
+.status-dot.error { background: var(--error); }
+
+/* Scan history */
+.scan-list { display: flex; flex-direction: column; gap: 12px; }
+
+.scan-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.scan-info { display: flex; align-items: center; gap: 12px; }
+
+.scan-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+}
+
+.scan-details h4 { font-size: 14px; font-weight: 500; margin-bottom: 2px; }
+.scan-details p { font-size: 12px; color: var(--text-dim); }
+
+.scan-meta { text-align: right; }
+.scan-meta .time { font-size: 12px; color: var(--text-dim); }
+.scan-meta .findings { font-size: 13px; font-weight: 500; margin-top: 2px; }
+
+/* Empty state */
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    color: var(--text-dim);
+    text-align: center;
+}
+
+.empty svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+.empty p { font-size: 13px; }
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .content { padding: 16px; }
+    .form-row { grid-template-columns: 1fr; }
+    .providers-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#0099ff"/></linearGradient></defs>
+            <circle cx="32" cy="32" r="14" fill="none" stroke="url(#g)" stroke-width="2"/>
+            <circle cx="32" cy="32" r="5" fill="url(#g)"/>
+            <path d="M32 6 L28 18 L32 16 L36 18 Z" fill="url(#g)" opacity="0.7"/>
+            <path d="M32 58 L28 46 L32 48 L36 46 Z" fill="url(#g)" opacity="0.7"/>
+            <path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity="0.7"/>
+            <path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity="0.7"/>
+        </svg>
+        <span>Harpia</span>
+    </div>
+
+    <nav class="nav">
+        <a href="dashboard.html">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+            Dashboard
+        </a>
+        <a href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Scans
+        </a>
+        <a href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+            Findings
+        </a>
+        <a href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+            Inventory
+        </a>
+
+        <div class="nav-section">Cloud</div>
+
+        <a href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>
+            Providers
+        </a>
+        <a href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Compliance
+        </a>
+
+        <div class="nav-section">Config</div>
+
+        <a href="#" class="active">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+            Settings
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <div class="user">
+            <div class="avatar">LO</div>
+            <div class="user-info">
+                <div class="user-name">Lorenzo</div>
+                <div class="user-role">Admin</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+    <header class="header">
+        <h1>Settings</h1>
+        <span class="badge badge-warning">2 providers pendentes</span>
+    </header>
+
+    <div class="content">
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" data-tab="credentials">Credenciais</div>
+            <div class="tab" data-tab="providers">Providers</div>
+            <div class="tab" data-tab="scans">Scans</div>
+        </div>
+
+        <!-- Tab: Credenciais -->
+        <div class="section active" id="credentials">
+            <div class="providers-grid">
+                <!-- AWS -->
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon aws">A</div>
+                            AWS
+                        </div>
+                        <div class="status">
+                            <span class="status-dot disconnected"></span>
+                            <span style="font-size:11px;color:var(--text-dim)">Desconectado</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Access Key ID</label>
+                        <input type="text" placeholder="AKIAIOSFODNN7EXAMPLE">
+                    </div>
+                    <div class="form-group">
+                        <label>Secret Access Key</label>
+                        <input type="password" placeholder="••••••••••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label>Region</label>
+                        <input type="text" placeholder="us-east-1" value="us-east-1">
+                    </div>
+                    <div class="provider-actions">
+                        <button class="btn btn-primary btn-sm">Salvar</button>
+                        <button class="btn btn-secondary btn-sm">Testar</button>
+                    </div>
+                </div>
+
+                <!-- GCP -->
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon gcp">G</div>
+                            GCP
+                        </div>
+                        <div class="status">
+                            <span class="status-dot disconnected"></span>
+                            <span style="font-size:11px;color:var(--text-dim)">Desconectado</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Project ID</label>
+                        <input type="text" placeholder="my-project-123">
+                    </div>
+                    <div class="form-group">
+                        <label>Service Account JSON</label>
+                        <input type="password" placeholder="••••••••••••••••">
+                    </div>
+                    <div class="provider-actions">
+                        <button class="btn btn-primary btn-sm">Salvar</button>
+                        <button class="btn btn-secondary btn-sm">Testar</button>
+                    </div>
+                </div>
+
+                <!-- Azure -->
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon azure">Az</div>
+                            Azure
+                        </div>
+                        <div class="status">
+                            <span class="status-dot disconnected"></span>
+                            <span style="font-size:11px;color:var(--text-dim)">Desconectado</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Subscription ID</label>
+                        <input type="text" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tenant ID</label>
+                            <input type="text" placeholder="xxxxxxxx-xxxx">
+                        </div>
+                        <div class="form-group">
+                            <label>Client ID</label>
+                            <input type="text" placeholder="xxxxxxxx-xxxx">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Client Secret</label>
+                        <input type="password" placeholder="••••••••••••••••">
+                    </div>
+                    <div class="provider-actions">
+                        <button class="btn btn-primary btn-sm">Salvar</button>
+                        <button class="btn btn-secondary btn-sm">Testar</button>
+                    </div>
+                </div>
+
+                <!-- OCI -->
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon oci">O</div>
+                            OCI
+                        </div>
+                        <div class="status">
+                            <span class="status-dot disconnected"></span>
+                            <span style="font-size:11px;color:var(--text-dim)">Desconectado</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tenancy OCID</label>
+                        <input type="text" placeholder="ocid1.tenancy.oc1..xxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>User OCID</label>
+                        <input type="text" placeholder="ocid1.user.oc1..xxxxx">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Region</label>
+                            <input type="text" placeholder="sa-saopaulo-1">
+                        </div>
+                        <div class="form-group">
+                            <label>Fingerprint</label>
+                            <input type="text" placeholder="xx:xx:xx:xx">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Private Key</label>
+                        <input type="password" placeholder="••••••••••••••••">
+                    </div>
+                    <div class="provider-actions">
+                        <button class="btn btn-primary btn-sm">Salvar</button>
+                        <button class="btn btn-secondary btn-sm">Testar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Providers -->
+        <div class="section" id="providers">
+            <div class="providers-grid">
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon aws">A</div>
+                            AWS
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-dim)">Regions: us-east-1, sa-saopaulo-1</p>
+                    <div class="provider-actions">
+                        <button class="btn btn-secondary btn-sm">Configurar</button>
+                        <button class="btn btn-danger btn-sm">Remover</button>
+                    </div>
+                </div>
+
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon gcp">G</div>
+                            GCP
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-dim)">Nenhum project configurado</p>
+                    <div class="provider-actions">
+                        <button class="btn btn-secondary btn-sm">Configurar</button>
+                        <button class="btn btn-danger btn-sm">Remover</button>
+                    </div>
+                </div>
+
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon azure">Az</div>
+                            Azure
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-dim)">Nenhuma subscription configurada</p>
+                    <div class="provider-actions">
+                        <button class="btn btn-secondary btn-sm">Configurar</button>
+                        <button class="btn btn-danger btn-sm">Remover</button>
+                    </div>
+                </div>
+
+                <div class="provider-card">
+                    <div class="provider-header">
+                        <div class="provider-name">
+                            <div class="provider-icon oci">O</div>
+                            OCI
+                        </div>
+                        <label class="toggle">
+                            <input type="checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p style="font-size:12px;color:var(--text-dim)">Nenhum tenancy configurado</p>
+                    <div class="provider-actions">
+                        <button class="btn btn-secondary btn-sm">Configurar</button>
+                        <button class="btn btn-danger btn-sm">Remover</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Scans -->
+        <div class="section" id="scans">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <p style="font-size:13px;color:var(--text-dim)">Histórico de scans executados</p>
+                <button class="btn btn-primary" id="btnNewScan">+ Novo Scan</button>
+            </div>
+
+            <div class="scan-list" id="scanList">
+                <!-- Scan item exemplo -->
+                <div class="scan-item">
+                    <div class="scan-info">
+                        <div class="scan-icon provider-icon aws">A</div>
+                        <div class="scan-details">
+                            <h4>AWS - us-east-1</h4>
+                            <p>Completo • 15 checks executados</p>
+                        </div>
+                    </div>
+                    <div class="scan-meta">
+                        <div class="findings">3 findings</div>
+                        <div class="time">03/09/2026 00:45</div>
+                    </div>
+                </div>
+
+                <div class="scan-item">
+                    <div class="scan-info">
+                        <div class="scan-icon provider-icon aws">A</div>
+                        <div class="scan-details">
+                            <h4>AWS - sa-saopaulo-1</h4>
+                            <p>Completo • 15 checks executados</p>
+                        </div>
+                    </div>
+                    <div class="scan-meta">
+                        <div class="findings">1 finding</div>
+                        <div class="time">03/09/2026 00:30</div>
+                    </div>
+                </div>
+
+                <div class="scan-item">
+                    <div class="scan-info">
+                        <div class="scan-icon provider-icon gcp">G</div>
+                        <div class="scan-details">
+                            <h4>GCP - my-project</h4>
+                            <p>Falha • Credenciais inválidas</p>
+                        </div>
+                    </div>
+                    <div class="scan-meta">
+                        <div class="findings" style="color:var(--error)">Erro</div>
+                        <div class="time">02/09/2026 23:15</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+    });
+});
+
+// Toggle providers
+document.querySelectorAll('.toggle input').forEach(toggle => {
+    toggle.addEventListener('change', () => {
+        const provider = toggle.closest('.provider-card').querySelector('.provider-name').textContent.trim();
+        console.log(`${toggle.checked ? 'Ativou' : 'Desativou'}: ${provider}`);
+    });
+});
+
+// Novo scan
+document.getElementById('btnNewScan').addEventListener('click', () => {
+    alert('Em produção: abrir modal de configuração de scan');
+});
+
+// Salvar credenciais
+document.querySelectorAll('.btn-primary.btn-sm').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const card = btn.closest('.provider-card');
+        const provider = card.querySelector('.provider-name').textContent.trim();
+        console.log('Salvando credenciais:', provider);
+        // Feedback visual
+        btn.textContent = 'Salvo ✓';
+        btn.style.background = 'var(--accent)';
+        setTimeout(() => {
+            btn.textContent = 'Salvar';
+            btn.style.background = '';
+        }, 2000);
+    });
+});
+
+// Testar conexão
+document.querySelectorAll('.btn-secondary.btn-sm').forEach(btn => {
+    btn.addEventListener('click', () => {
+        btn.textContent = 'Testando...';
+        setTimeout(() => {
+            btn.textContent = 'Falha ✕';
+            btn.style.borderColor = 'var(--error)';
+            btn.style.color = 'var(--error)';
+            setTimeout(() => {
+                btn.textContent = 'Testar';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }, 2000);
+        }, 1000);
+    });
+});
+</script>
+</body>
+</html>
