@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harpia Security — Dashboard</title>
+<title>Harpia Security — Findings</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -14,6 +14,9 @@
     --text: #e4e7ec;
     --text-dim: #6b7385;
     --accent: #00d4aa;
+    --accent-hover: #00b894;
+    --error: #ef4444;
+    --warning: #f59e0b;
     --critical: #ef4444;
     --high: #f97316;
     --medium: #eab308;
@@ -57,29 +60,11 @@ body {
     margin-bottom: 16px;
 }
 
-.sidebar-brand svg {
-    width: 28px;
-    height: 28px;
-}
+.sidebar-brand svg { width: 28px; height: 28px; }
+.sidebar-brand span { font-size: 16px; font-weight: 700; }
+.sidebar-brand span::after { content: 'Security'; color: var(--accent); font-weight: 400; }
 
-.sidebar-brand span {
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.sidebar-brand span::after {
-    content: 'Security';
-    color: var(--accent);
-    font-weight: 400;
-}
-
-.nav {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0 12px;
-    flex: 1;
-}
+.nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; }
 
 .nav a {
     display: flex;
@@ -94,21 +79,9 @@ body {
     transition: all 0.15s;
 }
 
-.nav a:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-}
-
-.nav a.active {
-    background: rgba(0, 212, 170, 0.1);
-    color: var(--accent);
-}
-
-.nav a svg {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-}
+.nav a:hover { background: var(--surface-hover); color: var(--text); }
+.nav a.active { background: rgba(0, 212, 170, 0.1); color: var(--accent); }
+.nav a svg { width: 18px; height: 18px; flex-shrink: 0; }
 
 .nav-section {
     font-size: 10px;
@@ -119,10 +92,7 @@ body {
     padding: 16px 12px 6px;
 }
 
-.sidebar-footer {
-    padding: 12px;
-    border-top: 1px solid var(--border);
-}
+.sidebar-footer { padding: 12px; border-top: 1px solid var(--border); }
 
 .user {
     display: flex;
@@ -133,9 +103,7 @@ body {
     cursor: pointer;
 }
 
-.user:hover {
-    background: var(--surface-hover);
-}
+.user:hover { background: var(--surface-hover); }
 
 .avatar {
     width: 32px;
@@ -149,31 +117,13 @@ body {
     color: var(--bg);
 }
 
-.user-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.user-name {
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.user-role {
-    font-size: 11px;
-    color: var(--text-dim);
-}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 11px; color: var(--text-dim); }
 
 /* Main */
-.main {
-    margin-left: var(--sidebar-w);
-    min-height: 100vh;
-}
+.main { margin-left: var(--sidebar-w); min-height: 100vh; }
 
-/* Header */
 .header {
     position: sticky;
     top: 0;
@@ -187,19 +137,10 @@ body {
     z-index: 50;
 }
 
-.header h1 {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
+.header h1 { font-size: 16px; font-weight: 600; }
 
 .btn {
-    padding: 8px 16px;
+    padding: 10px 18px;
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
@@ -209,36 +150,20 @@ body {
     transition: all 0.15s;
 }
 
-.btn-primary {
-    background: var(--accent);
-    color: var(--bg);
-}
+.btn-primary { background: var(--accent); color: var(--bg); }
+.btn-primary:hover { background: var(--accent-hover); }
 
-.btn-primary:hover {
-    background: #00b894;
-}
-
-.btn-secondary {
-    background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-    background: var(--surface-hover);
-}
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--surface-hover); }
 
 /* Content */
-.content {
-    padding: 24px;
-    max-width: 1400px;
-}
+.content { padding: 24px; max-width: 1200px; }
 
-/* Stats grid */
+/* Stats */
 .stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
     margin-bottom: 24px;
 }
 
@@ -246,151 +171,108 @@ body {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    padding: 16px;
+    text-align: center;
 }
 
-.stat-label {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-}
+.stat-card.critical { border-top: 3px solid var(--critical); }
+.stat-card.high { border-top: 3px solid var(--high); }
+.stat-card.medium { border-top: 3px solid var(--medium); }
+.stat-card.low { border-top: 3px solid var(--low); }
+.stat-card.info { border-top: 3px solid var(--info); }
 
-.stat-value {
-    font-size: 28px;
-    font-weight: 700;
-}
-
+.stat-value { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
 .stat-card.critical .stat-value { color: var(--critical); }
 .stat-card.high .stat-value { color: var(--high); }
 .stat-card.medium .stat-value { color: var(--medium); }
 .stat-card.low .stat-value { color: var(--low); }
 .stat-card.info .stat-value { color: var(--info); }
 
-/* Grid principal */
-.grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 16px;
-}
+.stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
 
-.card {
+/* Findings table */
+.findings-table {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px;
+    overflow: hidden;
 }
 
-.card-header {
+.findings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
 }
 
-.card-title {
-    font-size: 14px;
+.findings-header h3 { font-size: 14px; font-weight: 600; }
+
+.findings-list { max-height: 600px; overflow-y: auto; }
+
+.finding-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.finding-item:last-child { border-bottom: none; }
+.finding-item:hover { background: var(--surface-hover); }
+
+.severity-badge {
+    font-size: 10px;
     font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
-.card-action {
-    font-size: 12px;
-    color: var(--accent);
-    text-decoration: none;
+.severity-badge.critical { background: rgba(239, 68, 68, 0.2); color: var(--critical); }
+.severity-badge.high { background: rgba(249, 115, 22, 0.2); color: var(--high); }
+.severity-badge.medium { background: rgba(234, 179, 8, 0.2); color: var(--medium); }
+.severity-badge.low { background: rgba(34, 197, 94, 0.2); color: var(--low); }
+.severity-badge.informational { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+
+.finding-content { flex: 1; min-width: 0; }
+
+.finding-content h4 { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.finding-content p { font-size: 12px; color: var(--text-dim); }
+
+.finding-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
 }
 
-.card-action:hover {
-    text-decoration: underline;
-}
+.finding-meta span { display: flex; align-items: center; gap: 4px; }
 
-/* Placeholder */
-.placeholder {
+/* Empty state */
+.empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 48px 20px;
+    padding: 60px 20px;
     color: var(--text-dim);
     text-align: center;
 }
 
-.placeholder svg {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 12px;
-    opacity: 0.4;
-}
-
-.placeholder p {
-    font-size: 13px;
-}
-
-/* Provider tags */
-.providers {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.provider-tag {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-size: 12px;
-    color: var(--text-dim);
-}
-
-.provider-tag .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--text-dim);
-}
-
-.provider-tag.active .dot {
-    background: var(--accent);
-}
+.empty svg { width: 56px; height: 56px; margin-bottom: 16px; opacity: 0.4; }
+.empty h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
+.empty p { font-size: 13px; margin-bottom: 20px; }
 
 /* Responsivo */
-@media (max-width: 1024px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 768px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.open {
-        transform: translateX(0);
-    }
-    
-    .main {
-        margin-left: 0;
-    }
-    
-    .header {
-        padding: 0 16px;
-    }
-    
-    .content {
-        padding: 16px;
-    }
-    
-    .stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .stats {
-        grid-template-columns: 1fr;
-    }
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .content { padding: 16px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
@@ -400,12 +282,7 @@ body {
 <aside class="sidebar">
     <div class="sidebar-brand">
         <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#00d4aa"/>
-                    <stop offset="100%" stop-color="#0099ff"/>
-                </linearGradient>
-            </defs>
+            <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#0099ff"/></linearGradient></defs>
             <circle cx="32" cy="32" r="14" fill="none" stroke="url(#g)" stroke-width="2"/>
             <circle cx="32" cy="32" r="5" fill="url(#g)"/>
             <path d="M32 6 L28 18 L32 16 L36 18 Z" fill="url(#g)" opacity="0.7"/>
@@ -417,7 +294,7 @@ body {
     </div>
 
     <nav class="nav">
-        <a href="dashboard.html" class="active">
+        <a href="dashboard.html">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
             Dashboard
         </a>
@@ -425,7 +302,7 @@ body {
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
             Scans
         </a>
-        <a href="findings.html">
+        <a href="findings.html" class="active">
             <svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
             Findings
         </a>
@@ -467,99 +344,52 @@ body {
 <!-- Main -->
 <main class="main">
     <header class="header">
-        <h1>Dashboard</h1>
-        <div class="header-actions">
-            <button class="btn btn-secondary">Importar</button>
-            <button class="btn btn-primary">Novo Scan</button>
-        </div>
+        <h1>Findings</h1>
+        <button class="btn btn-secondary">Exportar</button>
     </header>
 
     <div class="content">
         <!-- Stats -->
         <div class="stats">
             <div class="stat-card critical">
+                <div class="stat-value">0</div>
                 <div class="stat-label">Critical</div>
-                <div class="stat-value">—</div>
             </div>
             <div class="stat-card high">
+                <div class="stat-value">0</div>
                 <div class="stat-label">High</div>
-                <div class="stat-value">—</div>
             </div>
             <div class="stat-card medium">
+                <div class="stat-value">0</div>
                 <div class="stat-label">Medium</div>
-                <div class="stat-value">—</div>
             </div>
             <div class="stat-card low">
+                <div class="stat-value">0</div>
                 <div class="stat-label">Low</div>
-                <div class="stat-value">—</div>
             </div>
             <div class="stat-card info">
-                <div class="stat-label">Informational</div>
-                <div class="stat-value">—</div>
+                <div class="stat-value">0</div>
+                <div class="stat-label">Info</div>
             </div>
         </div>
 
-        <!-- Grid -->
-        <div class="grid">
-            <!-- Coluna principal -->
-            <div>
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">Findings Recentes</span>
-                        <a href="#" class="card-action">Ver todos</a>
-                    </div>
-                    <div class="placeholder">
-                        <svg viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <p>Nenhum finding ainda. Execute um scan para começar.</p>
-                    </div>
-                </div>
+        <!-- Findings table -->
+        <div class="findings-table">
+            <div class="findings-header">
+                <h3>Todos os Findings</h3>
+                <span style="font-size:12px;color:var(--text-dim)">0 findings</span>
             </div>
-
-            <!-- Coluna lateral -->
-            <div>
-                <div class="card">
-                    <div class="card-header">
-                        <span class="card-title">Providers</span>
-                        <a href="#" class="card-action">Gerenciar</a>
-                    </div>
-                    <div class="providers">
-                        <div class="provider-tag active">
-                            <span class="dot"></span>
-                            AWS
-                        </div>
-                        <div class="provider-tag">
-                            <span class="dot"></span>
-                            GCP
-                        </div>
-                        <div class="provider-tag">
-                            <span class="dot"></span>
-                            Azure
-                        </div>
-                        <div class="provider-tag">
-                            <span class="dot"></span>
-                            OCI
-                        </div>
-                    </div>
-                </div>
+            <div class="empty">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <h3>Nenhum finding</h3>
+                <p>Execute um scan para encontrar vulnerabilidades e misconfigurações.</p>
+                <button class="btn btn-primary" onclick="window.location.href='scans.html'">Ir para Scans</button>
             </div>
         </div>
     </div>
 </main>
 
-<script>
-// Toggle sidebar mobile
-document.addEventListener('DOMContentLoaded', () => {
-    // Marcar link ativo
-    document.querySelectorAll('.nav a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.nav a').forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-        });
-    });
-});
-</script>
 </body>
 </html>
