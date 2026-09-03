@@ -2,139 +2,120 @@ package compute
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/oracle/oci-go-sdk/v65/core"
 )
 
-// ComputeInstanceLegacyMetadataEndpointDisabled - high
-type ComputeInstanceLegacyMetadataEndpointDisabled struct {
+// InstanceInTransitEncryptionCheck verifica criptografia em trânsito
+type InstanceInTransitEncryptionCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewComputeInstanceLegacyMetadataEndpointDisabled cria nova instância
-func NewComputeInstanceLegacyMetadataEndpointDisabled() *ComputeInstanceLegacyMetadataEndpointDisabled {
-	return &ComputeInstanceLegacyMetadataEndpointDisabled{
+func NewInstanceInTransitEncryptionCheck() *InstanceInTransitEncryptionCheck {
+	return &InstanceInTransitEncryptionCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "compute_instance_legacy_metadata_endpoint_disabled",
-			CheckTitle:     "Compute instance legacy metadata service endpoint is disabled",
-			ServiceName:    "compute",
-			Severity:       "high",
-			Description:    "**OCI compute instance metadata service** is configured so legacy **IMDS v1** endpoints are disabled, requiring session-authorized **IMDS v2** request",
-			RemediationText: "Disable **IMDS v1** and require **IMDS v2** across all instances. Migrate applications to session-au",
-			Categories:     []string{"compute"},
+			Provider:        "oci",
+			CheckID:         "compute_instance_in_transit_encryption_enabled",
+			CheckTitle:      "Ensure instances have in-transit encryption enabled",
+			ServiceName:     "compute",
+			Severity:        "high",
+			Description:     "Compute instances should have in-transit encryption enabled",
+			RemediationText: "Enable in-transit encryption for compute instances",
+			Categories:      []string{"compute"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *ComputeInstanceLegacyMetadataEndpointDisabled) Metadata() models.CheckMetadata {
+func (c *InstanceInTransitEncryptionCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *ComputeInstanceLegacyMetadataEndpointDisabled) Execute(ctx context.Context) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID:             c.metadata.CheckID,
-			Title:          c.metadata.CheckTitle,
-			Description:    c.metadata.Description,
-			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
-			Provider:       "oci",
-			Service:        "compute",
-			Remediation:    c.metadata.RemediationText,
-			Categories:     c.metadata.Categories,
-		},
-	}, nil
-}
-
-// ComputeInstanceInTransitEncryptionEnabled - high
-type ComputeInstanceInTransitEncryptionEnabled struct {
-	metadata models.CheckMetadata
-}
-
-// NewComputeInstanceInTransitEncryptionEnabled cria nova instância
-func NewComputeInstanceInTransitEncryptionEnabled() *ComputeInstanceInTransitEncryptionEnabled {
-	return &ComputeInstanceInTransitEncryptionEnabled{
-		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "compute_instance_in_transit_encryption_enabled",
-			CheckTitle:     "Compute instance has in-transit encryption enabled",
-			ServiceName:    "compute",
-			Severity:       "high",
-			Description:    "**OCI compute instances** are evaluated for **in-transit encryption** on paravirtualized block or boot volume attachments, confirming that data exchan",
-			RemediationText: "Enable **in-transit encryption** for all paravirtualized volume attachments and make it standard in ",
-			Categories:     []string{"compute"},
-		},
+func (c *InstanceInTransitEncryptionCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(interface {
+		Compute() (core.ComputeClient, error)
+		TenancyId() string
+	})
+	if !ok {
+		return nil, fmt.Errorf("provider não implementa Compute()")
 	}
-}
 
-// Metadata retorna os metadados
-func (c *ComputeInstanceInTransitEncryptionEnabled) Metadata() models.CheckMetadata {
-	return c.metadata
-}
-
-// Execute executa o check
-func (c *ComputeInstanceInTransitEncryptionEnabled) Execute(ctx context.Context) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID:             c.metadata.CheckID,
-			Title:          c.metadata.CheckTitle,
-			Description:    c.metadata.Description,
-			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
-			Provider:       "oci",
-			Service:        "compute",
-			Remediation:    c.metadata.RemediationText,
-			Categories:     c.metadata.Categories,
-		},
-	}, nil
-}
-
-// ComputeInstanceSecureBootEnabled - medium
-type ComputeInstanceSecureBootEnabled struct {
-	metadata models.CheckMetadata
-}
-
-// NewComputeInstanceSecureBootEnabled cria nova instância
-func NewComputeInstanceSecureBootEnabled() *ComputeInstanceSecureBootEnabled {
-	return &ComputeInstanceSecureBootEnabled{
-		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "compute_instance_secure_boot_enabled",
-			CheckTitle:     "Compute instance has Secure Boot enabled",
-			ServiceName:    "compute",
-			Severity:       "medium",
-			Description:    "**OCI compute instances** have **UEFI Secure Boot** enabled so the platform firmware loads only trusted, signed bootloaders, kernels, and drivers at s",
-			RemediationText: "Enable **Secure Boot** across instances and prefer **shielded instances**. Pair with **TPM** and **M",
-			Categories:     []string{"compute"},
-		},
+	computeClient, err := p.Compute()
+	if err != nil {
+		return nil, err
 	}
-}
 
-// Metadata retorna os metadados
-func (c *ComputeInstanceSecureBootEnabled) Metadata() models.CheckMetadata {
-	return c.metadata
-}
+	tenancyId := p.TenancyId()
+	findings := []models.Finding{}
 
-// Execute executa o check
-func (c *ComputeInstanceSecureBootEnabled) Execute(ctx context.Context) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	listReq := core.ListInstancesRequest{
+		CompartmentId: &tenancyId,
+	}
+
+	instances, err := computeClient.ListInstances(ctx, listReq)
+	if err != nil {
+		return nil, fmt.Errorf("falha ao listar instâncias: %w", err)
+	}
+
+	for _, instance := range instances.Items {
+		if instance.LaunchOptions != nil && instance.LaunchOptions.IsPvEncryptionInTransitEnabled != nil && *instance.LaunchOptions.IsPvEncryptionInTransitEnabled {
+			findings = append(findings, models.Finding{
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         models.StatusPass,
+				StatusExtended: fmt.Sprintf("Instance %s has in-transit encryption enabled", safeString(instance.DisplayName)),
+				ResourceID:     safeString(instance.Id),
+				Provider:       "oci",
+				Service:        "compute",
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
+			})
+		} else {
+			findings = append(findings, models.Finding{
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         models.StatusFail,
+				StatusExtended: fmt.Sprintf("Instance %s does not have in-transit encryption enabled", safeString(instance.DisplayName)),
+				ResourceID:     safeString(instance.Id),
+				Provider:       "oci",
+				Service:        "compute",
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
+			})
+		}
+	}
+
+	if len(findings) == 0 {
+		findings = append(findings, models.Finding{
 			ID:             c.metadata.CheckID,
 			Title:          c.metadata.CheckTitle,
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			Status:         models.StatusPass,
+			StatusExtended: "No instances found",
 			Provider:       "oci",
 			Service:        "compute",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
-		},
-	}, nil
+			FoundAt:        time.Now(),
+		})
+	}
+
+	return findings, nil
 }
 
+// safeString retorna string vazia se ponteiro for nil
+func safeString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}

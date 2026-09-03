@@ -2,38 +2,36 @@ package events
 
 import (
 	"context"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
-// EventsRuleIamPolicyChanges - high
-type EventsRuleIamPolicyChanges struct {
+// NotificationTopicAndSubscriptionExistsCheck verifica se existe tópico de notificação
+type NotificationTopicAndSubscriptionExistsCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleIamPolicyChanges cria nova instância
-func NewEventsRuleIamPolicyChanges() *EventsRuleIamPolicyChanges {
-	return &EventsRuleIamPolicyChanges{
+func NewNotificationTopicAndSubscriptionExistsCheck() *NotificationTopicAndSubscriptionExistsCheck {
+	return &NotificationTopicAndSubscriptionExistsCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_iam_policy_changes",
-			CheckTitle:     "Event rule monitoring IAM policy changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** configured to capture **IAM policy create, update, and delete** events (`com.oraclecloud.identitycontrolplane.createpolicy`, `com",
-			RemediationText: "Create OCI Events rules for `...createpolicy`, `...updatepolicy`, and `...deletepolicy` with a **not",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_notification_topic_and_subscription_exists",
+			CheckTitle:      "Ensure notification topic and subscription exist",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Notification topics and subscriptions should exist for alerting",
+			RemediationText: "Create notification topics and subscriptions",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleIamPolicyChanges) Metadata() models.CheckMetadata {
+func (c *NotificationTopicAndSubscriptionExistsCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleIamPolicyChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *NotificationTopicAndSubscriptionExistsCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -41,43 +39,41 @@ func (c *EventsRuleIamPolicyChanges) Execute(ctx context.Context) ([]models.Find
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use ons SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleCloudguardProblems - high
-type EventsRuleCloudguardProblems struct {
+// RuleCloudguardProblemsCheck verifica se existe regra para problemas do Cloudguard
+type RuleCloudguardProblemsCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleCloudguardProblems cria nova instância
-func NewEventsRuleCloudguardProblems() *EventsRuleCloudguardProblems {
-	return &EventsRuleCloudguardProblems{
+func NewRuleCloudguardProblemsCheck() *RuleCloudguardProblemsCheck {
+	return &RuleCloudguardProblemsCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_cloudguard_problems",
-			CheckTitle:     "Event rule monitoring Cloud Guard problems has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** subscribe to **Cloud Guard problem lifecycle events**-`com.oraclecloud.cloudguard.problemdetected`, `com.oraclecloud.cloudguard.p",
-			RemediationText: "Implement **event-driven alerts** for Cloud Guard problem lifecycle events and route them to trusted",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_cloudguard_problems",
+			CheckTitle:      "Ensure event rule exists for Cloudguard problems",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for Cloudguard problem detection",
+			RemediationText: "Create event rule for Cloudguard problems",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleCloudguardProblems) Metadata() models.CheckMetadata {
+func (c *RuleCloudguardProblemsCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleCloudguardProblems) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleCloudguardProblemsCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -85,43 +81,41 @@ func (c *EventsRuleCloudguardProblems) Execute(ctx context.Context) ([]models.Fi
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleVcnChanges - medium
-type EventsRuleVcnChanges struct {
+// RuleIamPolicyChangesCheck verifica se existe regra para mudanças de política IAM
+type RuleIamPolicyChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleVcnChanges cria nova instância
-func NewEventsRuleVcnChanges() *EventsRuleVcnChanges {
-	return &EventsRuleVcnChanges{
+func NewRuleIamPolicyChangesCheck() *RuleIamPolicyChangesCheck {
+	return &RuleIamPolicyChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_vcn_changes",
-			CheckTitle:     "Event rule monitoring VCN changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "medium",
-			Description:    "**OCI Events rules** exist to capture **VCN lifecycle changes** (`create`, `update`, `delete`) via event types `com.oraclecloud.virtualnetwork.createv",
-			RemediationText: "Create and enable **Events rules** for VCN lifecycle changes (**create**, **update**, **delete**) wi",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_iam_policy_changes",
+			CheckTitle:      "Ensure event rule exists for IAM policy changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for IAM policy change detection",
+			RemediationText: "Create event rule for IAM policy changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleVcnChanges) Metadata() models.CheckMetadata {
+func (c *RuleIamPolicyChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleVcnChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleIamPolicyChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -129,43 +123,41 @@ func (c *EventsRuleVcnChanges) Execute(ctx context.Context) ([]models.Finding, e
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleIdpGroupMappingChanges - high
-type EventsRuleIdpGroupMappingChanges struct {
+// RuleIamGroupChangesCheck verifica se existe regra para mudanças de grupo IAM
+type RuleIamGroupChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleIdpGroupMappingChanges cria nova instância
-func NewEventsRuleIdpGroupMappingChanges() *EventsRuleIdpGroupMappingChanges {
-	return &EventsRuleIdpGroupMappingChanges{
+func NewRuleIamGroupChangesCheck() *RuleIamGroupChangesCheck {
+	return &RuleIamGroupChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_idp_group_mapping_changes",
-			CheckTitle:     "Event rule for IdP group mapping changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** monitor **IdP group mapping changes** with **notification actions** for `com.oraclecloud.identitycontrolplane.addidpgroupmapping`",
-			RemediationText: "Define **Events rules** for IdP group mapping changes (`com.oraclecloud.identitycontrolplane.addidpg",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_iam_group_changes",
+			CheckTitle:      "Ensure event rule exists for IAM group changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for IAM group change detection",
+			RemediationText: "Create event rule for IAM group changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleIdpGroupMappingChanges) Metadata() models.CheckMetadata {
+func (c *RuleIamGroupChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleIdpGroupMappingChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleIamGroupChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -173,43 +165,41 @@ func (c *EventsRuleIdpGroupMappingChanges) Execute(ctx context.Context) ([]model
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleIamGroupChanges - high
-type EventsRuleIamGroupChanges struct {
+// RuleUserChangesCheck verifica se existe regra para mudanças de usuário
+type RuleUserChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleIamGroupChanges cria nova instância
-func NewEventsRuleIamGroupChanges() *EventsRuleIamGroupChanges {
-	return &EventsRuleIamGroupChanges{
+func NewRuleUserChangesCheck() *RuleUserChangesCheck {
+	return &RuleUserChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_iam_group_changes",
-			CheckTitle:     "Event rule monitoring IAM group changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** monitor **IAM group lifecycle events** (`creategroup`, `updategroup`, `deletegroup`) and include **notification actions** to gene",
-			RemediationText: "Create **Events rules** for IAM group `create`, `update`, and `delete` and route them to **Notificat",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_user_changes",
+			CheckTitle:      "Ensure event rule exists for user changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for user change detection",
+			RemediationText: "Create event rule for user changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleIamGroupChanges) Metadata() models.CheckMetadata {
+func (c *RuleUserChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleIamGroupChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleUserChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -217,43 +207,41 @@ func (c *EventsRuleIamGroupChanges) Execute(ctx context.Context) ([]models.Findi
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleNetworkGatewayChanges - high
-type EventsRuleNetworkGatewayChanges struct {
+// RuleNetworkSecurityGroupChangesCheck verifica se existe regra para mudanças de NSG
+type RuleNetworkSecurityGroupChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleNetworkGatewayChanges cria nova instância
-func NewEventsRuleNetworkGatewayChanges() *EventsRuleNetworkGatewayChanges {
-	return &EventsRuleNetworkGatewayChanges{
+func NewRuleNetworkSecurityGroupChangesCheck() *RuleNetworkSecurityGroupChangesCheck {
+	return &RuleNetworkSecurityGroupChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_network_gateway_changes",
-			CheckTitle:     "Event rule monitoring network gateway changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** monitor **network gateway** lifecycle and attachment changes (DRG, Internet, NAT, Service, and Local Peering gateways) and includ",
-			RemediationText: "Define **event rules** that match `create`, `update`, `delete`, `attach`, and `detach` actions for a",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_network_security_group_changes",
+			CheckTitle:      "Ensure event rule exists for network security group changes",
+			ServiceName:     "events",
+			Severity:        "medium",
+			Description:     "Event rules should exist for network security group change detection",
+			RemediationText: "Create event rule for network security group changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleNetworkGatewayChanges) Metadata() models.CheckMetadata {
+func (c *RuleNetworkSecurityGroupChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleNetworkGatewayChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleNetworkSecurityGroupChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -261,43 +249,41 @@ func (c *EventsRuleNetworkGatewayChanges) Execute(ctx context.Context) ([]models
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleIdentityProviderChanges - high
-type EventsRuleIdentityProviderChanges struct {
+// RuleVcnChangesCheck verifica se existe regra para mudanças de VCN
+type RuleVcnChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleIdentityProviderChanges cria nova instância
-func NewEventsRuleIdentityProviderChanges() *EventsRuleIdentityProviderChanges {
-	return &EventsRuleIdentityProviderChanges{
+func NewRuleVcnChangesCheck() *RuleVcnChangesCheck {
+	return &RuleVcnChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_identity_provider_changes",
-			CheckTitle:     "Event rule for identity provider changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** monitor **IAM identity provider** creation, update, and deletion and include a **notification action**. The evaluation identifies",
-			RemediationText: "Configure rules to capture **identity provider** `create`, `update`, and `delete` events and send no",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_vcn_changes",
+			CheckTitle:      "Ensure event rule exists for VCN changes",
+			ServiceName:     "events",
+			Severity:        "medium",
+			Description:     "Event rules should exist for VCN change detection",
+			RemediationText: "Create event rule for VCN changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleIdentityProviderChanges) Metadata() models.CheckMetadata {
+func (c *RuleVcnChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleIdentityProviderChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleVcnChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -305,43 +291,41 @@ func (c *EventsRuleIdentityProviderChanges) Execute(ctx context.Context) ([]mode
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleLocalUserAuthentication - medium
-type EventsRuleLocalUserAuthentication struct {
+// RuleRouteTableChangesCheck verifica se existe regra para mudanças de route table
+type RuleRouteTableChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleLocalUserAuthentication cria nova instância
-func NewEventsRuleLocalUserAuthentication() *EventsRuleLocalUserAuthentication {
-	return &EventsRuleLocalUserAuthentication{
+func NewRuleRouteTableChangesCheck() *RuleRouteTableChangesCheck {
+	return &RuleRouteTableChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_local_user_authentication",
-			CheckTitle:     "Event rule monitoring local OCI user authentication has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "medium",
-			Description:    "**OCI Events rules** targeting `com.oraclecloud.identitysignon.interactivelogin` are assessed for configured **notification actions** to monitor local",
-			RemediationText: "Create an Events rule for `com.oraclecloud.identitysignon.interactivelogin` with **notification acti",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_route_table_changes",
+			CheckTitle:      "Ensure event rule exists for route table changes",
+			ServiceName:     "events",
+			Severity:        "medium",
+			Description:     "Event rules should exist for route table change detection",
+			RemediationText: "Create event rule for route table changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleLocalUserAuthentication) Metadata() models.CheckMetadata {
+func (c *RuleRouteTableChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleLocalUserAuthentication) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleRouteTableChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -349,43 +333,41 @@ func (c *EventsRuleLocalUserAuthentication) Execute(ctx context.Context) ([]mode
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleRouteTableChanges - high
-type EventsRuleRouteTableChanges struct {
+// RuleSecurityListChangesCheck verifica se existe regra para mudanças de security list
+type RuleSecurityListChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleRouteTableChanges cria nova instância
-func NewEventsRuleRouteTableChanges() *EventsRuleRouteTableChanges {
-	return &EventsRuleRouteTableChanges{
+func NewRuleSecurityListChangesCheck() *RuleSecurityListChangesCheck {
+	return &RuleSecurityListChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_route_table_changes",
-			CheckTitle:     "Event rule for route table changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** for **VCN route tables** monitor lifecycle and compartment changes and include **notification actions**.  The evaluation looks fo",
-			RemediationText: "Create an **Events rule** that captures route table `create`, `update`, `delete`, and `changeCompart",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_security_list_changes",
+			CheckTitle:      "Ensure event rule exists for security list changes",
+			ServiceName:     "events",
+			Severity:        "medium",
+			Description:     "Event rules should exist for security list change detection",
+			RemediationText: "Create event rule for security list changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleRouteTableChanges) Metadata() models.CheckMetadata {
+func (c *RuleSecurityListChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleRouteTableChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleSecurityListChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -393,43 +375,41 @@ func (c *EventsRuleRouteTableChanges) Execute(ctx context.Context) ([]models.Fin
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleNetworkSecurityGroupChanges - medium
-type EventsRuleNetworkSecurityGroupChanges struct {
+// RuleNetworkGatewayChangesCheck verifica se existe regra para mudanças de network gateway
+type RuleNetworkGatewayChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleNetworkSecurityGroupChanges cria nova instância
-func NewEventsRuleNetworkSecurityGroupChanges() *EventsRuleNetworkSecurityGroupChanges {
-	return &EventsRuleNetworkSecurityGroupChanges{
+func NewRuleNetworkGatewayChangesCheck() *RuleNetworkGatewayChangesCheck {
+	return &RuleNetworkGatewayChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_network_security_group_changes",
-			CheckTitle:     "Event rule monitoring network security group changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "medium",
-			Description:    "**OCI Events rules** targeting **Network Security Group (NSG)** changes are evaluated for **notification actions**. Monitored events: `createnetworkse",
-			RemediationText: "Implement **Events** rules for NSG lifecycle changes with **notification actions** to a monitored to",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_network_gateway_changes",
+			CheckTitle:      "Ensure event rule exists for network gateway changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for network gateway change detection",
+			RemediationText: "Create event rule for network gateway changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleNetworkSecurityGroupChanges) Metadata() models.CheckMetadata {
+func (c *RuleNetworkGatewayChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleNetworkSecurityGroupChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleNetworkGatewayChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -437,43 +417,41 @@ func (c *EventsRuleNetworkSecurityGroupChanges) Execute(ctx context.Context) ([]
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleUserChanges - high
-type EventsRuleUserChanges struct {
+// RuleIdentityProviderChangesCheck verifica se existe regra para mudanças de identity provider
+type RuleIdentityProviderChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleUserChanges cria nova instância
-func NewEventsRuleUserChanges() *EventsRuleUserChanges {
-	return &EventsRuleUserChanges{
+func NewRuleIdentityProviderChangesCheck() *RuleIdentityProviderChangesCheck {
+	return &RuleIdentityProviderChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_user_changes",
-			CheckTitle:     "Event rule monitoring user changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** targeting **IAM user changes** (e.g., `com.oraclecloud.identitycontrolplane.createuser` and related update/delete/state events) a",
-			RemediationText: "Create and maintain **Events rules** for IAM user lifecycle changes and attach reliable **notificati",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_identity_provider_changes",
+			CheckTitle:      "Ensure event rule exists for identity provider changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for identity provider change detection",
+			RemediationText: "Create event rule for identity provider changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleUserChanges) Metadata() models.CheckMetadata {
+func (c *RuleIdentityProviderChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleUserChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleIdentityProviderChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -481,43 +459,41 @@ func (c *EventsRuleUserChanges) Execute(ctx context.Context) ([]models.Finding, 
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsRuleSecurityListChanges - high
-type EventsRuleSecurityListChanges struct {
+// RuleIdpGroupMappingChangesCheck verifica se existe regra para mudanças de mapeamento de grupo IDP
+type RuleIdpGroupMappingChangesCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsRuleSecurityListChanges cria nova instância
-func NewEventsRuleSecurityListChanges() *EventsRuleSecurityListChanges {
-	return &EventsRuleSecurityListChanges{
+func NewRuleIdpGroupMappingChangesCheck() *RuleIdpGroupMappingChangesCheck {
+	return &RuleIdpGroupMappingChangesCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_rule_security_list_changes",
-			CheckTitle:     "Event rule monitoring security list changes has notification actions configured",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Events rules** for VCN **security lists** monitor lifecycle changes-create, update, delete, and compartment moves-and include **notification act",
-			RemediationText: "Define **Events** rules for security list create/update/delete and route them to **Notifications** o",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_idp_group_mapping_changes",
+			CheckTitle:      "Ensure event rule exists for IDP group mapping changes",
+			ServiceName:     "events",
+			Severity:        "high",
+			Description:     "Event rules should exist for IDP group mapping change detection",
+			RemediationText: "Create event rule for IDP group mapping changes",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsRuleSecurityListChanges) Metadata() models.CheckMetadata {
+func (c *RuleIdpGroupMappingChangesCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsRuleSecurityListChanges) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleIdpGroupMappingChangesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -525,43 +501,41 @@ func (c *EventsRuleSecurityListChanges) Execute(ctx context.Context) ([]models.F
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// EventsNotificationTopicAndSubscriptionExists - high
-type EventsNotificationTopicAndSubscriptionExists struct {
+// RuleLocalUserAuthenticationCheck verifica se existe regra para autenticação de usuário local
+type RuleLocalUserAuthenticationCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewEventsNotificationTopicAndSubscriptionExists cria nova instância
-func NewEventsNotificationTopicAndSubscriptionExists() *EventsNotificationTopicAndSubscriptionExists {
-	return &EventsNotificationTopicAndSubscriptionExists{
+func NewRuleLocalUserAuthenticationCheck() *RuleLocalUserAuthenticationCheck {
+	return &RuleLocalUserAuthenticationCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "events_notification_topic_and_subscription_exists",
-			CheckTitle:     "Tenancy has at least one notification topic with active subscriptions",
-			ServiceName:    "events",
-			Severity:       "high",
-			Description:    "**OCI Notifications** is evaluated for the existence of at least one **topic** that has one or more **subscriptions**.  The focus is on whether subscr",
-			RemediationText: "Create a centralized **Notifications** topic with one or more **subscriptions**, and route critical ",
-			Categories:     []string{"events"},
+			Provider:        "oci",
+			CheckID:         "events_rule_local_user_authentication",
+			CheckTitle:      "Ensure event rule exists for local user authentication",
+			ServiceName:     "events",
+			Severity:        "medium",
+			Description:     "Event rules should exist for local user authentication detection",
+			RemediationText: "Create event rule for local user authentication",
+			Categories:      []string{"events"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *EventsNotificationTopicAndSubscriptionExists) Metadata() models.CheckMetadata {
+func (c *RuleLocalUserAuthenticationCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *EventsNotificationTopicAndSubscriptionExists) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *RuleLocalUserAuthenticationCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -569,12 +543,12 @@ func (c *EventsNotificationTopicAndSubscriptionExists) Execute(ctx context.Conte
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - use events SDK",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
-

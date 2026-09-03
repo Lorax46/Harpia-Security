@@ -11,18 +11,22 @@ import (
 
 // Check é a interface que todos os checks devem implementar
 type Check interface {
-	Execute(ctx context.Context) ([]models.Finding, error)
+	Execute(ctx context.Context, provider interface{}) ([]models.Finding, error)
 	Metadata() models.CheckMetadata
 }
 
 // Executor orquestra a execução dos checks
 type Executor struct {
-	checks []Check
+	checks  []Check
+	provider interface{}
 }
 
 // New cria um novo executor
-func New(checks ...Check) *Executor {
-	return &Executor{checks: checks}
+func New(provider interface{}, checks ...Check) *Executor {
+	return &Executor{
+		checks:  checks,
+		provider: provider,
+	}
 }
 
 // Add adiciona um check
@@ -48,8 +52,8 @@ func (e *Executor) Run(ctx context.Context) models.ScanResult {
 		wg.Add(1)
 		go func(c Check) {
 			defer wg.Done()
-			
-			f, err := c.Execute(ctx)
+
+			f, err := c.Execute(ctx, e.provider)
 			if err != nil {
 				fmt.Printf("Erro ao executar check %s: %v\n", c.Metadata().CheckID, err)
 				return

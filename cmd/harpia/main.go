@@ -11,32 +11,32 @@ import (
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
-	oci_registry "github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci"
+	oci_checks "github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/providers/oci"
 )
 
 // ScanRequest representa uma requisição de scan
 type ScanRequest struct {
-	Provider    string            `json:"provider"`
-	Region      string            `json:"region"`
-	TenancyID   string            `json:"tenancy_id"`
-	UserID      string            `json:"user_id"`
-	Fingerprint string            `json:"fingerprint"`
-	PrivateKey  string            `json:"private_key"`
-	Passphrase  string            `json:"passphrase"`
-	Services    []string          `json:"services,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Provider    string   `json:"provider"`
+	Region      string   `json:"region"`
+	TenancyID   string   `json:"tenancy_id"`
+	UserID      string   `json:"user_id"`
+	Fingerprint string   `json:"fingerprint"`
+	PrivateKey  string   `json:"private_key"`
+	Passphrase  string   `json:"passphrase"`
+	Services    []string `json:"services,omitempty"`
 }
 
 // ScanResponse representa uma resposta de scan
 type ScanResponse struct {
-	Success   bool             `json:"success"`
-	Message   string           `json:"message"`
-	ScanID    string           `json:"scan_id"`
-	Provider  string           `json:"provider"`
-	StartedAt time.Time        `json:"started_at"`
-	FinishedAt time.Time       `json:"finished_at"`
-	Summary   models.Summary   `json:"summary"`
-	Findings  []models.Finding `json:"findings"`
+	Success    bool             `json:"success"`
+	Message    string           `json:"message"`
+	ScanID     string           `json:"scan_id"`
+	Provider   string           `json:"provider"`
+	StartedAt  time.Time        `json:"started_at"`
+	FinishedAt time.Time        `json:"finished_at"`
+	Summary    models.Summary   `json:"summary"`
+	Findings   []models.Finding `json:"findings"`
 }
 
 // ErrorResponse representa uma resposta de erro
@@ -49,14 +49,11 @@ var scanHistory = make(map[string]models.ScanResult)
 
 func main() {
 	mux := http.NewServeMux()
-	
-	// API endpoints
 	mux.HandleFunc("/api/health", handleHealth)
 	mux.HandleFunc("/api/scan", handleScan)
 	mux.HandleFunc("/api/findings", handleFindings)
 	mux.HandleFunc("/api/findings/", handleFindingsDetail)
 	
-	// CORS middleware
 	handler := corsMiddleware(mux)
 	
 	port := ":8083"
@@ -115,17 +112,20 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 		Findings:   result.Findings,
 	}
 	
-	// Salvar no histórico
 	scanHistory[resp.ScanID] = result
 	
 	writeJSON(w, http.StatusOK, resp)
 }
 
 func executeScan(ctx context.Context, req ScanRequest) models.ScanResult {
-	// Criar executor
-	exec := executor.New()
+	provider, err := oci.NewProvider(ctx, req.Region, req.TenancyID, req.UserID, req.Fingerprint, req.PrivateKey, req.Passphrase)
+	if err != nil {
+		log.Printf("Erro ao criar provider: %v", err)
+		return models.ScanResult{Provider: req.Provider, Region: req.Region}
+	}
 	
-	// Adicionar checks por provider
+	exec := executor.New(provider)
+	
 	switch req.Provider {
 	case "oci":
 		addOCIChecks(exec, req.Services)
@@ -133,7 +133,6 @@ func executeScan(ctx context.Context, req ScanRequest) models.ScanResult {
 		log.Printf("Provider %s not supported yet", req.Provider)
 	}
 	
-	// Executar
 	result := exec.Run(ctx)
 	result.Region = req.Region
 	
@@ -143,15 +142,14 @@ func executeScan(ctx context.Context, req ScanRequest) models.ScanResult {
 func addOCIChecks(exec *executor.Executor, services []string) {
 	servicesToRun := services
 	if len(servicesToRun) == 0 {
-		// Rodar todos os serviços
 		servicesToRun = make([]string, 0)
-		for service := range oci_registry.Registry {
+		for service := range oci_checks.Registry {
 			servicesToRun = append(servicesToRun, service)
 		}
 	}
 	
 	for _, service := range servicesToRun {
-		if checks, ok := oci_registry.Registry[service]; ok {
+		if checks, ok := oci_checks.Registry[service]; ok {
 			for _, check := range checks {
 				exec.Add(check)
 			}
@@ -165,7 +163,6 @@ func handleFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Retornar todos os findings do último scan
 	var allFindings []models.Finding
 	for _, result := range scanHistory {
 		allFindings = append(allFindings, result.Findings...)

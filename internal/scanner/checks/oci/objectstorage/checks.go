@@ -2,38 +2,39 @@ package objectstorage
 
 import (
 	"context"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
-// ObjectstorageBucketLoggingEnabled - medium
-type ObjectstorageBucketLoggingEnabled struct {
+// BucketNotPubliclyAccessibleCheck verifica se buckets são públicos
+type BucketNotPubliclyAccessibleCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewObjectstorageBucketLoggingEnabled cria nova instância
-func NewObjectstorageBucketLoggingEnabled() *ObjectstorageBucketLoggingEnabled {
-	return &ObjectstorageBucketLoggingEnabled{
+func NewBucketNotPubliclyAccessibleCheck() *BucketNotPubliclyAccessibleCheck {
+	return &BucketNotPubliclyAccessibleCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "objectstorage_bucket_logging_enabled",
-			CheckTitle:     "Object Storage bucket has write-level logging enabled",
-			ServiceName:    "objectstorage",
-			Severity:       "medium",
-			Description:    "**OCI Object Storage buckets** have service logs for **write access events** enabled.  The evaluation identifies buckets with an active `write` loggin",
-			RemediationText: "Enable `write` service logs on all buckets and route them to a centralized log group for monitoring.",
-			Categories:     []string{"objectstorage"},
+			Provider:        "oci",
+			CheckID:         "objectstorage_bucket_not_publicly_accessible",
+			CheckTitle:      "Ensure object storage buckets are not publicly accessible",
+			ServiceName:     "objectstorage",
+			Severity:        "critical",
+			ResourceType:    "Bucket",
+			ResourceGroup:   "ObjectStorage",
+			Description:     "Object storage buckets should not be publicly accessible",
+			Risk:            "Public buckets expose data to the internet",
+			RemediationText: "Set bucket visibility to private",
+			Categories:      []string{"storage"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *ObjectstorageBucketLoggingEnabled) Metadata() models.CheckMetadata {
+func (c *BucketNotPubliclyAccessibleCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *ObjectstorageBucketLoggingEnabled) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -41,43 +42,44 @@ func (c *ObjectstorageBucketLoggingEnabled) Execute(ctx context.Context) ([]mode
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - OCI SDK API incompatibility",
 			Provider:       "oci",
 			Service:        "objectstorage",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// ObjectstorageBucketEncryptedWithCmk - medium
-type ObjectstorageBucketEncryptedWithCmk struct {
+// BucketLoggingEnabledCheck verifica se buckets têm logging habilitado
+type BucketLoggingEnabledCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewObjectstorageBucketEncryptedWithCmk cria nova instância
-func NewObjectstorageBucketEncryptedWithCmk() *ObjectstorageBucketEncryptedWithCmk {
-	return &ObjectstorageBucketEncryptedWithCmk{
+func NewBucketLoggingEnabledCheck() *BucketLoggingEnabledCheck {
+	return &BucketLoggingEnabledCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "objectstorage_bucket_encrypted_with_cmk",
-			CheckTitle:     "Object Storage bucket is encrypted with a Customer Managed Key (CMK)",
-			ServiceName:    "objectstorage",
-			Severity:       "medium",
-			Description:    "**OCI Object Storage buckets** use **customer-managed encryption keys** (`CMEK`) for server-side encryption, with an associated KMS key configured on ",
-			RemediationText: "Encrypt buckets with `CMEK`. Apply **least privilege** to key usage, enforce **separation of duties*",
-			Categories:     []string{"objectstorage"},
+			Provider:        "oci",
+			CheckID:         "objectstorage_bucket_logging_enabled",
+			CheckTitle:      "Ensure object storage buckets have logging enabled",
+			ServiceName:     "objectstorage",
+			Severity:        "medium",
+			ResourceType:    "Bucket",
+			ResourceGroup:   "ObjectStorage",
+			Description:     "Object storage buckets should have logging enabled",
+			Risk:            "Buckets without logging cannot be audited",
+			RemediationText: "Enable logging for object storage buckets",
+			Categories:      []string{"storage"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *ObjectstorageBucketEncryptedWithCmk) Metadata() models.CheckMetadata {
+func (c *BucketLoggingEnabledCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *ObjectstorageBucketEncryptedWithCmk) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *BucketLoggingEnabledCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -85,43 +87,44 @@ func (c *ObjectstorageBucketEncryptedWithCmk) Execute(ctx context.Context) ([]mo
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - OCI SDK API incompatibility",
 			Provider:       "oci",
 			Service:        "objectstorage",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// ObjectstorageBucketNotPubliclyAccessible - critical
-type ObjectstorageBucketNotPubliclyAccessible struct {
+// BucketVersioningEnabledCheck verifica se buckets têm versionamento
+type BucketVersioningEnabledCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewObjectstorageBucketNotPubliclyAccessible cria nova instância
-func NewObjectstorageBucketNotPubliclyAccessible() *ObjectstorageBucketNotPubliclyAccessible {
-	return &ObjectstorageBucketNotPubliclyAccessible{
+func NewBucketVersioningEnabledCheck() *BucketVersioningEnabledCheck {
+	return &BucketVersioningEnabledCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "objectstorage_bucket_not_publicly_accessible",
-			CheckTitle:     "Object Storage bucket is not publicly accessible",
-			ServiceName:    "objectstorage",
-			Severity:       "critical",
-			Description:    "**OCI Object Storage buckets** are assessed for **public accessibility**. Buckets configured as `NoPublicAccess` deny anonymous reads; any other publi",
-			RemediationText: "Keep buckets **private** (`NoPublicAccess`) under the **least privilege** principle. For external sh",
-			Categories:     []string{"objectstorage"},
+			Provider:        "oci",
+			CheckID:         "objectstorage_bucket_versioning_enabled",
+			CheckTitle:      "Ensure object storage buckets have versioning enabled",
+			ServiceName:     "objectstorage",
+			Severity:        "medium",
+			ResourceType:    "Bucket",
+			ResourceGroup:   "ObjectStorage",
+			Description:     "Object storage buckets should have versioning enabled for data protection",
+			Risk:            "Buckets without versioning cannot recover from accidental deletions",
+			RemediationText: "Enable versioning for object storage buckets",
+			Categories:      []string{"storage"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *ObjectstorageBucketNotPubliclyAccessible) Metadata() models.CheckMetadata {
+func (c *BucketVersioningEnabledCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *ObjectstorageBucketNotPubliclyAccessible) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *BucketVersioningEnabledCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -129,43 +132,44 @@ func (c *ObjectstorageBucketNotPubliclyAccessible) Execute(ctx context.Context) 
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - OCI SDK API incompatibility",
 			Provider:       "oci",
 			Service:        "objectstorage",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
 
-// ObjectstorageBucketVersioningEnabled - medium
-type ObjectstorageBucketVersioningEnabled struct {
+// BucketEncryptedWithCmkCheck verifica se buckets usam CMK
+type BucketEncryptedWithCmkCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewObjectstorageBucketVersioningEnabled cria nova instância
-func NewObjectstorageBucketVersioningEnabled() *ObjectstorageBucketVersioningEnabled {
-	return &ObjectstorageBucketVersioningEnabled{
+func NewBucketEncryptedWithCmkCheck() *BucketEncryptedWithCmkCheck {
+	return &BucketEncryptedWithCmkCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "objectstorage_bucket_versioning_enabled",
-			CheckTitle:     "Object Storage bucket has versioning enabled",
-			ServiceName:    "objectstorage",
-			Severity:       "medium",
-			Description:    "**OCI Object Storage buckets** are assessed for **versioning** being set to `Enabled`, indicating prior object versions are retained when updates or d",
-			RemediationText: "Enable **bucket versioning** (`Enabled`) for data that needs recovery. Apply **least privilege** to ",
-			Categories:     []string{"objectstorage"},
+			Provider:        "oci",
+			CheckID:         "objectstorage_bucket_encrypted_with_cmk",
+			CheckTitle:      "Ensure object storage buckets are encrypted with CMK",
+			ServiceName:     "objectstorage",
+			Severity:        "medium",
+			ResourceType:    "Bucket",
+			ResourceGroup:   "ObjectStorage",
+			Description:     "Object storage buckets should be encrypted with customer managed keys",
+			Risk:            "Buckets with Oracle managed keys are less secure",
+			RemediationText: "Use CMK for bucket encryption",
+			Categories:      []string{"storage"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *ObjectstorageBucketVersioningEnabled) Metadata() models.CheckMetadata {
+func (c *BucketEncryptedWithCmkCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *ObjectstorageBucketVersioningEnabled) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *BucketEncryptedWithCmkCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -173,12 +177,12 @@ func (c *ObjectstorageBucketVersioningEnabled) Execute(ctx context.Context) ([]m
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - OCI SDK API incompatibility",
 			Provider:       "oci",
 			Service:        "objectstorage",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
-

@@ -2,6 +2,7 @@ package filestorage
 
 import (
 	"context"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
@@ -33,7 +34,7 @@ func (c *FilestorageFileSystemEncryptedWithCmk) Metadata() models.CheckMetadata 
 }
 
 // Execute executa o check
-func (c *FilestorageFileSystemEncryptedWithCmk) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *FilestorageFileSystemEncryptedWithCmk) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -46,6 +47,7 @@ func (c *FilestorageFileSystemEncryptedWithCmk) Execute(ctx context.Context) ([]
 			Service:        "filestorage",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }

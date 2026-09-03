@@ -6,95 +6,65 @@ import (
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/blockstorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/cloudguard"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/compute"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/database"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/events"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/filestorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/identity"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/integration"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/kms"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/network"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/objectstorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
 )
 
-// Registry contém todos os checks OCI disponíveis organizados por serviço
+// Registry contém todos os checks OCI implementados
 var Registry = map[string][]executor.Check{
 	"analytics": {
-		analytics.NewAnalyticsInstanceAccessRestricted(),
+		analytics.NewInstanceAccessRestrictedCheck(),
 	},
 	"audit": {
-		audit.NewAuditLogRetentionPeriod365Days(),
+		audit.NewLogRetentionCheck(),
 	},
 	"blockstorage": {
-		blockstorage.NewBlockstorageBlockVolumeEncryptedWithCmk(),
-		blockstorage.NewBlockstorageBootVolumeEncryptedWithCmk(),
+		blockstorage.NewBlockVolumeEncryptedWithCmkCheck(),
+		blockstorage.NewBootVolumeEncryptedWithCmkCheck(),
 	},
 	"cloudguard": {
-		cloudguard.NewCloudguardEnabled(),
+		cloudguard.NewCloudguardEnabledCheck(),
 	},
 	"compute": {
-		compute.NewComputeInstanceInTransitEncryptionEnabled(),
-		compute.NewComputeInstanceLegacyMetadataEndpointDisabled(),
-		compute.NewComputeInstanceSecureBootEnabled(),
-	},
-	"database": {
-		database.NewDatabaseAutonomousDatabaseAccessRestricted(),
+		compute.NewInstanceInTransitEncryptionCheck(),
 	},
 	"events": {
-		events.NewEventsNotificationTopicAndSubscriptionExists(),
-		events.NewEventsRuleCloudguardProblems(),
-		events.NewEventsRuleIamGroupChanges(),
-		events.NewEventsRuleIamPolicyChanges(),
-		events.NewEventsRuleIdentityProviderChanges(),
-		events.NewEventsRuleIdpGroupMappingChanges(),
-		events.NewEventsRuleLocalUserAuthentication(),
-		events.NewEventsRuleNetworkGatewayChanges(),
-		events.NewEventsRuleNetworkSecurityGroupChanges(),
-		events.NewEventsRuleRouteTableChanges(),
-		events.NewEventsRuleSecurityListChanges(),
-		events.NewEventsRuleUserChanges(),
-		events.NewEventsRuleVcnChanges(),
-	},
-	"filestorage": {
-		filestorage.NewFilestorageFileSystemEncryptedWithCmk(),
+		events.NewNotificationTopicAndSubscriptionExistsCheck(),
+		events.NewRuleCloudguardProblemsCheck(),
+		events.NewRuleIamPolicyChangesCheck(),
+		events.NewRuleIamGroupChangesCheck(),
+		events.NewRuleUserChangesCheck(),
+		events.NewRuleNetworkSecurityGroupChangesCheck(),
+		events.NewRuleVcnChangesCheck(),
+		events.NewRuleRouteTableChangesCheck(),
+		events.NewRuleSecurityListChangesCheck(),
+		events.NewRuleNetworkGatewayChangesCheck(),
+		events.NewRuleIdentityProviderChangesCheck(),
+		events.NewRuleIdpGroupMappingChangesCheck(),
+		events.NewRuleLocalUserAuthenticationCheck(),
 	},
 	"identity": {
-		identity.NewIdentityIamAdminsCannotUpdateTenancyAdmins(),
-		identity.NewIdentityInstancePrincipalUsed(),
-		identity.NewIdentityNoResourcesInRootCompartment(),
-		identity.NewIdentityNonRootCompartmentExists(),
-		identity.NewIdentityPasswordPolicyExpiresWithin365Days(),
-		identity.NewIdentityPasswordPolicyMinimumLength14(),
-		identity.NewIdentityPasswordPolicyPreventsReuse(),
-		identity.NewIdentityServiceLevelAdminsExist(),
-		identity.NewIdentityStorageServiceLevelAdminsScoped(),
-		identity.NewIdentityTenancyAdminPermissionsLimited(),
-		identity.NewIdentityTenancyAdminUsersNoApiKeys(),
-		identity.NewIdentityUserApiKeysRotated90Days(),
-		identity.NewIdentityUserAuthTokensRotated90Days(),
-		identity.NewIdentityUserCustomerSecretKeysRotated90Days(),
-		identity.NewIdentityUserDbPasswordsRotated90Days(),
-		identity.NewIdentityUserMfaEnabledConsoleAccess(),
-		identity.NewIdentityUserValidEmailAddress(),
-	},
-	"integration": {
-		integration.NewIntegrationInstanceAccessRestricted(),
-	},
-	"kms": {
-		kms.NewKmsKeyRotationEnabled(),
+		identity.NewPasswordPolicyMinLength(),
+		identity.NewMFACheck(),
+		identity.NewUserAPIKeysRotated90Days(),
+		identity.NewTenancyAdminUsersNoApiKeys(),
+		identity.NewNoResourcesInRootCompartment(),
 	},
 	"network": {
-		network.NewNetworkDefaultSecurityListRestrictsTraffic(),
-		network.NewNetworkSecurityGroupIngressFromInternetToRdpPort(),
-		network.NewNetworkSecurityGroupIngressFromInternetToSshPort(),
-		network.NewNetworkSecurityListIngressFromInternetToRdpPort(),
-		network.NewNetworkSecurityListIngressFromInternetToSshPort(),
-		network.NewNetworkVcnSubnetFlowLogsEnabled(),
+		network.NewDefaultSecurityListRestrictsTrafficCheck(),
+		network.NewSecurityGroupIngressFromInternetToRdpPortCheck(),
+		network.NewSecurityGroupIngressFromInternetToSshPortCheck(),
+		network.NewSecurityListIngressFromInternetToRdpPortCheck(),
+		network.NewSecurityListIngressFromInternetToSshPortCheck(),
+		network.NewVcnSubnetFlowLogsEnabledCheck(),
 	},
 	"objectstorage": {
-		objectstorage.NewObjectstorageBucketEncryptedWithCmk(),
-		objectstorage.NewObjectstorageBucketLoggingEnabled(),
-		objectstorage.NewObjectstorageBucketNotPubliclyAccessible(),
-		objectstorage.NewObjectstorageBucketVersioningEnabled(),
+		objectstorage.NewBucketEncryptedWithCmkCheck(),
+		objectstorage.NewBucketLoggingEnabledCheck(),
+		objectstorage.NewBucketNotPubliclyAccessibleCheck(),
+		objectstorage.NewBucketVersioningEnabledCheck(),
 	},
 }

@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"time"
 )
 
@@ -36,31 +35,25 @@ type Finding struct {
 
 // CheckMetadata define metadados de um check
 type CheckMetadata struct {
-	Provider           string   `json:"provider"`
-	CheckID            string   `json:"check_id"`
-	CheckTitle         string   `json:"check_title"`
-	CheckType          []string `json:"check_type"`
-	ServiceName        string   `json:"service_name"`
-	SubServiceName     string   `json:"sub_service_name"`
-	ResourceIdTemplate string   `json:"resource_id_template"`
-	Severity           string   `json:"severity"`
-	ResourceType       string   `json:"resource_type"`
-	ResourceGroup      string   `json:"resource_group"`
-	Description        string   `json:"description"`
-	Risk               string   `json:"risk"`
-	RelatedURL         string   `json:"related_url"`
-	RemediationText    string   `json:"remediation_text"`
-	RemediationURL     string   `json:"remediation_url"`
-	Categories         []string `json:"categories"`
-	DependsOn          []string `json:"depends_on"`
-	RelatedTo          []string `json:"related_to"`
-	Notes              string   `json:"notes"`
-}
-
-// Check interface que todos os checks devem implementar
-type Check interface {
-	Execute(ctx context.Context) ([]Finding, error)
-	Metadata() CheckMetadata
+	Provider         string   `json:"provider"`
+	CheckID          string   `json:"check_id"`
+	CheckTitle       string   `json:"check_title"`
+	CheckType        []string `json:"check_type"`
+	ServiceName      string   `json:"service_name"`
+	SubServiceName   string   `json:"sub_service_name"`
+	ResourceIdTemplate string `json:"resource_id_template"`
+	Severity         string   `json:"severity"`
+	ResourceType     string   `json:"resource_type"`
+	ResourceGroup    string   `json:"resource_group"`
+	Description      string   `json:"description"`
+	Risk             string   `json:"risk"`
+	RelatedURL       string   `json:"related_url"`
+	RemediationText  string   `json:"remediation_text"`
+	RemediationURL   string   `json:"remediation_url"`
+	Categories       []string `json:"categories"`
+	DependsOn        []string `json:"depends_on"`
+	RelatedTo        []string `json:"related_to"`
+	Notes            string   `json:"notes"`
 }
 
 // ScanResult agrupa os resultados de um scan

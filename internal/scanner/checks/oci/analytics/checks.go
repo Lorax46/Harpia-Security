@@ -2,38 +2,36 @@ package analytics
 
 import (
 	"context"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
-// AnalyticsInstanceAccessRestricted - high
-type AnalyticsInstanceAccessRestricted struct {
+// InstanceAccessRestrictedCheck verifica se instâncias analytics têm acesso restrito
+type InstanceAccessRestrictedCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewAnalyticsInstanceAccessRestricted cria nova instância
-func NewAnalyticsInstanceAccessRestricted() *AnalyticsInstanceAccessRestricted {
-	return &AnalyticsInstanceAccessRestricted{
+func NewInstanceAccessRestrictedCheck() *InstanceAccessRestrictedCheck {
+	return &InstanceAccessRestrictedCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "analytics_instance_access_restricted",
-			CheckTitle:     "Oracle Analytics Cloud instance is deployed within a Virtual Cloud Network or restricts public access to allowed sources",
-			ServiceName:    "analytics",
-			Severity:       "high",
-			Description:    "Oracle Analytics Cloud endpoints are evaluated for **network exposure**. Public endpoints must use **restricted allowlists** of specific IPs/CIDRs; pr",
-			RemediationText: "Prefer **private deployment in a VCN** and apply **least privilege** network access. *If public is r",
-			Categories:     []string{"analytics"},
+			Provider:        "oci",
+			CheckID:         "analytics_instance_access_restricted",
+			CheckTitle:      "Ensure Analytics Cloud instances are not publicly accessible",
+			ServiceName:     "analytics",
+			Severity:        "high",
+			Description:     "Oracle Analytics Cloud instances should not be publicly accessible",
+			RemediationText: "Restrict access to Oracle Analytics Cloud instances",
+			Categories:      []string{"analytics"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *AnalyticsInstanceAccessRestricted) Metadata() models.CheckMetadata {
+func (c *InstanceAccessRestrictedCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *AnalyticsInstanceAccessRestricted) Execute(ctx context.Context) ([]models.Finding, error) {
+func (c *InstanceAccessRestrictedCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
 	return []models.Finding{
 		{
 			ID:             c.metadata.CheckID,
@@ -41,12 +39,12 @@ func (c *AnalyticsInstanceAccessRestricted) Execute(ctx context.Context) ([]mode
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
 			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			StatusExtended: "Check requires implementation - OCI SDK API incompatibility",
 			Provider:       "oci",
 			Service:        "analytics",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		},
 	}, nil
 }
-

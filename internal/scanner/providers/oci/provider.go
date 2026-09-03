@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oracle/oci-go-sdk/v65/audit"
+	"github.com/oracle/oci-go-sdk/v65/cloudguard"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	objectstorage "github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
 
 // Provider representa um cliente OCI autenticado
@@ -44,8 +47,8 @@ func NewProvider(ctx context.Context, region, tenancyId, userId, keyFingerprint,
 	}, nil
 }
 
-// GetIdentityClient retorna um cliente Identity
-func (p *Provider) GetIdentityClient(ctx context.Context) (identity.IdentityClient, error) {
+// Identity retorna o cliente Identity
+func (p *Provider) Identity() (identity.IdentityClient, error) {
 	client, err := identity.NewIdentityClientWithConfigurationProvider(p.config)
 	if err != nil {
 		return client, fmt.Errorf("falha ao criar identity client: %w", err)
@@ -54,8 +57,8 @@ func (p *Provider) GetIdentityClient(ctx context.Context) (identity.IdentityClie
 	return client, nil
 }
 
-// GetComputeClient retorna um cliente Core (Compute)
-func (p *Provider) GetComputeClient(ctx context.Context) (core.ComputeClient, error) {
+// Compute retorna o cliente Compute
+func (p *Provider) Compute() (core.ComputeClient, error) {
 	client, err := core.NewComputeClientWithConfigurationProvider(p.config)
 	if err != nil {
 		return client, fmt.Errorf("falha ao criar compute client: %w", err)
@@ -64,12 +67,62 @@ func (p *Provider) GetComputeClient(ctx context.Context) (core.ComputeClient, er
 	return client, nil
 }
 
-// GetRegion retorna a região configurada
-func (p *Provider) GetRegion() string {
+// Audit retorna o cliente Audit
+func (p *Provider) Audit() (audit.AuditClient, error) {
+	client, err := audit.NewAuditClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar audit client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Network retorna o cliente Network
+func (p *Provider) Network() (core.VirtualNetworkClient, error) {
+	client, err := core.NewVirtualNetworkClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar network client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// ObjectStore retorna o cliente Object Storage
+func (p *Provider) ObjectStore() (objectstorage.ObjectStorageClient, error) {
+	client, err := objectstorage.NewObjectStorageClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar object storage client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// CloudGuard retorna o cliente Cloud Guard
+func (p *Provider) CloudGuard() (cloudguard.CloudGuardClient, error) {
+	client, err := cloudguard.NewCloudGuardClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar cloud guard client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Storage retorna o cliente Blockstorage
+func (p *Provider) Storage() (core.BlockstorageClient, error) {
+	client, err := core.NewBlockstorageClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar blockstorage client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Region retorna a região configurada
+func (p *Provider) Region() string {
 	return p.region
 }
 
-// GetTenancyId retorna o tenancy OCID
-func (p *Provider) GetTenancyId() string {
+// TenancyId retorna o tenancy OCID
+func (p *Provider) TenancyId() string {
 	return p.tenancyId
 }

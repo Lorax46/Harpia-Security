@@ -2,51 +2,91 @@ package cloudguard
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/oracle/oci-go-sdk/v65/cloudguard"
 )
 
-// CloudguardEnabled - high
-type CloudguardEnabled struct {
+// CloudguardEnabledCheck verifica se Cloudguard está habilitado
+type CloudguardEnabledCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewCloudguardEnabled cria nova instância
-func NewCloudguardEnabled() *CloudguardEnabled {
-	return &CloudguardEnabled{
+func NewCloudguardEnabledCheck() *CloudguardEnabledCheck {
+	return &CloudguardEnabledCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "cloudguard_enabled",
-			CheckTitle:     "Cloud Guard is enabled in the root compartment of the tenancy",
-			ServiceName:    "cloudguard",
-			Severity:       "high",
-			Description:    "**OCI Cloud Guard** status in the tenancy's root compartment is evaluated, expecting `ENABLED` to indicate the service is active for organization-wide",
-			RemediationText: "Enable **Cloud Guard** at the tenancy root to centralize monitoring and automated response. Apply **",
-			Categories:     []string{"cloudguard"},
+			Provider:        "oci",
+			CheckID:         "cloudguard_enabled",
+			CheckTitle:      "Ensure Cloud Guard is enabled",
+			ServiceName:     "cloudguard",
+			Severity:        "high",
+			Description:     "Cloud Guard should be enabled for threat detection",
+			RemediationText: "Enable Cloud Guard at the tenancy level",
+			Categories:      []string{"security"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *CloudguardEnabled) Metadata() models.CheckMetadata {
+func (c *CloudguardEnabledCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *CloudguardEnabled) Execute(ctx context.Context) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+func (c *CloudguardEnabledCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(interface {
+		CloudGuard() (cloudguard.CloudGuardClient, error)
+		TenancyId() string
+	})
+	if !ok {
+		return nil, fmt.Errorf("provider não implementa CloudGuard()")
+	}
+
+	client, err := p.CloudGuard()
+	if err != nil {
+		return nil, err
+	}
+
+	tenancyId := p.TenancyId()
+	findings := []models.Finding{}
+
+	req := cloudguard.GetConfigurationRequest{
+		CompartmentId: &tenancyId,
+	}
+	config, err := client.GetConfiguration(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("falha ao obter configuração do Cloud Guard: %w", err)
+	}
+
+	if config.Status == "ENABLED" {
+		findings = append(findings, models.Finding{
 			ID:             c.metadata.CheckID,
 			Title:          c.metadata.CheckTitle,
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			Status:         models.StatusPass,
+			StatusExtended: "Cloud Guard is enabled",
 			Provider:       "oci",
 			Service:        "cloudguard",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
-		},
-	}, nil
-}
+			FoundAt:        time.Now(),
+		})
+	} else {
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         models.StatusFail,
+			StatusExtended: fmt.Sprintf("Cloud Guard status: %s", string(config.Status)),
+			Provider:       "oci",
+			Service:        "cloudguard",
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
+		})
+	}
 
+	return findings, nil
+}

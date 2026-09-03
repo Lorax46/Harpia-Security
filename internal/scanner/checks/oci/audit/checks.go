@@ -2,51 +2,127 @@ package audit
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/oracle/oci-go-sdk/v65/audit"
 )
 
-// AuditLogRetentionPeriod365Days - medium
-type AuditLogRetentionPeriod365Days struct {
+// LogRetentionCheck verifica retenção de logs
+type LogRetentionCheck struct {
 	metadata models.CheckMetadata
 }
 
-// NewAuditLogRetentionPeriod365Days cria nova instância
-func NewAuditLogRetentionPeriod365Days() *AuditLogRetentionPeriod365Days {
-	return &AuditLogRetentionPeriod365Days{
+func NewLogRetentionCheck() *LogRetentionCheck {
+	return &LogRetentionCheck{
 		metadata: models.CheckMetadata{
-			Provider:       "oci",
-			CheckID:        "audit_log_retention_period_365_days",
-			CheckTitle:     "Tenancy audit log retention period is 365 days or greater",
-			ServiceName:    "audit",
-			Severity:       "medium",
-			Description:    "**OCI Audit configuration** defines tenancy-wide log retention for audit events. The finding evaluates whether the retention period (days) is `>= 365`",
-			RemediationText: "Set audit retention to `>= 365` days at the tenancy level and protect the setting with **least privi",
-			Categories:     []string{"audit"},
+			Provider:        "oci",
+			CheckID:         "audit_log_retention_period_365_days",
+			CheckTitle:      "Tenancy audit log retention period is 365 days or greater",
+			ServiceName:     "audit",
+			Severity:        "medium",
+			Description:     "OCI Audit configuration defines tenancy-wide log retention",
+			RemediationText: "Set audit retention to >= 365 days",
+			Categories:      []string{"audit"},
 		},
 	}
 }
 
-// Metadata retorna os metadados
-func (c *AuditLogRetentionPeriod365Days) Metadata() models.CheckMetadata {
+func (c *LogRetentionCheck) Metadata() models.CheckMetadata {
 	return c.metadata
 }
 
-// Execute executa o check
-func (c *AuditLogRetentionPeriod365Days) Execute(ctx context.Context) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+func (c *LogRetentionCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(interface {
+		Audit() (audit.AuditClient, error)
+		TenancyId() string
+	})
+	if !ok {
+		return nil, fmt.Errorf("provider não implementa Audit()")
+	}
+
+	auditClient, err := p.Audit()
+	if err != nil {
+		return nil, err
+	}
+
+	tenancyId := p.TenancyId()
+	findings := []models.Finding{}
+
+	request := audit.GetConfigurationRequest{
+		CompartmentId: &tenancyId,
+	}
+
+	response, err := auditClient.GetConfiguration(ctx, request)
+	if err != nil {
+		// Se não tem permissão, retorna INFO ao invés de erro
+		if err.Error() != "" && (contains(err.Error(), "NotAuthorized") || contains(err.Error(), "404")) {
+			findings = append(findings, models.Finding{
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         models.StatusInfo,
+				StatusExtended: "Unable to verify audit retention (insufficient permissions)",
+				Provider:       "oci",
+				Service:        "audit",
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
+			})
+			return findings, nil
+		}
+		return nil, fmt.Errorf("falha ao obter configuração de audit: %w", err)
+	}
+
+	retentionPeriod := response.Configuration.RetentionPeriodDays
+	if retentionPeriod != nil && *retentionPeriod >= 365 {
+		findings = append(findings, models.Finding{
 			ID:             c.metadata.CheckID,
 			Title:          c.metadata.CheckTitle,
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation",
+			Status:         models.StatusPass,
+			StatusExtended: fmt.Sprintf("Audit log retention is %d days", *retentionPeriod),
 			Provider:       "oci",
 			Service:        "audit",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
-		},
-	}, nil
+			FoundAt:        time.Now(),
+		})
+	} else {
+		msg := "Audit log retention is less than 365 days"
+		if retentionPeriod != nil {
+			msg = fmt.Sprintf("Audit log retention is %d days (should be >= 365)", *retentionPeriod)
+		}
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         models.StatusFail,
+			StatusExtended: msg,
+			Provider:       "oci",
+			Service:        "audit",
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
+		})
+	}
+
+	return findings, nil
 }
 
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
