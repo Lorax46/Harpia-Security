@@ -1,0 +1,33 @@
+{
+  "Provider": "aws",
+  "CheckID": "iam_support_role_created",
+  "CheckTitle": "At least one IAM role has the AWSSupportAccess managed policy attached",
+  "CheckType": [
+    "Software and Configuration Checks/Industry and Regulatory Standards/CIS AWS Foundations Benchmark"
+  ],
+  "ServiceName": "iam",
+  "SubServiceName": "",
+  "ResourceIdTemplate": "",
+  "Severity": "low",
+  "ResourceType": "AwsIamRole",
+  "ResourceGroup": "IAM",
+  "Description": "Presence of an IAM role that has the AWS managed AWSSupportAccess policy attached, designating a support role for interacting with AWS Support Center.",
+  "Risk": "Without a dedicated support role, case creation can be delayed and teams may use admin/root, increasing blast radius.",
+  "RelatedUrl": "https://docs.aws.amazon.com/awssupport/latest/user/using-service-linked-roles-sup.html",
+  "Remediation": {
+    "Code": {
+      "CLI": "aws iam attach-role-policy --role-name <role> --policy-arn arn:aws:iam::aws:policy/AWSSupportAccess",
+      "NativeIaC": "# CloudFormation: attach AWSSupportAccess to a role",
+      "Other": "In AWS console, go to IAM > Roles, select a role, Add permissions, search AWSSupportAccess, Attach",
+      "Terraform": "resource \"aws_iam_role_policy_attachment\" \"support\" {\n  role       = aws_iam_role.support.name\n  policy_arn = \"arn:aws:iam::aws:policy/AWSSupportAccess\"\n}"
+    },
+    "Recommendation": {
+      "Text": "Create a dedicated IAM role for AWS Support with AWSSupportAccess and restrict who can assume it.",
+      "Url": "https://hub.prowler.com/check/iam_support_role_created"
+    }
+  },
+  "Categories": ["identity-access"],
+  "DependsOn": [],
+  "RelatedTo": [],
+  "Notes": "CAF Security Epic: IAM"
+}
