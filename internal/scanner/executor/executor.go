@@ -3,49 +3,69 @@ package executor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
-// Executor orquestra a execução dos checks
-type Executor struct{}
-
-// New cria um novo executor
-func New() *Executor {
-	return &Executor{}
+// Check é a interface que todos os checks devem implementar
+type Check interface {
+	Execute(ctx context.Context) ([]models.Finding, error)
+	Metadata() models.CheckMetadata
 }
 
-// Run executa todos os checks registrados
-func (e *Executor) Run(ctx context.Context, checks []models.Check) models.ScanResult {
+// Executor orquestra a execução dos checks
+type Executor struct {
+	checks []Check
+}
+
+// New cria um novo executor
+func New(checks ...Check) *Executor {
+	return &Executor{checks: checks}
+}
+
+// Add adiciona um check
+func (e *Executor) Add(check Check) {
+	e.checks = append(e.checks, check)
+}
+
+// Run executa todos os checks em paralelo
+func (e *Executor) Run(ctx context.Context) models.ScanResult {
 	result := models.ScanResult{
-		Provider:  checks[0].Metadata().Provider,
-		Region:    "us-east-1",
 		StartedAt: time.Now(),
 		Findings:  []models.Finding{},
 	}
 
+	if len(e.checks) > 0 {
+		result.Provider = e.checks[0].Metadata().Provider
+	}
+
+	var wg sync.WaitGroup
+	findingsChan := make(chan []models.Finding, len(e.checks))
+
+	for _, check := range e.checks {
+		wg.Add(1)
+		go func(c Check) {
+			defer wg.Done()
+			
+			f, err := c.Execute(ctx)
+			if err != nil {
+				fmt.Printf("Erro ao executar check %s: %v\n", c.Metadata().CheckID, err)
+				return
+			}
+			findingsChan <- f
+		}(check)
+	}
+
+	wg.Wait()
+	close(findingsChan)
+
 	summary := models.Summary{}
-
-	for _, check := range checks {
-		select {
-		case <-ctx.Done():
-			result.FinishedAt = time.Now()
-			result.Summary = summary
-			return result
-		default:
-		}
-
-		findings, err := check.Execute(ctx)
-		if err != nil {
-			fmt.Printf("Erro ao executar check %s: %v\n", check.Metadata().CheckID, err)
-			continue
-		}
-
+	for findings := range findingsChan {
 		for _, f := range findings {
 			f.FoundAt = time.Now()
 			result.Findings = append(result.Findings, f)
-
 			switch f.Severity {
 			case "critical":
 				summary.Critical++
@@ -65,9 +85,4 @@ func (e *Executor) Run(ctx context.Context, checks []models.Check) models.ScanRe
 	result.Summary = summary
 	result.FinishedAt = time.Now()
 	return result
-}
-
-// RunSingle executa um único check
-func (e *Executor) RunSingle(ctx context.Context, check models.Check) ([]models.Finding, error) {
-	return check.Execute(ctx)
 }
