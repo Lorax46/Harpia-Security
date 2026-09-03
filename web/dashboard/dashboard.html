@@ -397,6 +397,12 @@ body {
 <body>
 
 <!-- Sidebar -->
+<script>
+    // Auth check
+    if (!localStorage.getItem('harpia_logged')) {
+        window.location.href = 'login.html';
+    }
+</script>
 <aside class="sidebar">
     <div class="sidebar-brand">
         <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
@@ -457,8 +463,8 @@ body {
         <div class="user">
             <div class="avatar">LO</div>
             <div class="user-info">
-                <div class="user-name">Lorenzo</div>
-                <div class="user-role">Admin</div>
+                <div class="user-name" id="userName">Lorenzo</div>
+                <div class="user-role" id="userRole">Admin</div>
             </div>
         </div>
     </div>
@@ -560,6 +566,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+</script>
+
+<script>
+    const role = localStorage.getItem('harpia_role') || 'Admin';
+    const name = localStorage.getItem('harpia_name') || 'Lorenzo';
+    document.getElementById('userName').textContent = name;
+    document.getElementById('userRole').textContent = role;
+    
+    document.querySelector('.user').style.cursor = 'pointer';
+    document.querySelector('.user').addEventListener('click', () => {
+        if (confirm('Deseja sair?')) {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        }
+    });
 </script>
 </body>
 </html>
