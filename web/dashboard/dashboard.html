@@ -557,14 +557,7 @@ body {
 <script>
 // Toggle sidebar mobile
 document.addEventListener('DOMContentLoaded', () => {
-    // Marcar link ativo
-    document.querySelectorAll('.nav a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.querySelectorAll('.nav a').forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-        });
-    });
+    // Links navegam naturalmente via href
 });
 </script>
 
