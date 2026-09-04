@@ -11,7 +11,9 @@ import (
 
 	"github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
 	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	aws_checks "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws"
 	oci_checks "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/providers/aws"
 	"github.com/Lorax46/TOTVS-Horus/internal/scanner/providers/oci"
 )
 
@@ -24,6 +26,8 @@ type ScanRequest struct {
 	Fingerprint string   `json:"fingerprint"`
 	PrivateKey  string   `json:"private_key"`
 	Passphrase  string   `json:"passphrase"`
+	AccessKey   string   `json:"access_key"`
+	SecretKey   string   `json:"secret_key"`
 	Services    []string `json:"services,omitempty"`
 }
 
@@ -118,7 +122,19 @@ func handleScan(w http.ResponseWriter, r *http.Request) {
 }
 
 func executeScan(ctx context.Context, req ScanRequest) models.ScanResult {
-	provider, err := oci.NewProvider(ctx, req.Region, req.TenancyID, req.UserID, req.Fingerprint, req.PrivateKey, req.Passphrase)
+	var provider interface{}
+	var err error
+
+	switch req.Provider {
+	case "aws":
+		provider, err = aws.NewProvider(ctx, req.Region, req.AccessKey, req.SecretKey)
+	case "oci":
+		provider, err = oci.NewProvider(ctx, req.Region, req.TenancyID, req.UserID, req.Fingerprint, req.PrivateKey, req.Passphrase)
+	default:
+		log.Printf("Provider %s not supported", req.Provider)
+		return models.ScanResult{Provider: req.Provider, Region: req.Region}
+	}
+
 	if err != nil {
 		log.Printf("Erro ao criar provider: %v", err)
 		return models.ScanResult{Provider: req.Provider, Region: req.Region}
@@ -127,16 +143,34 @@ func executeScan(ctx context.Context, req ScanRequest) models.ScanResult {
 	exec := executor.New(provider)
 	
 	switch req.Provider {
+	case "aws":
+		addAWSChecks(exec, req.Services)
 	case "oci":
 		addOCIChecks(exec, req.Services)
-	default:
-		log.Printf("Provider %s not supported yet", req.Provider)
 	}
 	
 	result := exec.Run(ctx)
 	result.Region = req.Region
 	
 	return result
+}
+
+func addAWSChecks(exec *executor.Executor, services []string) {
+	servicesToRun := services
+	if len(servicesToRun) == 0 {
+		servicesToRun = make([]string, 0)
+		for service := range aws_checks.Registry {
+			servicesToRun = append(servicesToRun, service)
+		}
+	}
+	
+	for _, service := range servicesToRun {
+		if checks, ok := aws_checks.Registry[service]; ok {
+			for _, check := range checks {
+				exec.Add(check)
+			}
+		}
+	}
 }
 
 func addOCIChecks(exec *executor.Executor, services []string) {

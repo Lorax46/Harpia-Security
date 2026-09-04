@@ -62,7 +62,7 @@ body {
 
 .sidebar-brand svg { width: 28px; height: 28px; }
 .sidebar-brand span { font-size: 16px; font-weight: 700; }
-.sidebar-brand span::after { content: 'Security'; color: var(--accent); font-weight: 400; }
+.sidebar-brand span::after { content: 'Horus'; color: var(--accent); font-weight: 400; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; padding: 0 12px; flex: 1; }
 
@@ -396,37 +396,58 @@ body {
         <form id="scanForm">
             <div class="form-group">
                 <label>Provider</label>
-                <select id="provider" required>
+                <select id="provider" required onchange="updateForm()">
+                    <option value="aws">AWS</option>
                     <option value="oci">Oracle Cloud (OCI)</option>
-                    <option value="aws" disabled>AWS (em breve)</option>
                     <option value="gcp" disabled>GCP (em breve)</option>
                     <option value="azure" disabled>Azure (em breve)</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label>Região</label>
-                <input type="text" id="region" value="sa-saopaulo-1" placeholder="sa-saopaulo-1" required>
+
+            <!-- AWS Fields -->
+            <div id="awsFields">
+                <div class="form-group">
+                    <label>Região</label>
+                    <input type="text" id="region" value="us-east-1" placeholder="us-east-1" required>
+                </div>
+                <div class="form-group">
+                    <label>Access Key ID</label>
+                    <input type="text" id="accessKey" placeholder="AKIA..." required>
+                </div>
+                <div class="form-group">
+                    <label>Secret Access Key</label>
+                    <input type="password" id="secretKey" placeholder="..." required>
+                </div>
             </div>
-            <div class="form-group">
-                <label>Tenancy OCID</label>
-                <input type="text" id="tenancyId" placeholder="ocid1.tenancy.oc1.." required>
+
+            <!-- OCI Fields -->
+            <div id="ociFields" style="display:none">
+                <div class="form-group">
+                    <label>Região</label>
+                    <input type="text" id="ociRegion" value="sa-saopaulo-1" placeholder="sa-saopaulo-1">
+                </div>
+                <div class="form-group">
+                    <label>Tenancy OCID</label>
+                    <input type="text" id="tenancyId" placeholder="ocid1.tenancy.oc1..">
+                </div>
+                <div class="form-group">
+                    <label>User OCID</label>
+                    <input type="text" id="userId" placeholder="ocid1.user.oc1..">
+                </div>
+                <div class="form-group">
+                    <label>Fingerprint</label>
+                    <input type="text" id="fingerprint" placeholder="a9:51:72:c9:ec:bf:82:38:...">
+                </div>
+                <div class="form-group">
+                    <label>Private Key (PEM)</label>
+                    <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----&#10;..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Passphrase (opcional)</label>
+                    <input type="text" id="passphrase" placeholder="">
+                </div>
             </div>
-            <div class="form-group">
-                <label>User OCID</label>
-                <input type="text" id="userId" placeholder="ocid1.user.oc1.." required>
-            </div>
-            <div class="form-group">
-                <label>Fingerprint</label>
-                <input type="text" id="fingerprint" placeholder="a9:51:72:c9:ec:bf:82:38:..." required>
-            </div>
-            <div class="form-group">
-                <label>Private Key (PEM)</label>
-                <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----&#10;..." required></textarea>
-            </div>
-            <div class="form-group">
-                <label>Passphrase (opcional)</label>
-                <input type="text" id="passphrase" placeholder="">
-            </div>
+
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
                 <button type="submit" class="btn btn-primary" id="startBtn">Iniciar Scan</button>
@@ -450,11 +471,21 @@ document.querySelector('.user').addEventListener('click', () => {
 });
 
 // Load saved credentials
-const savedCreds = JSON.parse(localStorage.getItem('totvs_horus_oci_creds') || '{}');
-if (savedCreds.tenancyId) document.getElementById('tenancyId').value = savedCreds.tenancyId;
-if (savedCreds.userId) document.getElementById('userId').value = savedCreds.userId;
-if (savedCreds.fingerprint) document.getElementById('fingerprint').value = savedCreds.fingerprint;
+const savedCreds = JSON.parse(localStorage.getItem('totvs_horus_aws_creds') || '{}');
+if (savedCreds.accessKey) document.getElementById('accessKey').value = savedCreds.accessKey;
 if (savedCreds.region) document.getElementById('region').value = savedCreds.region;
+
+const savedOCICreds = JSON.parse(localStorage.getItem('totvs_horus_oci_creds') || '{}');
+if (savedOCICreds.tenancyId) document.getElementById('tenancyId').value = savedOCICreds.tenancyId;
+if (savedOCICreds.userId) document.getElementById('userId').value = savedOCICreds.userId;
+if (savedOCICreds.fingerprint) document.getElementById('fingerprint').value = savedOCICreds.fingerprint;
+if (savedOCICreds.region) document.getElementById('ociRegion').value = savedOCICreds.region;
+
+function updateForm() {
+    const provider = document.getElementById('provider').value;
+    document.getElementById('awsFields').style.display = provider === 'aws' ? 'block' : 'none';
+    document.getElementById('ociFields').style.display = provider === 'oci' ? 'block' : 'none';
+}
 
 function openModal() {
     document.getElementById('modal').classList.add('active');
@@ -532,24 +563,37 @@ document.getElementById('scanForm').addEventListener('submit', async (e) => {
     startBtn.disabled = true;
     startBtn.textContent = 'Escaneando...';
     
-    // Save credentials
-    const creds = {
-        tenancyId: document.getElementById('tenancyId').value,
-        userId: document.getElementById('userId').value,
-        fingerprint: document.getElementById('fingerprint').value,
-        region: document.getElementById('region').value,
-    };
-    localStorage.setItem('totvs_horus_oci_creds', JSON.stringify(creds));
+    const provider = document.getElementById('provider').value;
+    let body = { provider };
     
-    const body = {
-        provider: document.getElementById('provider').value,
-        region: document.getElementById('region').value,
-        tenancy_id: creds.tenancyId,
-        user_id: creds.userId,
-        fingerprint: creds.fingerprint,
-        private_key: document.getElementById('privateKey').value,
-        passphrase: document.getElementById('passphrase').value,
-    };
+    if (provider === 'aws') {
+        // Save credentials
+        const creds = {
+            accessKey: document.getElementById('accessKey').value,
+            region: document.getElementById('region').value,
+        };
+        localStorage.setItem('totvs_horus_aws_creds', JSON.stringify(creds));
+        
+        body.region = creds.region;
+        body.access_key = creds.accessKey;
+        body.secret_key = document.getElementById('secretKey').value;
+    } else if (provider === 'oci') {
+        // Save credentials
+        const creds = {
+            tenancyId: document.getElementById('tenancyId').value,
+            userId: document.getElementById('userId').value,
+            fingerprint: document.getElementById('fingerprint').value,
+            region: document.getElementById('ociRegion').value,
+        };
+        localStorage.setItem('totvs_horus_oci_creds', JSON.stringify(creds));
+        
+        body.region = creds.region;
+        body.tenancy_id = creds.tenancyId;
+        body.user_id = creds.userId;
+        body.fingerprint = creds.fingerprint;
+        body.private_key = document.getElementById('privateKey').value;
+        body.passphrase = document.getElementById('passphrase').value;
+    }
     
     try {
         const resp = await fetch('/api/scan', {

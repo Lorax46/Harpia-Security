@@ -1,0 +1,931 @@
+package aws
+
+import (
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/accessanalyzer"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/account"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/acm"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/acmpca"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/amplify"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/apigateway"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/apigatewayv2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/appstream"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/appsync"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/athena"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/autoscaling"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/awslambda"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/backup"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/batch"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/bedrock"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/cloudformation"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/cloudfront"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/cloudtrail"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/cloudwatch"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/codeartifact"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/codebuild"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/codecommit"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/codepipeline"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/cognito"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/config"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/datapipeline"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/datasync"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/directconnect"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/directoryservice"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/dlm"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/dms"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/documentdb"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/drs"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/dynamodb"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ec2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ecr"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ecs"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/efs"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/eks"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/elasticache"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/elasticbeanstalk"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/elb"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/elbv2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/emr"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/eventbridge"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/firehose"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/fms"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/fsx"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/glacier"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/glue"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/guardduty"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/iam"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/inspector2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/kafka"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/kinesis"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/kms"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/lightsail"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/macie"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/memorydb"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/mq"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/neptune"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/networkfirewall"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/opensearch"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/organizations"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/rds"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/redshift"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/resourceexplorer2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/rolesanywhere"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/route53"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/s3"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/sagemaker"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/secretsmanager"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/securityhub"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/servicecatalog"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ses"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/shield"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/sns"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/sqs"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ssm"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/ssmincidents"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/stepfunctions"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/storagegateway"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/transfer"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/trustedadvisor"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/vpc"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/waf"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/wafv2"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/wellarchitected"
+    "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/aws/workspaces"
+)
+
+// Registry contém todos os checks AWS implementados
+var Registry = map[string][]executor.Check{
+    "accessanalyzer": {
+        accessanalyzer.NewAccessanalyzerEnabledWithoutFindings(),
+        accessanalyzer.NewAccessanalyzerEnabled(),
+    },
+    "account": {
+        account.NewAccountSecurityContactInformationIsRegistered(),
+        account.NewAccountMaintainDifferentContactDetailsToSecurityBillingAndOperations(),
+        account.NewAccountSecurityQuestionsAreRegisteredInTheAwsAccount(),
+        account.NewAccountMaintainCurrentContactDetails(),
+    },
+    "acm": {
+        acm.NewAcmCertificatesWithSecureKeyAlgorithms(),
+        acm.NewAcmCertificatesTransparencyLogsEnabled(),
+        acm.NewAcmCertificatesExpirationCheck(),
+    },
+    "acmpca": {
+        acmpca.NewAcmpcaCertificateAuthorityPqcKeyAlgorithm(),
+    },
+    "amplify": {
+        amplify.NewAmplifyAppNoSecretsInEnvironment(),
+    },
+    "apigateway": {
+        apigateway.NewApigatewayRestapiWafAclAttached(),
+        apigateway.NewApigatewayRestapiPublicWithAuthorizer(),
+        apigateway.NewApigatewayRestapiLoggingEnabled(),
+        apigateway.NewApigatewayRestapiAuthorizersEnabled(),
+        apigateway.NewApigatewayDomainNamePqcTlsEnabled(),
+        apigateway.NewApigatewayRestapiClientCertificateEnabled(),
+        apigateway.NewApigatewayRestapiPublic(),
+        apigateway.NewApigatewayRestapiCacheEncrypted(),
+        apigateway.NewApigatewayRestapiTracingEnabled(),
+        apigateway.NewApigatewayRestapiNoSecretsInStageVariables(),
+    },
+    "apigatewayv2": {
+        apigatewayv2.NewApigatewayv2ApiAccessLoggingEnabled(),
+        apigatewayv2.NewApigatewayv2ApiAuthorizersEnabled(),
+    },
+    "appstream": {
+        appstream.NewAppstreamFleetDefaultInternetAccessDisabled(),
+        appstream.NewAppstreamFleetSessionDisconnectTimeout(),
+        appstream.NewAppstreamFleetMaximumSessionDuration(),
+        appstream.NewAppstreamFleetSessionIdleDisconnectTimeout(),
+    },
+    "appsync": {
+        appsync.NewAppsyncGraphqlApiNoApiKeyAuthentication(),
+        appsync.NewAppsyncFieldLevelLoggingEnabled(),
+    },
+    "athena": {
+        athena.NewAthenaWorkgroupEncryption(),
+        athena.NewAthenaWorkgroupLoggingEnabled(),
+        athena.NewAthenaWorkgroupEnforceConfiguration(),
+    },
+    "autoscaling": {
+        autoscaling.NewAutoscalingGroupLaunchConfigurationRequiresImdsv2(),
+        autoscaling.NewAutoscalingGroupMultipleAz(),
+        autoscaling.NewAutoscalingFindSecretsEc2LaunchConfiguration(),
+        autoscaling.NewAutoscalingGroupLaunchConfigurationNoPublicIp(),
+        autoscaling.NewAutoscalingGroupCapacityRebalanceEnabled(),
+        autoscaling.NewAutoscalingGroupMultipleInstanceTypes(),
+        autoscaling.NewAutoscalingGroupUsingEc2LaunchTemplate(),
+        autoscaling.NewAutoscalingGroupElbHealthCheckEnabled(),
+    },
+    "awslambda": {
+        awslambda.NewAwslambdaFunctionInsideVpc(),
+        awslambda.NewAwslambdaFunctionNotPubliclyAccessible(),
+        awslambda.NewAwslambdaFunctionUrlCorsPolicy(),
+        awslambda.NewAwslambdaFunctionVpcMultiAz(),
+        awslambda.NewAwslambdaFunctionInvokeApiOperationsCloudtrailLoggingEnabled(),
+        awslambda.NewAwslambdaFunctionNoSecretsInCode(),
+        awslambda.NewAwslambdaFunctionUsingSupportedRuntimes(),
+        awslambda.NewAwslambdaFunctionUrlPublic(),
+        awslambda.NewAwslambdaFunctionUsingCrossAccountLayers(),
+        awslambda.NewAwslambdaLayerNoSecretsInContent(),
+        awslambda.NewAwslambdaFunctionNoSecretsInVariables(),
+        awslambda.NewAwslambdaFunctionEnvVarsNotEncryptedWithCmk(),
+        awslambda.NewAwslambdaFunctionNoDeadLetterQueue(),
+    },
+    "backup": {
+        backup.NewBackupPlansExist(),
+        backup.NewBackupVaultsExist(),
+        backup.NewBackupVaultsEncrypted(),
+        backup.NewBackupReportplansExist(),
+        backup.NewBackupRecoveryPointEncrypted(),
+    },
+    "batch": {
+        batch.NewBatchJobDefinitionNoSecrets(),
+    },
+    "bedrock": {
+        bedrock.NewBedrockApiKeyNoLongTermCredentials(),
+        bedrock.NewBedrockAgentRoleLeastPrivilege(),
+        bedrock.NewBedrockGuardrailSensitiveInformationFilterEnabled(),
+        bedrock.NewBedrockGuardrailContextualGroundingFilterEnabled(),
+        bedrock.NewBedrockModelInvocationLoggingEnabled(),
+        bedrock.NewBedrockAgentGuardrailEnabled(),
+        bedrock.NewBedrockModelInvocationLogsEncryptionEnabled(),
+        bedrock.NewBedrockAgentRoleNotSharedAcrossAgents(),
+        bedrock.NewBedrockPromptManagementExists(),
+        bedrock.NewBedrockGuardrailPromptAttackFilterEnabled(),
+        bedrock.NewBedrockFullAccessPolicyAttached(),
+        bedrock.NewBedrockGuardrailsConfigured(),
+        bedrock.NewBedrockPromptEncryptedWithCmk(),
+        bedrock.NewBedrockCustomModelEncryptedWithCmk(),
+        bedrock.NewBedrockKnowledgeBaseEncryptedWithCmk(),
+        bedrock.NewBedrockVpcEndpointsConfigured(),
+        bedrock.NewBedrockApiKeyNoAdministrativePrivileges(),
+    },
+    "cloudformation": {
+        cloudformation.NewCloudformationStackCdktoolkitBootstrapVersion(),
+        cloudformation.NewCloudformationStacksTerminationProtectionEnabled(),
+        cloudformation.NewCloudformationStackOutputsFindSecrets(),
+    },
+    "cloudfront": {
+        cloudfront.NewCloudfrontDistributionsGeoRestrictionsEnabled(),
+        cloudfront.NewCloudfrontDistributionsHttpsEnabled(),
+        cloudfront.NewCloudfrontDistributionsUsingDeprecatedSslProtocols(),
+        cloudfront.NewCloudfrontDistributionsUsingWaf(),
+        cloudfront.NewCloudfrontDistributionsCustomSslCertificate(),
+        cloudfront.NewCloudfrontDistributionsDefaultRootObject(),
+        cloudfront.NewCloudfrontDistributionsLoggingEnabled(),
+        cloudfront.NewCloudfrontDistributionsPqcTlsEnabled(),
+        cloudfront.NewCloudfrontDistributionsOriginTrafficEncrypted(),
+        cloudfront.NewCloudfrontDistributionsMultipleOriginFailoverConfigured(),
+        cloudfront.NewCloudfrontDistributionsFieldLevelEncryptionEnabled(),
+        cloudfront.NewCloudfrontDistributionsS3OriginAccessControl(),
+        cloudfront.NewCloudfrontDistributionsHttpsSniEnabled(),
+        cloudfront.NewCloudfrontDistributionsS3OriginNonExistentBucket(),
+    },
+    "cloudtrail": {
+        cloudtrail.NewCloudtrailThreatDetectionPrivilegeEscalation(),
+        cloudtrail.NewCloudtrailS3DataeventsReadEnabled(),
+        cloudtrail.NewCloudtrailLogsS3BucketIsNotPubliclyAccessible(),
+        cloudtrail.NewCloudtrailCloudwatchLoggingEnabled(),
+        cloudtrail.NewCloudtrailInsightsExist(),
+        cloudtrail.NewCloudtrailThreatDetectionLlmJacking(),
+        cloudtrail.NewCloudtrailLogsS3BucketAccessLoggingEnabled(),
+        cloudtrail.NewCloudtrailThreatDetectionEnumeration(),
+        cloudtrail.NewCloudtrailLogFileValidationEnabled(),
+        cloudtrail.NewCloudtrailBucketRequiresMfaDelete(),
+        cloudtrail.NewCloudtrailS3DataeventsWriteEnabled(),
+        cloudtrail.NewCloudtrailBedrockLoggingEnabled(),
+        cloudtrail.NewCloudtrailMultiRegionEnabledLoggingManagementEvents(),
+        cloudtrail.NewCloudtrailKmsEncryptionEnabled(),
+        cloudtrail.NewCloudtrailMultiRegionEnabled(),
+    },
+    "cloudwatch": {
+        cloudwatch.NewCloudwatchLogMetricFilterAndAlarmForAwsConfigConfigurationChangesEnabled(),
+        cloudwatch.NewCloudwatchLogGroupRetentionPolicySpecificDaysEnabled(),
+        cloudwatch.NewCloudwatchLogMetricFilterAwsOrganizationsChanges(),
+        cloudwatch.NewCloudwatchLogGroupNoSecretsInLogs(),
+        cloudwatch.NewCloudwatchLogMetricFilterAuthenticationFailures(),
+        cloudwatch.NewCloudwatchChangesToNetworkGatewaysAlarmConfigured(),
+        cloudwatch.NewCloudwatchChangesToVpcsAlarmConfigured(),
+        cloudwatch.NewCloudwatchChangesToNetworkAclsAlarmConfigured(),
+        cloudwatch.NewCloudwatchLogGroupAgentcoreDataProtectionPolicyEnabled(),
+        cloudwatch.NewCloudwatchLogMetricFilterSecurityGroupChanges(),
+        cloudwatch.NewCloudwatchLogGroupNotPubliclyAccessible(),
+        cloudwatch.NewCloudwatchLogMetricFilterUnauthorizedApiCalls(),
+        cloudwatch.NewCloudwatchLogMetricFilterDisableOrScheduledDeletionOfKmsCmk(),
+        cloudwatch.NewCloudwatchChangesToNetworkRouteTablesAlarmConfigured(),
+        cloudwatch.NewCloudwatchLogMetricFilterPolicyChanges(),
+        cloudwatch.NewCloudwatchLogMetricFilterForS3BucketPolicyChanges(),
+        cloudwatch.NewCloudwatchAlarmActionsAlarmStateConfigured(),
+        cloudwatch.NewCloudwatchLogMetricFilterSignInWithoutMfa(),
+        cloudwatch.NewCloudwatchLogMetricFilterRootUsage(),
+        cloudwatch.NewCloudwatchAlarmActionsEnabled(),
+        cloudwatch.NewCloudwatchCrossAccountSharingDisabled(),
+        cloudwatch.NewCloudwatchLogGroupKmsEncryptionEnabled(),
+        cloudwatch.NewCloudwatchLogMetricFilterAndAlarmForCloudtrailConfigurationChangesEnabled(),
+    },
+    "codeartifact": {
+        codeartifact.NewCodeartifactPackagesExternalPublicPublishingDisabled(),
+    },
+    "codebuild": {
+        codebuild.NewCodebuildProjectS3LogsEncrypted(),
+        codebuild.NewCodebuildProjectLoggingEnabled(),
+        codebuild.NewCodebuildProjectOlder90Days(),
+        codebuild.NewCodebuildProjectSourceRepoUrlNoSensitiveCredentials(),
+        codebuild.NewCodebuildReportGroupExportEncrypted(),
+        codebuild.NewCodebuildProjectNotPubliclyAccessible(),
+        codebuild.NewCodebuildProjectUsesAllowedGithubOrganizations(),
+        codebuild.NewCodebuildProjectNoSecretsInVariables(),
+        codebuild.NewCodebuildProjectWebhookFiltersUseAnchoredPatterns(),
+        codebuild.NewCodebuildProjectUserControlledBuildspec(),
+    },
+    "codecommit": {
+        codecommit.NewCodecommitRepositoryNoSecrets(),
+    },
+    "codepipeline": {
+        codepipeline.NewCodepipelineProjectRepoPrivate(),
+    },
+    "cognito": {
+        cognito.NewCognitoUserPoolBlocksCompromisedCredentialsSignInAttempts(),
+        cognito.NewCognitoUserPoolClientPreventUserExistenceErrors(),
+        cognito.NewCognitoUserPoolPasswordPolicyMinimumLength14(),
+        cognito.NewCognitoUserPoolDeletionProtectionEnabled(),
+        cognito.NewCognitoUserPoolAdvancedSecurityEnabled(),
+        cognito.NewCognitoUserPoolPasswordPolicyUppercase(),
+        cognito.NewCognitoUserPoolPasswordPolicyLowercase(),
+        cognito.NewCognitoUserPoolClientTokenRevocationEnabled(),
+        cognito.NewCognitoUserPoolBlocksPotentialMaliciousSignInAttempts(),
+        cognito.NewCognitoUserPoolTemporaryPasswordExpiration(),
+        cognito.NewCognitoUserPoolPasswordPolicySymbol(),
+        cognito.NewCognitoUserPoolWafAclAttached(),
+        cognito.NewCognitoIdentityPoolGuestAccessDisabled(),
+        cognito.NewCognitoUserPoolPasswordPolicyNumber(),
+        cognito.NewCognitoUserPoolMfaEnabled(),
+        cognito.NewCognitoUserPoolSelfRegistrationDisabled(),
+    },
+    "config": {
+        config.NewConfigRecorderAllRegionsEnabled(),
+        config.NewConfigDelegatedAdminAndOrgAggregatorAllRegions(),
+        config.NewConfigRecorderUsingAwsServiceRole(),
+    },
+    "datapipeline": {
+        datapipeline.NewDatapipelinePipelineNoSecretsInDefinition(),
+    },
+    "datasync": {
+        datasync.NewDatasyncTaskLoggingEnabled(),
+    },
+    "directconnect": {
+        directconnect.NewDirectconnectConnectionRedundancy(),
+        directconnect.NewDirectconnectVirtualInterfaceRedundancy(),
+    },
+    "directoryservice": {
+        directoryservice.NewDirectoryserviceDirectorySnapshotsLimit(),
+        directoryservice.NewDirectoryserviceSupportedMfaRadiusEnabled(),
+        directoryservice.NewDirectoryserviceRadiusServerSecurityProtocol(),
+        directoryservice.NewDirectoryserviceDirectoryLogForwardingEnabled(),
+        directoryservice.NewDirectoryserviceDirectoryMonitorNotifications(),
+        directoryservice.NewDirectoryserviceLdapCertificateExpiration(),
+    },
+    "dlm": {
+        dlm.NewDlmEbsSnapshotLifecyclePolicyExists(),
+    },
+    "dms": {
+        dms.NewDmsEndpointSslEnabled(),
+        dms.NewDmsEndpointNeptuneIamAuthorizationEnabled(),
+        dms.NewDmsReplicationTaskTargetLoggingEnabled(),
+        dms.NewDmsInstanceMinorVersionUpgradeEnabled(),
+        dms.NewDmsEndpointMongodbAuthenticationEnabled(),
+        dms.NewDmsInstanceMultiAzEnabled(),
+        dms.NewDmsReplicationTaskSourceLoggingEnabled(),
+        dms.NewDmsEndpointRedisInTransitEncryptionEnabled(),
+        dms.NewDmsInstanceNoPublicAccess(),
+    },
+    "documentdb": {
+        documentdb.NewDocumentdbClusterBackupEnabled(),
+        documentdb.NewDocumentdbClusterPublicSnapshot(),
+        documentdb.NewDocumentdbClusterCloudwatchLogExport(),
+        documentdb.NewDocumentdbClusterStorageEncrypted(),
+        documentdb.NewDocumentdbClusterMultiAzEnabled(),
+        documentdb.NewDocumentdbClusterDeletionProtection(),
+    },
+    "drs": {
+        drs.NewDrsJobExist(),
+    },
+    "dynamodb": {
+        dynamodb.NewDynamodbTableAutoscalingEnabled(),
+        dynamodb.NewDynamodbTablesKmsCmkEncryptionEnabled(),
+        dynamodb.NewDynamodbTableDeletionProtectionEnabled(),
+        dynamodb.NewDynamodbAcceleratorClusterInTransitEncryptionEnabled(),
+        dynamodb.NewDynamodbTablesPitrEnabled(),
+        dynamodb.NewDynamodbTableProtectedByBackupPlan(),
+        dynamodb.NewDynamodbAcceleratorClusterEncryptionEnabled(),
+        dynamodb.NewDynamodbTableCrossAccountAccess(),
+        dynamodb.NewDynamodbAcceleratorClusterMultiAz(),
+    },
+    "ec2": {
+        ec2.NewEc2InstanceAccountImdsv2Enabled(),
+        ec2.NewEc2ConfidentialWorkloadHostVsockProxyExposed(),
+        ec2.NewEc2NetworkaclAllowIngressTcpPort3389(),
+        ec2.NewEc2EbsPublicSnapshot(),
+        ec2.NewEc2ConfidentialWorkloadHostUnrestrictedIngress(),
+        ec2.NewEc2InstancePortElasticsearchKibanaExposedToInternet(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortCassandra719991608888(),
+        ec2.NewEc2InstancePortMemcachedExposedToInternet(),
+        ec2.NewEc2ElasticIpUnassigned(),
+        ec2.NewEc2InstanceImdsv2Enabled(),
+        ec2.NewEc2InstanceOlderThanSpecificDays(),
+        ec2.NewEc2SecuritygroupAllowWideOpenPublicIpv4(),
+        ec2.NewEc2InstancePortCassandraExposedToInternet(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToAnyPort(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortMemcached11211(),
+        ec2.NewEc2LaunchTemplateNoSecrets(),
+        ec2.NewEc2EbsSnapshotsEncrypted(),
+        ec2.NewEc2EbsVolumeSnapshotsExists(),
+        ec2.NewEc2InstancePortMysqlExposedToInternet(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToAnyPortFromIp(),
+        ec2.NewEc2InstanceUsesSingleEni(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToAllPorts(),
+        ec2.NewEc2AmiAccountBlockPublicAccess(),
+        ec2.NewEc2InstancePublicIp(),
+        ec2.NewEc2LaunchTemplateImdsv2Required(),
+        ec2.NewEc2InstanceManagedBySsm(),
+        ec2.NewEc2InstancePortTelnetExposedToInternet(),
+        ec2.NewEc2InstancePortLdapExposedToInternet(),
+        ec2.NewEc2InstanceWithOutdatedAmi(),
+        ec2.NewEc2SecuritygroupWithManyIngressEgressRules(),
+        ec2.NewEc2SecuritygroupFromLaunchWizard(),
+        ec2.NewEc2InstancePortSqlserverExposedToInternet(),
+        ec2.NewEc2InstanceProfileAttached(),
+        ec2.NewEc2ConfidentialWorkloadHostNotRunning(),
+        ec2.NewEc2NetworkaclUnused(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortTelnet23(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortFtp2021(),
+        ec2.NewEc2NetworkaclAllowIngressAnyPort(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortPostgres5432(),
+        ec2.NewEc2ConfidentialWorkloadHostImdsv2NotEnforced(),
+        ec2.NewEc2EbsVolumeEncryption(),
+        ec2.NewEc2TransitgatewayAutoAcceptVpcAttachments(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortOracle15212483(),
+        ec2.NewEc2InstancePortCifsExposedToInternet(),
+        ec2.NewEc2InstanceDetailedMonitoringEnabled(),
+        ec2.NewEc2InstanceParavirtualType(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortElasticsearchKibana920093005601(),
+        ec2.NewEc2InstancePortSshExposedToInternet(),
+        ec2.NewEc2EbsSnapshotAccountBlockPublicAccess(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortKafka9092(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortRedis6379(),
+        ec2.NewEc2ElasticIpShodan(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPort3389(),
+        ec2.NewEc2InstancePortRdpExposedToInternet(),
+        ec2.NewEc2InstanceSecretsUserData(),
+        ec2.NewEc2InstancePortKafkaExposedToInternet(),
+        ec2.NewEc2InstancePortOracleExposedToInternet(),
+        ec2.NewEc2InstanceStoppedOlderThanSpecificDays(),
+        ec2.NewEc2NetworkaclAllowIngressTcpPort22(),
+        ec2.NewEc2InstancePortPostgresqlExposedToInternet(),
+        ec2.NewEc2LaunchTemplateNoPublicIp(),
+        ec2.NewEc2InstanceInternetFacingWithInstanceProfile(),
+        ec2.NewEc2InstancePortMongodbExposedToInternet(),
+        ec2.NewEc2AmiPublic(),
+        ec2.NewEc2ClientVpnEndpointConnectionLoggingEnabled(),
+        ec2.NewEc2ConfidentialWorkloadHostPublicIp(),
+        ec2.NewEc2SecuritygroupNotUsed(),
+        ec2.NewEc2EbsDefaultEncryption(),
+        ec2.NewEc2EbsVolumeProtectedByBackupPlan(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortSqlServer14331434(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPort22(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToHighRiskTcpPorts(),
+        ec2.NewEc2InstancePortFtpExposedToInternet(),
+        ec2.NewEc2InstancePortKerberosExposedToInternet(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortMysql3306(),
+        ec2.NewEc2SecuritygroupAllowIngressFromInternetToTcpPortMongodb2701727018(),
+        ec2.NewEc2SecuritygroupDefaultRestrictTraffic(),
+        ec2.NewEc2InstancePortRedisExposedToInternet(),
+    },
+    "ecr": {
+        ecr.NewEcrRepositoriesNotPubliclyAccessible(),
+        ecr.NewEcrRegistryEnhancedScanningEnabled(),
+        ecr.NewEcrRepositoriesTagImmutability(),
+        ecr.NewEcrRepositoriesLifecyclePolicyEnabled(),
+        ecr.NewEcrRepositoriesScanVulnerabilitiesInLatestImage(),
+        ecr.NewEcrRegistryScanImagesOnPushEnabled(),
+        ecr.NewEcrRepositoriesScanImagesOnPushEnabled(),
+        ecr.NewEcrRepositoryImageNoSecrets(),
+    },
+    "ecs": {
+        ecs.NewEcsTaskDefinitionsHostNetworkingModeUsers(),
+        ecs.NewEcsServiceNoAssignPublicIp(),
+        ecs.NewEcsTaskDefinitionsHostNamespaceNotShared(),
+        ecs.NewEcsServiceFargateLatestPlatformVersion(),
+        ecs.NewEcsClusterContainerInsightsEnabled(),
+        ecs.NewEcsTaskSetNoAssignPublicIp(),
+        ecs.NewEcsTaskDefinitionsLoggingEnabled(),
+        ecs.NewEcsTaskDefinitionsLoggingBlockMode(),
+        ecs.NewEcsTaskDefinitionsContainersReadonlyAccess(),
+        ecs.NewEcsTaskDefinitionsNoPrivilegedContainers(),
+        ecs.NewEcsTaskDefinitionsNoEnvironmentSecrets(),
+    },
+    "efs": {
+        efs.NewEfsHaveBackupEnabled(),
+        efs.NewEfsAccessPointEnforceUserIdentity(),
+        efs.NewEfsMountTargetNotPubliclyAccessible(),
+        efs.NewEfsMultiAzEnabled(),
+        efs.NewEfsEncryptionAtRestEnabled(),
+        efs.NewEfsAccessPointEnforceRootDirectory(),
+        efs.NewEfsNotPubliclyAccessible(),
+    },
+    "eks": {
+        eks.NewEksClusterNotPubliclyAccessible(),
+        eks.NewEksClusterPrivateNodesEnabled(),
+        eks.NewEksClusterDeletionProtectionEnabled(),
+        eks.NewEksControlPlaneLoggingAllTypesEnabled(),
+        eks.NewEksClusterKmsCmkEncryptionInSecretsEnabled(),
+        eks.NewEksClusterUsesASupportedVersion(),
+        eks.NewEksClusterVpcCniNetworkPolicyEnforced(),
+        eks.NewEksClusterNetworkPolicyEnabled(),
+    },
+    "elasticache": {
+        elasticache.NewElasticacheRedisReplicationGroupAuthEnabled(),
+        elasticache.NewElasticacheClusterUsesPublicSubnet(),
+        elasticache.NewElasticacheRedisClusterAutoMinorVersionUpgrades(),
+        elasticache.NewElasticacheRedisClusterBackupEnabled(),
+        elasticache.NewElasticacheRedisClusterMultiAzEnabled(),
+        elasticache.NewElasticacheRedisClusterRestEncryptionEnabled(),
+        elasticache.NewElasticacheRedisClusterAutomaticFailoverEnabled(),
+        elasticache.NewElasticacheRedisClusterInTransitEncryptionEnabled(),
+    },
+    "elasticbeanstalk": {
+        elasticbeanstalk.NewElasticbeanstalkEnvironmentManagedUpdatesEnabled(),
+        elasticbeanstalk.NewElasticbeanstalkEnvironmentEnhancedHealthReporting(),
+        elasticbeanstalk.NewElasticbeanstalkEnvironmentNoSecretsInConfiguration(),
+        elasticbeanstalk.NewElasticbeanstalkEnvironmentCloudwatchLoggingEnabled(),
+    },
+    "elb": {
+        elb.NewElbDesyncMitigationMode(),
+        elb.NewElbSslListenersUseAcmCertificate(),
+        elb.NewElbInsecureSslCiphers(),
+        elb.NewElbConnectionDrainingEnabled(),
+        elb.NewElbInternetFacing(),
+        elb.NewElbIsInMultipleAz(),
+        elb.NewElbLoggingEnabled(),
+        elb.NewElbCrossZoneLoadBalancingEnabled(),
+        elb.NewElbSslListeners(),
+    },
+    "elbv2": {
+        elbv2.NewElbv2ListenersUnderneath(),
+        elbv2.NewElbv2LoggingEnabled(),
+        elbv2.NewElbv2CrossZoneLoadBalancingEnabled(),
+        elbv2.NewElbv2WafAclAttached(),
+        elbv2.NewElbv2DesyncMitigationMode(),
+        elbv2.NewElbv2IsInMultipleAz(),
+        elbv2.NewElbv2NlbTlsTerminationEnabled(),
+        elbv2.NewElbv2InsecureSslCiphers(),
+        elbv2.NewElbv2ListenerPqcTlsEnabled(),
+        elbv2.NewElbv2AlbDropInvalidHeaderFieldsEnabled(),
+        elbv2.NewElbv2InternetFacing(),
+        elbv2.NewElbv2SslListeners(),
+        elbv2.NewElbv2DeletionProtection(),
+    },
+    "emr": {
+        emr.NewEmrClusterAccountPublicBlockEnabled(),
+        emr.NewEmrClusterPubliclyAccesible(),
+        emr.NewEmrClusterMasterNodesNoPublicIp(),
+    },
+    "eventbridge": {
+        eventbridge.NewEventbridgeBusCrossAccountAccess(),
+        eventbridge.NewEventbridgeGlobalEndpointEventReplicationEnabled(),
+        eventbridge.NewEventbridgeBusExposed(),
+        eventbridge.NewEventbridgeSchemaRegistryCrossAccountAccess(),
+    },
+    "firehose": {
+        firehose.NewFirehoseStreamEncryptedAtRest(),
+    },
+    "fms": {
+        fms.NewFmsPolicyCompliant(),
+    },
+    "fsx": {
+        fsx.NewFsxWindowsFileSystemMultiAzEnabled(),
+        fsx.NewFsxFileSystemCopyTagsToBackupsEnabled(),
+        fsx.NewFsxFileSystemCopyTagsToVolumesEnabled(),
+    },
+    "glacier": {
+        glacier.NewGlacierVaultsPolicyPublicAccess(),
+    },
+    "glue": {
+        glue.NewGlueCatalogConnectionNoSecrets(),
+        glue.NewGlueEtlJobsNoSecretsInArguments(),
+        glue.NewGlueDevelopmentEndpointsCloudwatchLogsEncryptionEnabled(),
+        glue.NewGlueDataCatalogsMetadataEncryptionEnabled(),
+        glue.NewGlueEtlJobsAmazonS3EncryptionEnabled(),
+        glue.NewGlueDevelopmentEndpointsJobBookmarkEncryptionEnabled(),
+        glue.NewGlueEtlJobsCloudwatchLogsEncryptionEnabled(),
+        glue.NewGlueDevelopmentEndpointsS3EncryptionEnabled(),
+        glue.NewGlueDataCatalogsConnectionPasswordsEncryptionEnabled(),
+        glue.NewGlueEtlJobsJobBookmarkEncryptionEnabled(),
+        glue.NewGlueEtlJobsLoggingEnabled(),
+        glue.NewGlueDatabaseConnectionsSslEnabled(),
+        glue.NewGlueDataCatalogsNotPubliclyAccessible(),
+        glue.NewGlueMlTransformEncryptedAtRest(),
+    },
+    "guardduty": {
+        guardduty.NewGuarddutyEc2MalwareProtectionEnabled(),
+        guardduty.NewGuarddutyEksRuntimeMonitoringEnabled(),
+        guardduty.NewGuarddutyDelegatedAdminEnabledAllRegions(),
+        guardduty.NewGuarddutyLambdaProtectionEnabled(),
+        guardduty.NewGuarddutyIsEnabled(),
+        guardduty.NewGuarddutyEksAuditLogEnabled(),
+        guardduty.NewGuarddutyRdsProtectionEnabled(),
+        guardduty.NewGuarddutyRuntimeMonitoringEnabled(),
+        guardduty.NewGuarddutyNoHighSeverityFindings(),
+        guardduty.NewGuarddutyS3ProtectionEnabled(),
+        guardduty.NewGuarddutyAiProtectionEnabled(),
+        guardduty.NewGuarddutyCentrallyManaged(),
+    },
+    "iam": {
+        iam.NewIamRootHardwareMfaEnabled(),
+        iam.NewIamRootCredentialsManagementEnabled(),
+        iam.NewIamRoleAccessNotStaleToBedrock(),
+        iam.NewIamUserConsoleAccessUnused(),
+        iam.NewIamPolicyNoWildcardMarketplaceSubscribe(),
+        iam.NewIamInlinePolicyNoFullAccessToCloudtrail(),
+        iam.NewIamPasswordPolicyMinimumLength14(),
+        iam.NewIamInlinePolicyAllowsPrivilegeEscalation(),
+        iam.NewIamCustomerAttachedPolicyNoAdministrativePrivileges(),
+        iam.NewIamCheckSamlProvidersSts(),
+        iam.NewIamRotateAccessKey90Days(),
+        iam.NewIamUserHardwareMfaEnabled(),
+        iam.NewIamPasswordPolicyLowercase(),
+        iam.NewIamPolicyAttachedOnlyToGroupOrRoles(),
+        iam.NewIamRootMfaEnabled(),
+        iam.NewIamNoCustomPolicyPermissiveRoleAssumption(),
+        iam.NewIamNoExpiredServerCertificatesStored(),
+        iam.NewIamPasswordPolicyUppercase(),
+        iam.NewIamRoleCrossServiceConfusedDeputyPrevention(),
+        iam.NewIamCustomerUnattachedPolicyNoAdministrativePrivileges(),
+        iam.NewIamInlinePolicyNoWildcardMarketplaceSubscribe(),
+        iam.NewIamPolicyAllowsPrivilegeEscalation(),
+        iam.NewIamPasswordPolicyNumber(),
+        iam.NewIamPasswordPolicySymbol(),
+        iam.NewIamGroupAdministratorAccessPolicy(),
+        iam.NewIamAwsAttachedPolicyNoAdministrativePrivileges(),
+        iam.NewIamAvoidRootUsage(),
+        iam.NewIamUserAccessNotStaleToSagemaker(),
+        iam.NewIamPasswordPolicyReuse24(),
+        iam.NewIamUserNoSetupInitialAccessKey(),
+        iam.NewIamUserAdministratorAccessPolicy(),
+        iam.NewIamRoleCrossAccountReadonlyaccessPolicy(),
+        iam.NewIamPolicyNoAgentcoreWorkloadAccessTokenWildcard(),
+        iam.NewIamInlinePolicyNoFullAccessToKms(),
+        iam.NewIamRoleAdministratoraccessPolicy(),
+        iam.NewIamPolicyNoFullAccessToCloudtrail(),
+        iam.NewIamPolicyNoFullAccessToKms(),
+        iam.NewIamPolicyCloudshellAdminNotAttached(),
+        iam.NewIamRoleServiceTrustRestrictsSourceToAccount(),
+        iam.NewIamUserWithTemporaryCredentials(),
+        iam.NewIamPolicyPassroleToBedrockAgentcoreRestricted(),
+        iam.NewIamSupportRoleCreated(),
+        iam.NewIamUserAccesskeyUnused(),
+        iam.NewIamAdministratorAccessWithMfa(),
+        iam.NewIamUserAccessNotStaleToBedrock(),
+        iam.NewIamInlinePolicyNoAdministrativePrivileges(),
+        iam.NewIamNoRootAccessKey(),
+        iam.NewIamUserMfaEnabledConsoleAccess(),
+        iam.NewIamPasswordPolicyExpiresPasswordsWithin90DaysOrLess(),
+        iam.NewIamSecurityauditRoleCreated(),
+        iam.NewIamUserTwoActiveAccessKey(),
+    },
+    "inspector2": {
+        inspector2.NewInspector2IsEnabled(),
+        inspector2.NewInspector2ActiveFindingsExist(),
+    },
+    "kafka": {
+        kafka.NewKafkaClusterIsPublic(),
+        kafka.NewKafkaConnectorInTransitEncryptionEnabled(),
+        kafka.NewKafkaClusterUsesLatestVersion(),
+        kafka.NewKafkaClusterInTransitEncryptionEnabled(),
+        kafka.NewKafkaClusterEnhancedMonitoringEnabled(),
+        kafka.NewKafkaClusterUnrestrictedAccessDisabled(),
+        kafka.NewKafkaClusterEncryptionAtRestUsesCmk(),
+        kafka.NewKafkaClusterMutualTlsAuthenticationEnabled(),
+    },
+    "kinesis": {
+        kinesis.NewKinesisStreamEncryptedAtRest(),
+        kinesis.NewKinesisStreamDataRetentionPeriod(),
+    },
+    "kms": {
+        kms.NewKmsCmkNotDeletedUnintentionally(),
+        kms.NewKmsKeyEnclaveAttestationPcrMismatch(),
+        kms.NewKmsKeyEnclaveAttestationUnknownImage(),
+        kms.NewKmsKeyNotPubliclyAccessible(),
+        kms.NewKmsKeyEnclaveAttestationNoDeploymentBinding(),
+        kms.NewKmsCmkRotationEnabled(),
+        kms.NewKmsCmkNotMultiRegion(),
+        kms.NewKmsKeyEnclaveAttestationNotEnforced(),
+        kms.NewKmsKeyEnclaveDebugAttestationDetected(),
+        kms.NewKmsCmkAreUsed(),
+        kms.NewKmsKeyEnclaveAttestationBypassablePath(),
+    },
+    "lightsail": {
+        lightsail.NewLightsailDatabasePublic(),
+        lightsail.NewLightsailInstancePublic(),
+        lightsail.NewLightsailInstanceAutomatedSnapshots(),
+        lightsail.NewLightsailStaticIpUnused(),
+    },
+    "macie": {
+        macie.NewMacieAutomatedSensitiveDataDiscoveryEnabled(),
+        macie.NewMacieIsEnabled(),
+    },
+    "memorydb": {
+        memorydb.NewMemorydbClusterAutoMinorVersionUpgrades(),
+        memorydb.NewMemorydbClusterInTransitEncryptionEnabled(),
+    },
+    "mq": {
+        mq.NewMqBrokerClusterDeploymentMode(),
+        mq.NewMqBrokerNotPubliclyAccessible(),
+        mq.NewMqBrokerLoggingEnabled(),
+        mq.NewMqBrokerActiveDeploymentMode(),
+        mq.NewMqBrokerAutoMinorVersionUpgrades(),
+    },
+    "neptune": {
+        neptune.NewNeptuneClusterMultiAz(),
+        neptune.NewNeptuneClusterCopyTagsToSnapshots(),
+        neptune.NewNeptuneClusterUsesPublicSubnet(),
+        neptune.NewNeptuneClusterIamAuthenticationEnabled(),
+        neptune.NewNeptuneClusterStorageEncrypted(),
+        neptune.NewNeptuneClusterBackupEnabled(),
+        neptune.NewNeptuneClusterPublicSnapshot(),
+        neptune.NewNeptuneClusterIntegrationCloudwatchLogs(),
+        neptune.NewNeptuneClusterDeletionProtection(),
+        neptune.NewNeptuneClusterSnapshotEncrypted(),
+    },
+    "networkfirewall": {
+        networkfirewall.NewNetworkfirewallPolicyDefaultActionFragmentedPackets(),
+        networkfirewall.NewNetworkfirewallLoggingEnabled(),
+        networkfirewall.NewNetworkfirewallPolicyDefaultActionFullPackets(),
+        networkfirewall.NewNetworkfirewallInAllVpc(),
+        networkfirewall.NewNetworkfirewallPolicyRuleGroupAssociated(),
+        networkfirewall.NewNetworkfirewallMultiAz(),
+        networkfirewall.NewNetworkfirewallDeletionProtection(),
+    },
+    "opensearch": {
+        opensearch.NewOpensearchServiceDomainsUpdatedToTheLatestServiceSoftwareVersion(),
+        opensearch.NewOpensearchServiceDomainsFaultTolerantDataNodes(),
+        opensearch.NewOpensearchServiceDomainsCloudwatchLoggingEnabled(),
+        opensearch.NewOpensearchServiceDomainsInternalUserDatabaseEnabled(),
+        opensearch.NewOpensearchServiceDomainsHttpsCommunicationsEnforced(),
+        opensearch.NewOpensearchServiceDomainsNodeToNodeEncryptionEnabled(),
+        opensearch.NewOpensearchServiceDomainsEncryptionAtRestEnabled(),
+        opensearch.NewOpensearchServiceDomainsFaultTolerantMasterNodes(),
+        opensearch.NewOpensearchServiceDomainsAccessControlEnabled(),
+        opensearch.NewOpensearchServiceDomainsNotPubliclyAccessible(),
+        opensearch.NewOpensearchServiceDomainsAuditLoggingEnabled(),
+        opensearch.NewOpensearchServiceDomainsUseCognitoAuthenticationForKibana(),
+    },
+    "organizations": {
+        organizations.NewOrganizationsTagsPoliciesEnabledAndAttached(),
+        organizations.NewOrganizationsDelegatedAdministrators(),
+        organizations.NewOrganizationsAccountPartOfOrganizations(),
+        organizations.NewOrganizationsOptOutAiServicesPolicy(),
+        organizations.NewOrganizationsScpCheckDenyRegions(),
+    },
+    "rds": {
+        rds.NewRdsInstanceCertificateExpiration(),
+        rds.NewRdsInstanceDeletionProtection(),
+        rds.NewRdsClusterCriticalEventSubscription(),
+        rds.NewRdsClusterCopyTagsToSnapshots(),
+        rds.NewRdsInstanceDeprecatedEngineVersion(),
+        rds.NewRdsInstanceInsideVpc(),
+        rds.NewRdsClusterDefaultAdmin(),
+        rds.NewRdsInstanceEnhancedMonitoringEnabled(),
+        rds.NewRdsInstanceIamAuthenticationEnabled(),
+        rds.NewRdsInstanceEventSubscriptionSecurityGroups(),
+        rds.NewRdsInstanceNoPublicAccess(),
+        rds.NewRdsInstanceCriticalEventSubscription(),
+        rds.NewRdsClusterMultiAz(),
+        rds.NewRdsSnapshotsPublicAccess(),
+        rds.NewRdsClusterDeletionProtection(),
+        rds.NewRdsClusterMinorVersionUpgradeEnabled(),
+        rds.NewRdsInstanceEventSubscriptionParameterGroups(),
+        rds.NewRdsInstanceMultiAz(),
+        rds.NewRdsInstanceIntegrationCloudwatchLogs(),
+        rds.NewRdsInstanceBackupEnabled(),
+        rds.NewRdsInstanceDefaultAdmin(),
+        rds.NewRdsInstanceExtendedSupport(),
+        rds.NewRdsSnapshotsEncrypted(),
+        rds.NewRdsInstanceTransportEncrypted(),
+        rds.NewRdsInstanceNonDefaultPort(),
+        rds.NewRdsInstanceCopyTagsToSnapshots(),
+        rds.NewRdsClusterIntegrationCloudwatchLogs(),
+        rds.NewRdsInstanceStorageEncrypted(),
+        rds.NewRdsInstanceProtectedByBackupPlan(),
+        rds.NewRdsClusterBacktrackEnabled(),
+        rds.NewRdsClusterProtectedByBackupPlan(),
+        rds.NewRdsClusterNonDefaultPort(),
+        rds.NewRdsInstanceMinorVersionUpgradeEnabled(),
+        rds.NewRdsClusterStorageEncrypted(),
+        rds.NewRdsClusterIamAuthenticationEnabled(),
+    },
+    "redshift": {
+        redshift.NewRedshiftClusterMultiAzEnabled(),
+        redshift.NewRedshiftClusterNonDefaultDatabaseName(),
+        redshift.NewRedshiftClusterEncryptedAtRest(),
+        redshift.NewRedshiftClusterNonDefaultUsername(),
+        redshift.NewRedshiftClusterEnhancedVpcRouting(),
+        redshift.NewRedshiftClusterInTransitEncryptionEnabled(),
+        redshift.NewRedshiftClusterAutomaticUpgrades(),
+        redshift.NewRedshiftClusterAuditLogging(),
+        redshift.NewRedshiftClusterPublicAccess(),
+        redshift.NewRedshiftClusterAutomatedSnapshot(),
+    },
+    "resourceexplorer2": {
+        resourceexplorer2.NewResourceexplorer2IndexesFound(),
+    },
+    "rolesanywhere": {
+        rolesanywhere.NewRolesanywhereTrustAnchorPqcPki(),
+        rolesanywhere.NewRolesanywhereProfileRestrictsSessionPermissions(),
+    },
+    "route53": {
+        route53.NewRoute53DanglingIpSubdomainTakeover(),
+        route53.NewRoute53DomainsTransferlockEnabled(),
+        route53.NewRoute53PublicHostedZonesCloudwatchLoggingEnabled(),
+        route53.NewRoute53DomainsPrivacyProtectionEnabled(),
+    },
+    "s3": {
+        s3.NewS3BucketObjectLock(),
+        s3.NewS3BucketLevelPublicAccessBlock(),
+        s3.NewS3BucketLifecycleEnabled(),
+        s3.NewS3BucketObjectVersioning(),
+        s3.NewS3BucketNoMfaDelete(),
+        s3.NewS3BucketServerAccessLoggingEnabled(),
+        s3.NewS3BucketEventNotificationsEnabled(),
+        s3.NewS3BucketPublicWriteAcl(),
+        s3.NewS3AccountLevelPublicAccessBlocks(),
+        s3.NewS3AccessPointPublicAccessBlock(),
+        s3.NewS3BucketAclProhibited(),
+        s3.NewS3BucketCrossRegionReplication(),
+        s3.NewS3BucketDefaultEncryption(),
+        s3.NewS3BucketCrossAccountAccess(),
+        s3.NewS3BucketObjectPublic(),
+        s3.NewS3BucketSecureTransportPolicy(),
+        s3.NewS3MultiRegionAccessPointPublicAccessBlock(),
+        s3.NewS3BucketPolicyPublicWriteAccess(),
+        s3.NewS3BucketPublicListAcl(),
+        s3.NewS3BucketShadowResourceVulnerability(),
+        s3.NewS3BucketPublicAccess(),
+        s3.NewS3BucketKmsEncryption(),
+    },
+    "sagemaker": {
+        sagemaker.NewSagemakerNotebookInstanceNoSecrets(),
+        sagemaker.NewSagemakerTrainingJobsVolumeAndOutputEncryptionEnabled(),
+        sagemaker.NewSagemakerTrainingJobsNetworkIsolationEnabled(),
+        sagemaker.NewSagemakerTrainingJobsIntercontainerEncryptionEnabled(),
+        sagemaker.NewSagemakerEndpointConfigKmsEncryptionEnabled(),
+        sagemaker.NewSagemakerNotebookInstanceWithoutDirectInternetAccessConfigured(),
+        sagemaker.NewSagemakerNotebookInstanceRootAccessDisabled(),
+        sagemaker.NewSagemakerDomainSsoConfigured(),
+        sagemaker.NewSagemakerEndpointConfigProdVariantInstances(),
+        sagemaker.NewSagemakerModelsNetworkIsolationEnabled(),
+        sagemaker.NewSagemakerTrainingJobsVpcSettingsConfigured(),
+        sagemaker.NewSagemakerNotebookInstanceVpcSettingsConfigured(),
+        sagemaker.NewSagemakerModelsMonitorEnabled(),
+        sagemaker.NewSagemakerModelsVpcSettingsConfigured(),
+        sagemaker.NewSagemakerClarifyExists(),
+        sagemaker.NewSagemakerModelsRegistryInUse(),
+        sagemaker.NewSagemakerNotebookInstanceEncryptionEnabled(),
+    },
+    "secretsmanager": {
+        secretsmanager.NewSecretsmanagerSecretRotatedPeriodically(),
+        secretsmanager.NewSecretsmanagerSecretUnused(),
+        secretsmanager.NewSecretsmanagerAutomaticRotationEnabled(),
+        secretsmanager.NewSecretsmanagerNotPubliclyAccessible(),
+        secretsmanager.NewSecretsmanagerHasRestrictiveResourcePolicy(),
+    },
+    "securityhub": {
+        securityhub.NewSecurityhubDelegatedAdminEnabledAllRegions(),
+        securityhub.NewSecurityhubEnabled(),
+    },
+    "servicecatalog": {
+        servicecatalog.NewServicecatalogPortfolioSharedWithinOrganizationOnly(),
+    },
+    "ses": {
+        ses.NewSesIdentityNotPubliclyAccessible(),
+        ses.NewSesIdentityDkimEnabled(),
+    },
+    "shield": {
+        shield.NewShieldAdvancedProtectionInCloudfrontDistributions(),
+        shield.NewShieldAdvancedProtectionInInternetFacingLoadBalancers(),
+        shield.NewShieldAdvancedProtectionInClassicLoadBalancers(),
+        shield.NewShieldAdvancedProtectionInRoute53HostedZones(),
+        shield.NewShieldAdvancedProtectionInAssociatedElasticIps(),
+        shield.NewShieldAdvancedProtectionInGlobalAccelerators(),
+    },
+    "sns": {
+        sns.NewSnsTopicsNotPubliclyAccessible(),
+        sns.NewSnsTopicsKmsEncryptionAtRestEnabled(),
+        sns.NewSnsSubscriptionNotUsingHttpEndpoints(),
+    },
+    "sqs": {
+        sqs.NewSqsQueuesServerSideEncryptionEnabled(),
+        sqs.NewSqsQueuesNotPubliclyAccessible(),
+    },
+    "ssm": {
+        ssm.NewSsmManagedCompliantPatching(),
+        ssm.NewSsmDocumentsSetAsPublic(),
+        ssm.NewSsmDocumentSecrets(),
+    },
+    "ssmincidents": {
+        ssmincidents.NewSsmincidentsEnabledWithPlans(),
+    },
+    "stepfunctions": {
+        stepfunctions.NewStepfunctionsStatemachineLoggingEnabled(),
+        stepfunctions.NewStepfunctionsStatemachineNoSecretsInDefinition(),
+        stepfunctions.NewStepfunctionsStatemachineEncryptedWithCmk(),
+    },
+    "storagegateway": {
+        storagegateway.NewStoragegatewayFileshareEncryptionEnabled(),
+        storagegateway.NewStoragegatewayGatewayFaultTolerant(),
+    },
+    "transfer": {
+        transfer.NewTransferServerPqcSshKexEnabled(),
+        transfer.NewTransferServerInTransitEncryptionEnabled(),
+    },
+    "trustedadvisor": {
+        trustedadvisor.NewTrustedadvisorErrorsAndWarnings(),
+        trustedadvisor.NewTrustedadvisorPremiumSupportPlanSubscribed(),
+    },
+    "vpc": {
+        vpc.NewVpcPeeringRoutingTablesWithLeastPrivilege(),
+        vpc.NewVpcSubnetSeparatePrivatePublic(),
+        vpc.NewVpcVpnConnectionTunnelsUp(),
+        vpc.NewVpcEndpointConnectionsTrustBoundaries(),
+        vpc.NewVpcSubnetDifferentAz(),
+        vpc.NewVpcEndpointMultiAzEnabled(),
+        vpc.NewVpcDifferentRegions(),
+        vpc.NewVpcFlowLogsEnabled(),
+        vpc.NewVpcEndpointForEc2Enabled(),
+        vpc.NewVpcSubnetNoPublicIpByDefault(),
+        vpc.NewVpcEndpointServicesAllowedPrincipalsTrustBoundaries(),
+    },
+    "waf": {
+        waf.NewWafGlobalWebaclWithRules(),
+        waf.NewWafRegionalWebaclLoggingEnabled(),
+        waf.NewWafRegionalRulegroupNotEmpty(),
+        waf.NewWafRegionalRuleWithConditions(),
+        waf.NewWafGlobalRuleWithConditions(),
+        waf.NewWafGlobalWebaclLoggingEnabled(),
+        waf.NewWafGlobalRulegroupNotEmpty(),
+        waf.NewWafRegionalWebaclWithRules(),
+    },
+    "wafv2": {
+        wafv2.NewWafv2WebaclWithRules(),
+        wafv2.NewWafv2WebaclLoggingEnabled(),
+        wafv2.NewWafv2WebaclRuleLoggingEnabled(),
+    },
+    "wellarchitected": {
+        wellarchitected.NewWellarchitectedWorkloadNoHighOrMediumRisks(),
+    },
+    "workspaces": {
+        workspaces.NewWorkspacesVpc2private1publicSubnetsNat(),
+        workspaces.NewWorkspacesVolumeEncryptionEnabled(),
+    },
+}
