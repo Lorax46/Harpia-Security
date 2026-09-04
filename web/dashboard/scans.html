@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harpia Security — Scans</title>
+<title>TOTVS Horus — Scans</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -223,6 +223,79 @@ body {
 .empty h3 { font-size: 16px; font-weight: 500; margin-bottom: 8px; color: var(--text); }
 .empty p { font-size: 13px; margin-bottom: 20px; }
 
+/* Modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active { display: flex; }
+
+.modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+
+.form-group { margin-bottom: 16px; }
+
+.form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 11px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
 /* Responsivo */
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
@@ -236,7 +309,7 @@ body {
 
 <!-- Sidebar -->
 <script>
-    if (!localStorage.getItem('harpia_logged')) {
+    if (!localStorage.getItem('totvs_horus_logged')) {
         window.location.href = '/login';
     }
 </script>
@@ -251,7 +324,7 @@ body {
             <path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity="0.7"/>
             <path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity="0.7"/>
         </svg>
-        <span>Harpia</span>
+        <span>TOTVS</span>
     </div>
 
     <nav class="nav">
@@ -306,88 +379,205 @@ body {
 <main class="main">
     <header class="header">
         <h1>Scans</h1>
-        <button class="btn btn-primary" onclick="alert('Em produção: modal de novo scan')">+ Novo Scan</button>
+        <button class="btn btn-primary" onclick="openModal()">+ Novo Scan</button>
     </header>
 
     <div class="content">
-        <div class="scan-list">
-            <div class="scan-item">
-                <div class="scan-info">
-                    <div class="scan-icon aws">A</div>
-                    <div class="scan-details">
-                        <h4>AWS - us-east-1</h4>
-                        <p>Completo • 15 checks executados</p>
-                    </div>
-                </div>
-                <div class="scan-meta">
-                    <div class="findings">3 findings</div>
-                    <div class="time">03/09/2026 00:45</div>
-                    <span class="badge badge-success" style="display:inline-block;margin-top:6px">Completo</span>
-                </div>
-            </div>
-
-            <div class="scan-item">
-                <div class="scan-info">
-                    <div class="scan-icon aws">A</div>
-                    <div class="scan-details">
-                        <h4>AWS - sa-saopaulo-1</h4>
-                        <p>Completo • 15 checks executados</p>
-                    </div>
-                </div>
-                <div class="scan-meta">
-                    <div class="findings">1 finding</div>
-                    <div class="time">03/09/2026 00:30</div>
-                    <span class="badge badge-success" style="display:inline-block;margin-top:6px">Completo</span>
-                </div>
-            </div>
-
-            <div class="scan-item">
-                <div class="scan-info">
-                    <div class="scan-icon gcp">G</div>
-                    <div class="scan-details">
-                        <h4>GCP - my-project</h4>
-                        <p>Falha • Credenciais inválidas</p>
-                    </div>
-                </div>
-                <div class="scan-meta">
-                    <div class="findings" style="color:var(--error)">Erro</div>
-                    <div class="time">02/09/2026 23:15</div>
-                    <span class="badge badge-error" style="display:inline-block;margin-top:6px">Falha</span>
-                </div>
-            </div>
-
-            <div class="scan-item">
-                <div class="scan-info">
-                    <div class="scan-icon azure">Az</div>
-                    <div class="scan-details">
-                        <h4>Azure - Production</h4>
-                        <p>Em andamento • 8/25 checks</p>
-                    </div>
-                </div>
-                <div class="scan-meta">
-                    <div class="findings" style="color:var(--info)">Running...</div>
-                    <div class="time">Iniciado agora</div>
-                    <span class="badge badge-running" style="display:inline-block;margin-top:6px">Executando</span>
-                </div>
-            </div>
+        <div class="scan-list" id="scanList">
+            <!-- Scans serão carregados aqui -->
         </div>
     </div>
 </main>
 
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+    <div class="modal">
+        <h2>Novo Scan</h2>
+        <form id="scanForm">
+            <div class="form-group">
+                <label>Provider</label>
+                <select id="provider" required>
+                    <option value="oci">Oracle Cloud (OCI)</option>
+                    <option value="aws" disabled>AWS (em breve)</option>
+                    <option value="gcp" disabled>GCP (em breve)</option>
+                    <option value="azure" disabled>Azure (em breve)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Região</label>
+                <input type="text" id="region" value="sa-saopaulo-1" placeholder="sa-saopaulo-1" required>
+            </div>
+            <div class="form-group">
+                <label>Tenancy OCID</label>
+                <input type="text" id="tenancyId" placeholder="ocid1.tenancy.oc1.." required>
+            </div>
+            <div class="form-group">
+                <label>User OCID</label>
+                <input type="text" id="userId" placeholder="ocid1.user.oc1.." required>
+            </div>
+            <div class="form-group">
+                <label>Fingerprint</label>
+                <input type="text" id="fingerprint" placeholder="a9:51:72:c9:ec:bf:82:38:..." required>
+            </div>
+            <div class="form-group">
+                <label>Private Key (PEM)</label>
+                <textarea id="privateKey" placeholder="-----BEGIN PRIVATE KEY-----&#10;..." required></textarea>
+            </div>
+            <div class="form-group">
+                <label>Passphrase (opcional)</label>
+                <input type="text" id="passphrase" placeholder="">
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="startBtn">Iniciar Scan</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
-    const role = localStorage.getItem('harpia_role') || 'Admin';
-    const name = localStorage.getItem('harpia_name') || 'Lorenzo';
-    document.getElementById('userName').textContent = name;
-    document.getElementById('userRole').textContent = role;
-    
-    document.querySelector('.user').style.cursor = 'pointer';
-    document.querySelector('.user').addEventListener('click', () => {
-        if (confirm('Deseja sair?')) {
-            localStorage.clear();
-            window.location.href = '/login';
+const role = localStorage.getItem('totvs_horus_role') || 'Admin';
+const name = localStorage.getItem('totvs_horus_name') || 'Lorenzo';
+document.getElementById('userName').textContent = name;
+document.getElementById('userRole').textContent = role;
+
+document.querySelector('.user').style.cursor = 'pointer';
+document.querySelector('.user').addEventListener('click', () => {
+    if (confirm('Deseja sair?')) {
+        localStorage.clear();
+        window.location.href = '/login';
+    }
+});
+
+// Load saved credentials
+const savedCreds = JSON.parse(localStorage.getItem('totvs_horus_oci_creds') || '{}');
+if (savedCreds.tenancyId) document.getElementById('tenancyId').value = savedCreds.tenancyId;
+if (savedCreds.userId) document.getElementById('userId').value = savedCreds.userId;
+if (savedCreds.fingerprint) document.getElementById('fingerprint').value = savedCreds.fingerprint;
+if (savedCreds.region) document.getElementById('region').value = savedCreds.region;
+
+function openModal() {
+    document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.remove('active');
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('modal')) closeModal();
+});
+
+// Load scans
+async function loadScans() {
+    try {
+        const resp = await fetch('/api/findings');
+        const data = await resp.json();
+        const scanList = document.getElementById('scanList');
+        
+        if (data.count === 0) {
+            scanList.innerHTML = `
+                <div class="empty">
+                    <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <h3>Nenhum scan executado</h3>
+                    <p>Clique em "+ Novo Scan" para iniciar.</p>
+                </div>
+            `;
+            return;
         }
-    });
+        
+        // Group by scan
+        const scans = {};
+        data.findings.forEach(f => {
+            const scanId = f.scan_id || 'unknown';
+            if (!scans[scanId]) {
+                scans[scanId] = { id: scanId, provider: f.provider, findings: [], started_at: f.found_at };
+            }
+            scans[scanId].findings.push(f);
+        });
+        
+        let html = '';
+        Object.values(scans).forEach(scan => {
+            const failCount = scan.findings.filter(f => f.status === 'FAIL').length;
+            const passCount = scan.findings.filter(f => f.status === 'PASS').length;
+            html += `
+                <div class="scan-item">
+                    <div class="scan-info">
+                        <div class="scan-icon ${scan.provider}">${scan.provider.toUpperCase().substring(0, 1)}</div>
+                        <div class="scan-details">
+                            <h4>${scan.provider.toUpperCase()}</h4>
+                            <p>Completo • ${scan.findings.length} checks executados</p>
+                        </div>
+                    </div>
+                    <div class="scan-meta">
+                        <div class="findings">${failCount} falhas / ${passCount} ok</div>
+                        <div class="time">${new Date(scan.started_at).toLocaleString('pt-BR')}</div>
+                        <span class="badge badge-success" style="display:inline-block;margin-top:6px">Completo</span>
+                    </div>
+                </div>
+            `;
+        });
+        scanList.innerHTML = html;
+    } catch (e) {
+        console.error('Erro ao carregar scans:', e);
+    }
+}
+
+// Submit scan
+document.getElementById('scanForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const startBtn = document.getElementById('startBtn');
+    startBtn.disabled = true;
+    startBtn.textContent = 'Escaneando...';
+    
+    // Save credentials
+    const creds = {
+        tenancyId: document.getElementById('tenancyId').value,
+        userId: document.getElementById('userId').value,
+        fingerprint: document.getElementById('fingerprint').value,
+        region: document.getElementById('region').value,
+    };
+    localStorage.setItem('totvs_horus_oci_creds', JSON.stringify(creds));
+    
+    const body = {
+        provider: document.getElementById('provider').value,
+        region: document.getElementById('region').value,
+        tenancy_id: creds.tenancyId,
+        user_id: creds.userId,
+        fingerprint: creds.fingerprint,
+        private_key: document.getElementById('privateKey').value,
+        passphrase: document.getElementById('passphrase').value,
+    };
+    
+    try {
+        const resp = await fetch('/api/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        
+        const result = await resp.json();
+        
+        if (result.success) {
+            closeModal();
+            loadScans();
+            // Redirect to findings
+            window.location.href = '/findings';
+        } else {
+            alert('Erro: ' + (result.error || 'Erro desconhecido'));
+        }
+    } catch (e) {
+        alert('Erro ao conectar com a API: ' + e.message);
+    } finally {
+        startBtn.disabled = false;
+        startBtn.textContent = 'Iniciar Scan';
+    }
+});
+
+// Load on start
+loadScans();
 </script>
 </body>
 </html>

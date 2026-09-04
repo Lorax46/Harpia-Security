@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
-	oci_checks "github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/providers/oci"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	oci_checks "github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/providers/oci"
 )
 
 // ScanRequest representa uma requisição de scan
@@ -57,7 +57,7 @@ func main() {
 	handler := corsMiddleware(mux)
 	
 	port := ":8083"
-	log.Printf("Harpia Scanner API rodando em http://0.0.0.0%s", port)
+	log.Printf("TOTVS Horus Scanner API rodando em http://0.0.0.0%s", port)
 	log.Fatal(http.ListenAndServe(port, handler))
 }
 
@@ -79,7 +79,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "healthy", "service": "harpia-scanner"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "healthy", "service": "totvs-horus-scanner"})
 }
 
 func handleScan(w http.ResponseWriter, r *http.Request) {

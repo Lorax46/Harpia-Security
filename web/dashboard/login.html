@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harpia Security — Login</title>
+<title>TOTVS Horus — Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -356,7 +356,7 @@ input.error-border {
             <path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity="0.7"/>
             <path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity="0.7"/>
         </svg>
-        <span>Harpia</span>
+        <span>TOTVS</span>
     </div>
 
     <h1>Acessar plataforma</h1>
@@ -405,17 +405,17 @@ input.error-border {
     <details class="demo-box">
         <summary>🔑 Credenciais de teste</summary>
         <div class="demo-creds">
-            <code onclick="fillDemo('admin@harpia.security', 'admin123')">
+            <code onclick="fillDemo('admin@totvs-horus.com', 'admin123')">
                 <span>Admin</span>
-                admin@harpia.security / admin123
+                admin@totvs-horus.com / admin123
             </code>
-            <code onclick="fillDemo('analista@harpia.security', 'analista123')">
+            <code onclick="fillDemo('analista@totvs-horus.com', 'analista123')">
                 <span>Analista</span>
-                analista@harpia.security / analista123
+                analista@totvs-horus.com / analista123
             </code>
-            <code onclick="fillDemo('viewer@harpia.security', 'viewer123')">
+            <code onclick="fillDemo('viewer@totvs-horus.com', 'viewer123')">
                 <span>Viewer</span>
-                viewer@harpia.security / viewer123
+                viewer@totvs-horus.com / viewer123
             </code>
         </div>
     </details>
@@ -429,9 +429,9 @@ input.error-border {
 <script>
 // Demo credentials (NUNCA usar em produção)
 const CREDS = {
-    'admin@harpia.security':    { pwd: 'admin123',    role: 'Admin' },
-    'analista@harpia.security': { pwd: 'analista123', role: 'Analista' },
-    'viewer@harpia.security':   { pwd: 'viewer123',   role: 'Viewer' }
+    'admin@totvs-horus.com':    { pwd: 'admin123',    role: 'Admin' },
+    'analista@totvs-horus.com': { pwd: 'analista123', role: 'Analista' },
+    'viewer@totvs-horus.com':   { pwd: 'viewer123',   role: 'Viewer' }
 };
 
 const form = document.getElementById('form');
@@ -494,8 +494,8 @@ form.addEventListener('submit', async (e) => {
 
     const user = CREDS[email.value.toLowerCase()];
     if (user && user.pwd === pwd.value) {
-        localStorage.setItem('harpia_logged', 'true');
-        localStorage.setItem('harpia_role', user.role);
+        localStorage.setItem('totvs_horus_logged', 'true');
+        localStorage.setItem('totvs_horus_role', user.role);
         showToast(`Bem-vindo, ${user.role}!`, 'success');
         setTimeout(() => {
             window.location.href = 'dashboard.html';

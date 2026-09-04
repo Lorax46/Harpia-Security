@@ -4,7 +4,7 @@ import os
 from urllib.parse import urlparse
 
 PORT = 8082
-BASE_DIR = "/home/ubuntu/harpia-security/web/dashboard"
+BASE_DIR = "/home/ubuntu/totvs-horus/web/dashboard"
 
 ROUTES = {
     "/": "login.html",
@@ -45,5 +45,5 @@ if __name__ == "__main__":
     os.chdir(BASE_DIR)
     server = http.server.HTTPServer(("0.0.0.0", PORT), Handler)
     server.socket.settimeout(1)
-    print(f"Harpia Security rodando em http://0.0.0.0:{PORT}")
+    print(f"TOTVS Horus rodando em http://0.0.0.0:{PORT}")
     server.serve_forever()

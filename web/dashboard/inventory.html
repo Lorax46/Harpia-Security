@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harpia Security — Inventory</title>
+<title>TOTVS Horus — Inventory</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0b0f19;--surface:#141925;--surface-hover:#1a2030;--border:#1e2636;--text:#e4e7ec;--text-dim:#6b7385;--accent:#00d4aa;--sidebar-w:220px;--header-h:56px;--radius:10px}
@@ -43,14 +43,14 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 </head>
 <body>
 <script>
-    if (!localStorage.getItem('harpia_logged')) {
+    if (!localStorage.getItem('totvs_horus_logged')) {
         window.location.href = '/login';
     }
 </script>
 <aside class="sidebar">
     <div class="sidebar-brand">
         <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#0099ff"/></linearGradient></defs><circle cx="32" cy="32" r="14" fill="none" stroke="url(#g)" stroke-width="2"/><circle cx="32" cy="32" r="5" fill="url(#g)"/><path d="M32 6 L28 18 L32 16 L36 18 Z" fill="url(#g)" opacity=".7"/><path d="M32 58 L28 46 L32 48 L36 46 Z" fill="url(#g)" opacity=".7"/><path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity=".7"/><path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity=".7"/></svg>
-        <span>Harpia</span>
+        <span>TOTVS</span>
     </div>
     <nav class="nav">
         <a href="/dashboard"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
@@ -80,8 +80,8 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 </main>
 
 <script>
-    const role = localStorage.getItem('harpia_role') || 'Admin';
-    const name = localStorage.getItem('harpia_name') || 'Lorenzo';
+    const role = localStorage.getItem('totvs_horus_role') || 'Admin';
+    const name = localStorage.getItem('totvs_horus_name') || 'Lorenzo';
     document.getElementById('userName').textContent = name;
     document.getElementById('userRole').textContent = role;
     

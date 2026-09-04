@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Harpia Security — Dashboard</title>
+<title>TOTVS Horus — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -399,7 +399,7 @@ body {
 <!-- Sidebar -->
 <script>
     // Auth check
-    if (!localStorage.getItem('harpia_logged')) {
+    if (!localStorage.getItem('totvs_horus_logged')) {
         window.location.href = '/login';
     }
 </script>
@@ -419,7 +419,7 @@ body {
             <path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity="0.7"/>
             <path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity="0.7"/>
         </svg>
-        <span>Harpia</span>
+        <span>TOTVS</span>
     </div>
 
     <nav class="nav">
@@ -562,8 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <script>
-    const role = localStorage.getItem('harpia_role') || 'Admin';
-    const name = localStorage.getItem('harpia_name') || 'Lorenzo';
+    const role = localStorage.getItem('totvs_horus_role') || 'Admin';
+    const name = localStorage.getItem('totvs_horus_name') || 'Lorenzo';
     document.getElementById('userName').textContent = name;
     document.getElementById('userRole').textContent = role;
     

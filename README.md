@@ -1,10 +1,10 @@
-# Harpia-Security 🦅
+# TOTVS Horus 🦅
 
 **CNAPP (Cloud-Native Application Protection Platform)** — plataforma de segurança multi-cloud com scans agentless, misconfigurations, vulnerabilidades e inventário.
 
 ## Visão Geral
 
-O Harpia consolida os principais módulos de segurança cloud:
+O TOTVS Horus consolida os principais módulos de segurança cloud:
 
 | Módulo | Descrição |
 |--------|-----------|
@@ -39,14 +39,14 @@ docker compose up -d
 
 # Build local
 make build
-./bin/harpia-security version
+./bin/totvs-horus version
 ```
 
 ## Estrutura
 
 ```
 .
-├── cmd/harpia/        # Entrypoint Go
+├── cmd/totvs-horus/        # Entrypoint Go
 ├── internal/          # Core packages
 │   ├── providers/     # AWS, GCP, Azure, OCI
 │   ├── scanner/       # Motor de scan

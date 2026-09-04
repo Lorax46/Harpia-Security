@@ -1,4 +1,4 @@
-# Arquitetura Harpia-Security
+# Arquitetura TOTVS Horus
 
 ## Componentes
 

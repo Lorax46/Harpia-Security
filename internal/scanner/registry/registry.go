@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
 )
 
 // Registry armazena todos os checks disponíveis

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
@@ -62,10 +62,10 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 	namespace := *nsResp.Value
 
 	req := objectstorage.ListBucketsRequest{
-		NamespaceName:  common.String(namespace),
-		CompartmentId:  &tenancyId,
+		NamespaceName: common.String(namespace),
+		CompartmentId: &tenancyId,
 	}
-	
+
 	buckets, err := client.ListBuckets(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao listar buckets: %w", err)
@@ -133,48 +133,6 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 	return findings, nil
 }
 
-// BucketLoggingEnabledCheck verifica se buckets têm logging habilitado
-type BucketLoggingEnabledCheck struct {
-	metadata models.CheckMetadata
-}
-
-func NewBucketLoggingEnabledCheck() *BucketLoggingEnabledCheck {
-	return &BucketLoggingEnabledCheck{
-		metadata: models.CheckMetadata{
-			Provider:        "oci",
-			CheckID:         "objectstorage_bucket_logging_enabled",
-			CheckTitle:      "Ensure object storage buckets have logging enabled",
-			ServiceName:     "objectstorage",
-			Severity:        "medium",
-			Description:     "Object storage buckets should have logging enabled",
-			RemediationText: "Enable logging for object storage buckets",
-			Categories:      []string{"storage"},
-		},
-	}
-}
-
-func (c *BucketLoggingEnabledCheck) Metadata() models.CheckMetadata {
-	return c.metadata
-}
-
-func (c *BucketLoggingEnabledCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID:             c.metadata.CheckID,
-			Title:          c.metadata.CheckTitle,
-			Description:    c.metadata.Description,
-			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation - use ListBuckets with logging details",
-			Provider:       "oci",
-			Service:        "objectstorage",
-			Remediation:    c.metadata.RemediationText,
-			Categories:     c.metadata.Categories,
-			FoundAt:        time.Now(),
-		},
-	}, nil
-}
-
 // BucketVersioningEnabledCheck verifica se buckets têm versionamento
 type BucketVersioningEnabledCheck struct {
 	metadata models.CheckMetadata
@@ -227,10 +185,10 @@ func (c *BucketVersioningEnabledCheck) Execute(ctx context.Context, provider int
 	namespace := *nsResp.Value
 
 	req := objectstorage.ListBucketsRequest{
-		NamespaceName:  common.String(namespace),
-		CompartmentId:  &tenancyId,
+		NamespaceName: common.String(namespace),
+		CompartmentId: &tenancyId,
 	}
-	
+
 	buckets, err := client.ListBuckets(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao listar buckets: %w", err)
@@ -350,10 +308,10 @@ func (c *BucketEncryptedWithCmkCheck) Execute(ctx context.Context, provider inte
 	namespace := *nsResp.Value
 
 	req := objectstorage.ListBucketsRequest{
-		NamespaceName:  common.String(namespace),
-		CompartmentId:  &tenancyId,
+		NamespaceName: common.String(namespace),
+		CompartmentId: &tenancyId,
 	}
-	
+
 	buckets, err := client.ListBuckets(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("falha ao listar buckets: %w", err)

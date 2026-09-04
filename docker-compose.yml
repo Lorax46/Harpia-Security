@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  harpia-security:
+  totvs-horus:
     build: .
-    container_name: harpia-security
+    container_name: totvs-horus
     volumes:
       - ./configs:/app/configs:ro
       - ./output:/app/output
@@ -21,12 +21,12 @@ services:
     ports:
       - "8080:8080"
     networks:
-      - harpia-net
+      - totvs-horus-net
 
 volumes:
   output:
   reports:
 
 networks:
-  harpia-net:
+  totvs-horus-net:
     driver: bridge

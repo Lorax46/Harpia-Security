@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/oracle/oci-go-sdk/v65/analytics"
 	"github.com/oracle/oci-go-sdk/v65/audit"
 	"github.com/oracle/oci-go-sdk/v65/cloudguard"
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -123,6 +124,16 @@ func (p *Provider) Storage() (core.BlockstorageClient, error) {
 	client, err := core.NewBlockstorageClientWithConfigurationProvider(p.config)
 	if err != nil {
 		return client, fmt.Errorf("falha ao criar blockstorage client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Analytics retorna o cliente Analytics
+func (p *Provider) Analytics() (analytics.AnalyticsClient, error) {
+	client, err := analytics.NewAnalyticsClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar analytics client: %w", err)
 	}
 	client.SetRegion(p.region)
 	return client, nil
