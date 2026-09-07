@@ -8,9 +8,10 @@ import (
 type Status string
 
 const (
-	StatusPass Status = "PASS"
-	StatusFail Status = "FAIL"
-	StatusInfo Status = "INFO"
+	StatusPass    Status = "PASS"
+	StatusFail    Status = "FAIL"
+	StatusInfo    Status = "INFO"
+	StatusManual  Status = "MANUAL"
 )
 
 // Finding representa um achado de segurança (estilo Prowler)
