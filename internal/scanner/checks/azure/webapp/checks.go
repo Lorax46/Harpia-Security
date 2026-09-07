@@ -70,18 +70,18 @@ func (c *HTTPSOnlyCheck) Execute(ctx context.Context, provider interface{}) ([]m
 				ext = fmt.Sprintf("Web App %s has HTTPS Only enabled", *app.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "webapp",
-				ResourceID:      *app.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "webapp",
+				ResourceID:     *app.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -145,18 +145,18 @@ func (c *MinimumTLSVersionCheck) Execute(ctx context.Context, provider interface
 				ext = fmt.Sprintf("Web App %s requires TLS 1.2", *app.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "webapp",
-				ResourceID:      *app.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "webapp",
+				ResourceID:     *app.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -220,18 +220,18 @@ func (c *FTPDisabledCheck) Execute(ctx context.Context, provider interface{}) ([
 				ext = fmt.Sprintf("Web App %s has FTP disabled", *app.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "webapp",
-				ResourceID:      *app.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "webapp",
+				ResourceID:     *app.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}

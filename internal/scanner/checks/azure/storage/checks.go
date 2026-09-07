@@ -70,18 +70,18 @@ func (c *HTTPSOnlyCheck) Execute(ctx context.Context, provider interface{}) ([]m
 				ext = fmt.Sprintf("Storage Account %s requires HTTPS only", *sa.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "storage",
-				ResourceID:      *sa.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "storage",
+				ResourceID:     *sa.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -153,18 +153,18 @@ func (c *StorageEncryptionAtRestCheck) Execute(ctx context.Context, provider int
 				ext = fmt.Sprintf("Storage Account %s has encryption at rest enabled", *sa.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "storage",
-				ResourceID:      *sa.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "storage",
+				ResourceID:     *sa.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -228,18 +228,18 @@ func (c *PublicAccessDisabledCheck) Execute(ctx context.Context, provider interf
 				ext = fmt.Sprintf("Storage Account %s allows public blob access", *sa.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "storage",
-				ResourceID:      *sa.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "storage",
+				ResourceID:     *sa.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -303,18 +303,18 @@ func (c *MinimumTLSVersionCheck) Execute(ctx context.Context, provider interface
 				ext = fmt.Sprintf("Storage Account %s requires TLS 1.2", *sa.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "storage",
-				ResourceID:      *sa.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "storage",
+				ResourceID:     *sa.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -378,18 +378,18 @@ func (c *SharedKeyAccessDisabledCheck) Execute(ctx context.Context, provider int
 				ext = fmt.Sprintf("Storage Account %s allows shared key access", *sa.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "storage",
-				ResourceID:      *sa.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "storage",
+				ResourceID:     *sa.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}

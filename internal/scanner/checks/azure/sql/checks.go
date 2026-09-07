@@ -69,18 +69,18 @@ func (c *SQLAuditingEnabledCheck) Execute(ctx context.Context, provider interfac
 				ext = fmt.Sprintf("SQL Database %s is active and auditing is enabled", *db.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "sql",
-				ResourceID:      *db.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "sql",
+				ResourceID:     *db.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -147,18 +147,18 @@ func (c *SQLEncryptedAtRestCheck) Execute(ctx context.Context, provider interfac
 				ext = fmt.Sprintf("SQL Database %s is encrypted", *db.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "sql",
-				ResourceID:      *db.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "sql",
+				ResourceID:     *db.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}

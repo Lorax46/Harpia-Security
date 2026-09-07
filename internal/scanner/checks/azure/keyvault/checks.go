@@ -74,18 +74,18 @@ func (c *PurgeProtectionCheck) Execute(ctx context.Context, provider interface{}
 				ext = fmt.Sprintf("Key Vault %s has purge protection enabled", *kv.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "keyvault",
-				ResourceID:      *kv.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "keyvault",
+				ResourceID:     *kv.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -153,18 +153,18 @@ func (c *SoftDeleteCheck) Execute(ctx context.Context, provider interface{}) ([]
 				ext = fmt.Sprintf("Key Vault %s has soft delete enabled", *kv.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "keyvault",
-				ResourceID:      *kv.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "keyvault",
+				ResourceID:     *kv.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -232,18 +232,18 @@ func (c *RBACAuthorizationCheck) Execute(ctx context.Context, provider interface
 				ext = fmt.Sprintf("Key Vault %s uses RBAC authorization", *kv.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "keyvault",
-				ResourceID:      *kv.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "keyvault",
+				ResourceID:     *kv.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}

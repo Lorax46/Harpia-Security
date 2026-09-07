@@ -87,18 +87,18 @@ func (c *NSGSSHRestrictedCheck) Execute(ctx context.Context, provider interface{
 				ext = fmt.Sprintf("NSG %s allows SSH from internet", *nsg.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "network",
-				ResourceID:      *nsg.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "network",
+				ResourceID:     *nsg.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -178,18 +178,18 @@ func (c *NSGRDPRestrictedCheck) Execute(ctx context.Context, provider interface{
 				ext = fmt.Sprintf("NSG %s allows RDP from internet", *nsg.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "network",
-				ResourceID:      *nsg.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "network",
+				ResourceID:     *nsg.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}
@@ -253,18 +253,18 @@ func (c *PublicIPSecuredCheck) Execute(ctx context.Context, provider interface{}
 				ext = fmt.Sprintf("Public IP %s is orphaned (not associated)", *ip.Name)
 			}
 			findings = append(findings, models.Finding{
-				ID:              c.metadata.CheckID,
-				Title:           c.metadata.CheckTitle,
-				Description:     c.metadata.Description,
-				Severity:        c.metadata.Severity,
-				Status:          status,
-				StatusExtended:  ext,
-				Provider:        "azure",
-				Service:         "network",
-				ResourceID:      *ip.Name,
-				Remediation:     c.metadata.RemediationText,
-				Categories:      c.metadata.Categories,
-				FoundAt:         time.Now(),
+				ID:             c.metadata.CheckID,
+				Title:          c.metadata.CheckTitle,
+				Description:    c.metadata.Description,
+				Severity:       c.metadata.Severity,
+				Status:         status,
+				StatusExtended: ext,
+				Provider:       "azure",
+				Service:        "network",
+				ResourceID:     *ip.Name,
+				Remediation:    c.metadata.RemediationText,
+				Categories:     c.metadata.Categories,
+				FoundAt:        time.Now(),
 			})
 		}
 	}

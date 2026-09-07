@@ -65,36 +65,36 @@ func (c *DiagnosticSettingsCheck) Execute(ctx context.Context, provider interfac
 				status := models.StatusPass
 				ext := fmt.Sprintf("Diagnostic setting %s is configured", *setting.Name)
 				findings = append(findings, models.Finding{
-					ID:              c.metadata.CheckID,
-					Title:           c.metadata.CheckTitle,
-					Description:     c.metadata.Description,
-					Severity:        c.metadata.Severity,
-					Status:          status,
-					StatusExtended:  ext,
-					Provider:        "azure",
-					Service:         "monitor",
-					ResourceID:      *setting.ID,
-					Remediation:     c.metadata.RemediationText,
-					Categories:      c.metadata.Categories,
-					FoundAt:         time.Now(),
+					ID:             c.metadata.CheckID,
+					Title:          c.metadata.CheckTitle,
+					Description:    c.metadata.Description,
+					Severity:       c.metadata.Severity,
+					Status:         status,
+					StatusExtended: ext,
+					Provider:       "azure",
+					Service:        "monitor",
+					ResourceID:     *setting.ID,
+					Remediation:    c.metadata.RemediationText,
+					Categories:     c.metadata.Categories,
+					FoundAt:        time.Now(),
 				})
 			}
 		}
 	}
 	if !settingsFound {
 		findings = append(findings, models.Finding{
-			ID:              c.metadata.CheckID,
-			Title:           c.metadata.CheckTitle,
-			Description:     c.metadata.Description,
-			Severity:        c.metadata.Severity,
-			Status:          models.StatusFail,
-			StatusExtended:  "No diagnostic settings found in the subscription",
-			Provider:        "azure",
-			Service:         "monitor",
-			ResourceID:      "subscription",
-			Remediation:     c.metadata.RemediationText,
-			Categories:      c.metadata.Categories,
-			FoundAt:         time.Now(),
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         models.StatusFail,
+			StatusExtended: "No diagnostic settings found in the subscription",
+			Provider:       "azure",
+			Service:        "monitor",
+			ResourceID:     "subscription",
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		})
 	}
 	return findings, nil
@@ -153,36 +153,36 @@ func (c *ActivityLogAlertsCheck) Execute(ctx context.Context, provider interface
 				status := models.StatusPass
 				ext := fmt.Sprintf("Activity log alert %s exists", *setting.Name)
 				findings = append(findings, models.Finding{
-					ID:              c.metadata.CheckID,
-					Title:           c.metadata.CheckTitle,
-					Description:     c.metadata.Description,
-					Severity:        c.metadata.Severity,
-					Status:          status,
-					StatusExtended:  ext,
-					Provider:        "azure",
-					Service:         "monitor",
-					ResourceID:      *setting.ID,
-					Remediation:     c.metadata.RemediationText,
-					Categories:      c.metadata.Categories,
-					FoundAt:         time.Now(),
+					ID:             c.metadata.CheckID,
+					Title:          c.metadata.CheckTitle,
+					Description:    c.metadata.Description,
+					Severity:       c.metadata.Severity,
+					Status:         status,
+					StatusExtended: ext,
+					Provider:       "azure",
+					Service:        "monitor",
+					ResourceID:     *setting.ID,
+					Remediation:    c.metadata.RemediationText,
+					Categories:     c.metadata.Categories,
+					FoundAt:        time.Now(),
 				})
 			}
 		}
 	}
 	if !hasAlerts {
 		findings = append(findings, models.Finding{
-			ID:              c.metadata.CheckID,
-			Title:           c.metadata.CheckTitle,
-			Description:     c.metadata.Description,
-			Severity:        c.metadata.Severity,
-			Status:          models.StatusFail,
-			StatusExtended:  "No activity log alerts found in the subscription",
-			Provider:        "azure",
-			Service:         "monitor",
-			ResourceID:      "subscription",
-			Remediation:     c.metadata.RemediationText,
-			Categories:      c.metadata.Categories,
-			FoundAt:         time.Now(),
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         models.StatusFail,
+			StatusExtended: "No activity log alerts found in the subscription",
+			Provider:       "azure",
+			Service:        "monitor",
+			ResourceID:     "subscription",
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
 		})
 	}
 	return findings, nil
