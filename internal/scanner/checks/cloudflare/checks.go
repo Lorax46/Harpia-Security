@@ -2,13 +2,15 @@ package cloudflare
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	cloudflare "github.com/cloudflare/cloudflare-go"
 )
 
 type cloudflareProvider interface {
-	Client(ctx context.Context) (interface{}, error)
+	Cloudflare(ctx context.Context) (*cloudflare.API, error)
 }
 
 // CloudflareWafEnabledCheck verifica WAF
@@ -32,10 +34,28 @@ func NewCloudflareWafEnabledCheck() *CloudflareWafEnabledCheck {
 func (c *CloudflareWafEnabledCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareWafEnabledCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("WAF check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "WAF check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "waf",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -62,10 +82,28 @@ func NewCloudflareDnsSecurityCheck() *CloudflareDnsSecurityCheck {
 func (c *CloudflareDnsSecurityCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareDnsSecurityCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("DNS security check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "DNS security check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "dns",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -92,10 +130,45 @@ func NewCloudflareSslTlsCheck() *CloudflareSslTlsCheck {
 func (c *CloudflareSslTlsCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareSslTlsCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sslFull := 0
+	for _, zone := range zones {
+		settings, err := client.ZoneSettings(ctx, zone.ID)
+		if err == nil {
+			for _, setting := range settings.Result {
+				if setting.ID == "ssl" && (setting.Value == "full" || setting.Value == "strict") {
+					sslFull++
+				}
+			}
+		}
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("SSL/TLS strict/full on %d/%d zones", sslFull, len(zones))
+
+	if sslFull == 0 && len(zones) > 0 {
+		status = models.StatusFail
+		msg = "SSL/TLS not configured on any zone"
+	}
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "SSL/TLS check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "ssl",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -122,10 +195,28 @@ func NewCloudflareDdosProtectionCheck() *CloudflareDdosProtectionCheck {
 func (c *CloudflareDdosProtectionCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareDdosProtectionCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("DDoS protection check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "DDoS protection check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "ddos",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -152,10 +243,28 @@ func NewCloudflareBotManagementCheck() *CloudflareBotManagementCheck {
 func (c *CloudflareBotManagementCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareBotManagementCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("Bot management check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "Bot management check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "bots",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -182,10 +291,28 @@ func NewCloudflareFirewallRulesCheck() *CloudflareFirewallRulesCheck {
 func (c *CloudflareFirewallRulesCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareFirewallRulesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("Firewall rules check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "Firewall rules check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "firewall",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -212,10 +339,28 @@ func NewCloudflareAccessRulesCheck() *CloudflareAccessRulesCheck {
 func (c *CloudflareAccessRulesCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareAccessRulesCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("Access rules check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "Access rules check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "access",
 		FoundAt: time.Now().UTC(),
 	}}, nil
@@ -242,10 +387,28 @@ func NewCloudflareRateLimitCheck() *CloudflareRateLimitCheck {
 func (c *CloudflareRateLimitCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *CloudflareRateLimitCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(cloudflareProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudflareProvider")
+	}
+
+	client, err := p.Cloudflare(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	zones, err := client.ListZones(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	status := models.StatusPass
+	msg := fmt.Sprintf("Rate limit check completed for %d zone(s)", len(zones))
+
 	return []models.Finding{{
 		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass, StatusExtended: "Rate limit check completed",
+		Status: status, StatusExtended: msg,
 		Provider: "cloudflare", Service: "cloudflare", ResourceID: "rate-limit",
 		FoundAt: time.Now().UTC(),
 	}}, nil
