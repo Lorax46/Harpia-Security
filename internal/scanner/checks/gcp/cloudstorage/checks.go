@@ -14,7 +14,7 @@ type cloudstorageProvider interface {
 	ProjectID() string
 }
 
-// BucketEncryptionCheck verifica se buckets usam criptografia
+// BucketEncryptionCheck verifica se buckets usam criptografia CMEK
 type BucketEncryptionCheck struct {
 	metadata models.CheckMetadata
 }
@@ -24,11 +24,11 @@ func NewBucketEncryptionCheck() *BucketEncryptionCheck {
 		metadata: models.CheckMetadata{
 			Provider:        "gcp",
 			CheckID:         "cloudstorage_bucket_encryption",
-			CheckTitle:      "Cloud Storage buckets use encryption",
+			CheckTitle:      "Cloud Storage buckets use CMEK encryption",
 			ServiceName:     "cloudstorage",
 			Severity:        "high",
-			Description:     "Cloud Storage buckets should use encryption",
-			RemediationText: "Enable encryption for Cloud Storage buckets",
+			Description:     "Cloud Storage buckets should use customer-managed encryption keys (CMEK)",
+			RemediationText: "Enable CMEK encryption for Cloud Storage buckets",
 			Categories:      []string{"storage", "encryption"},
 		},
 	}
@@ -55,36 +55,29 @@ func (c *BucketEncryptionCheck) Execute(ctx context.Context, provider interface{
 	}
 
 	for _, bucket := range buckets.Items {
-		hasEncryption := bucket.Encryption != nil && bucket.Encryption.DefaultKmsKeyName != ""
-		if hasEncryption {
-			findings = append(findings, models.Finding{
-				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-				Description: c.metadata.Description, Severity: c.metadata.Severity,
-				Status: models.StatusPass,
-				StatusExtended: fmt.Sprintf("Bucket %s uses customer-managed encryption", bucket.Name),
-				ResourceID: bucket.Name,
-				Provider: "gcp", Service: "cloudstorage",
-				Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-				FoundAt: time.Now(),
-			})
-		} else {
-			findings = append(findings, models.Finding{
-				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-				Description: c.metadata.Description, Severity: c.metadata.Severity,
-				Status: models.StatusPass,
-				StatusExtended: fmt.Sprintf("Bucket %s uses Google-managed encryption", bucket.Name),
-				ResourceID: bucket.Name,
-				Provider: "gcp", Service: "cloudstorage",
-				Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-				FoundAt: time.Now(),
-			})
+		hasCMEK := bucket.Encryption != nil && bucket.Encryption.DefaultKmsKeyName != ""
+		status := models.StatusPass
+		ext := fmt.Sprintf("Bucket %s uses customer-managed encryption key (CMEK)", bucket.Name)
+		if !hasCMEK {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Bucket %s uses Google-managed encryption (no CMEK)", bucket.Name)
 		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: ext,
+			ResourceID: bucket.Name,
+			Provider: "gcp", Service: "cloudstorage",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now(),
+		})
 	}
 
 	return findings, nil
 }
 
-// BucketIamCheck verifica IAM dos buckets
+// BucketIamCheck verifica IAM dos buckets - verifica acesso público
 type BucketIamCheck struct {
 	metadata models.CheckMetadata
 }
@@ -97,8 +90,8 @@ func NewBucketIamCheck() *BucketIamCheck {
 			CheckTitle:      "Cloud Storage buckets have proper IAM",
 			ServiceName:     "cloudstorage",
 			Severity:        "medium",
-			Description:     "Cloud Storage buckets should have proper IAM configuration",
-			RemediationText: "Configure IAM for Cloud Storage buckets",
+			Description:     "Cloud Storage buckets should not have public IAM access (allUsers/allAuthenticatedUsers)",
+			RemediationText: "Remove allUsers and allAuthenticatedUsers from bucket IAM policies",
 			Categories:      []string{"identity"},
 		},
 	}
@@ -107,17 +100,61 @@ func NewBucketIamCheck() *BucketIamCheck {
 func (c *BucketIamCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BucketIamCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudstorageProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudstorageProvider")
+	}
+	svc, err := p.Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	buckets, err := svc.Buckets.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list buckets: %w", err)
+	}
+
+	for _, bucket := range buckets.Items {
+		policy, err := svc.Buckets.GetIamPolicy(bucket.Name).Context(ctx).Do()
+		if err != nil {
+			continue
+		}
+
+		hasPublicAccess := false
+		for _, binding := range policy.Bindings {
+			for _, member := range binding.Members {
+				if member == "allUsers" || member == "allAuthenticatedUsers" {
+					hasPublicAccess = true
+					break
+				}
+			}
+			if hasPublicAccess {
+				break
+			}
+		}
+
+		status := models.StatusPass
+		ext := "Bucket has proper IAM configuration"
+		if hasPublicAccess {
+			status = models.StatusFail
+			ext = "Bucket has public IAM access"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Storage IAM check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: bucket.Name,
 			Provider: "gcp", Service: "cloudstorage",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // BucketLoggingCheck verifica logging dos buckets
@@ -130,11 +167,11 @@ func NewBucketLoggingCheck() *BucketLoggingCheck {
 		metadata: models.CheckMetadata{
 			Provider:        "gcp",
 			CheckID:         "cloudstorage_bucket_logging",
-			CheckTitle:      "Cloud Storage buckets have logging",
+			CheckTitle:      "Cloud Storage buckets have logging enabled",
 			ServiceName:     "cloudstorage",
 			Severity:        "low",
-			Description:     "Cloud Storage buckets should have logging enabled",
-			RemediationText: "Enable logging for Cloud Storage buckets",
+			Description:     "Cloud Storage buckets should have access logging enabled for audit",
+			RemediationText: "Enable access logging for Cloud Storage buckets",
 			Categories:      []string{"logging"},
 		},
 	}
@@ -143,17 +180,44 @@ func NewBucketLoggingCheck() *BucketLoggingCheck {
 func (c *BucketLoggingCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BucketLoggingCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudstorageProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudstorageProvider")
+	}
+	svc, err := p.Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	buckets, err := svc.Buckets.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list buckets: %w", err)
+	}
+
+	for _, bucket := range buckets.Items {
+		hasLogging := bucket.Logging != nil && bucket.Logging.LogBucket != ""
+		status := models.StatusPass
+		ext := "Bucket has access logging enabled"
+		if !hasLogging {
+			status = models.StatusFail
+			ext = "Bucket does not have access logging enabled"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Storage logging check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: bucket.Name,
 			Provider: "gcp", Service: "cloudstorage",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // BucketVersioningCheck verifica versionamento dos buckets
@@ -166,10 +230,10 @@ func NewBucketVersioningCheck() *BucketVersioningCheck {
 		metadata: models.CheckMetadata{
 			Provider:        "gcp",
 			CheckID:         "cloudstorage_bucket_versioning",
-			CheckTitle:      "Cloud Storage buckets have versioning",
+			CheckTitle:      "Cloud Storage buckets have versioning enabled",
 			ServiceName:     "cloudstorage",
 			Severity:        "medium",
-			Description:     "Cloud Storage buckets should have versioning enabled",
+			Description:     "Cloud Storage buckets should have versioning enabled to protect against accidental deletion",
 			RemediationText: "Enable versioning for Cloud Storage buckets",
 			Categories:      []string{"storage"},
 		},
@@ -179,15 +243,42 @@ func NewBucketVersioningCheck() *BucketVersioningCheck {
 func (c *BucketVersioningCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BucketVersioningCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudstorageProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudstorageProvider")
+	}
+	svc, err := p.Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	buckets, err := svc.Buckets.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list buckets: %w", err)
+	}
+
+	for _, bucket := range buckets.Items {
+		hasVersioning := bucket.Versioning != nil && bucket.Versioning.Enabled
+		status := models.StatusPass
+		ext := "Bucket has versioning enabled"
+		if !hasVersioning {
+			status = models.StatusFail
+			ext = "Bucket does not have versioning enabled"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Storage versioning check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: bucket.Name,
 			Provider: "gcp", Service: "cloudstorage",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }

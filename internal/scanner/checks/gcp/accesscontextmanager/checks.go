@@ -46,11 +46,8 @@ func (c *AccessLevelCheck) Execute(ctx context.Context, provider interface{}) ([
 		return nil, err
 	}
 
-	projectID := p.ProjectID()
-	_ = projectID
 	findings := []models.Finding{}
 
-	// List access policies first
 	policies, err := svc.AccessPolicies.List().Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list access policies: %w", err)
@@ -129,28 +126,54 @@ func (c *ServicePerimeterCheck) Execute(ctx context.Context, provider interface{
 	if !ok {
 		return nil, fmt.Errorf("provider does not implement accessContextManagerProvider")
 	}
-	_, err := p.AccessContextManager(ctx)
+	svc, err := p.AccessContextManager(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	findings := []models.Finding{}
-	// Service perimeters require access policies to exist first
-	// This is a simplified check
-	findings = append(findings, models.Finding{
-		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-		Description: c.metadata.Description, Severity: c.metadata.Severity,
-		Status: models.StatusPass,
-		StatusExtended: "Service perimeter check completed",
-		Provider: "gcp", Service: "accesscontextmanager",
-		Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-		FoundAt: time.Now(),
-	})
+
+	policies, err := svc.AccessPolicies.List().Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list access policies: %w", err)
+	}
+
+	for _, policy := range policies.AccessPolicies {
+		perimeters, err := svc.AccessPolicies.ServicePerimeters.List(policy.Name).Do()
+		if err != nil {
+			continue
+		}
+		if len(perimeters.ServicePerimeters) == 0 {
+			findings = append(findings, models.Finding{
+				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+				Description: c.metadata.Description, Severity: c.metadata.Severity,
+				Status: models.StatusFail,
+				StatusExtended: fmt.Sprintf("No service perimeters found in policy %s", policy.Name),
+				ResourceID: policy.Name,
+				Provider: "gcp", Service: "accesscontextmanager",
+				Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+				FoundAt: time.Now(),
+			})
+		} else {
+			for _, perimeter := range perimeters.ServicePerimeters {
+				findings = append(findings, models.Finding{
+					ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+					Description: c.metadata.Description, Severity: c.metadata.Severity,
+					Status: models.StatusPass,
+					StatusExtended: fmt.Sprintf("Service perimeter %s is configured", perimeter.Name),
+					ResourceID: perimeter.Name,
+					Provider: "gcp", Service: "accesscontextmanager",
+					Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+					FoundAt: time.Now(),
+				})
+			}
+		}
+	}
 
 	return findings, nil
 }
 
-// GcpUserAccessCheck verifica GCP user access
+// GcpUserAccessCheck verifica GCP user access via access levels
 type GcpUserAccessCheck struct {
 	metadata models.CheckMetadata
 }
@@ -173,17 +196,61 @@ func NewGcpUserAccessCheck() *GcpUserAccessCheck {
 func (c *GcpUserAccessCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *GcpUserAccessCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(accessContextManagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement accessContextManagerProvider")
+	}
+	svc, err := p.AccessContextManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	policies, err := svc.AccessPolicies.List().Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list access policies: %w", err)
+	}
+
+	for _, policy := range policies.AccessPolicies {
+		levels, err := svc.AccessPolicies.AccessLevels.List(policy.Name).Do()
+		if err != nil {
+			continue
+		}
+
+		hasGcpUserAccess := false
+		for _, level := range levels.AccessLevels {
+			if level.Basic != nil {
+				for _, condition := range level.Basic.Conditions {
+					for _, member := range condition.Members {
+						if member == "user:*" || member == "allUsers" {
+							hasGcpUserAccess = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		status := models.StatusPass
+		ext := "GCP user access is properly restricted"
+		if hasGcpUserAccess {
+			status = models.StatusFail
+			ext = "GCP user access is not restricted"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "GCP user access check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: policy.Name,
 			Provider: "gcp", Service: "accesscontextmanager",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // AccessPolicyCheck verifica access policies
@@ -209,17 +276,48 @@ func NewAccessPolicyCheck() *AccessPolicyCheck {
 func (c *AccessPolicyCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *AccessPolicyCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(accessContextManagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement accessContextManagerProvider")
+	}
+	svc, err := p.AccessContextManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	policies, err := svc.AccessPolicies.List().Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list access policies: %w", err)
+	}
+
+	if len(policies.AccessPolicies) == 0 {
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Access policy check completed",
+			Status: models.StatusFail,
+			StatusExtended: "No access policies found",
 			Provider: "gcp", Service: "accesscontextmanager",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	} else {
+		for _, policy := range policies.AccessPolicies {
+			findings = append(findings, models.Finding{
+				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+				Description: c.metadata.Description, Severity: c.metadata.Severity,
+				Status: models.StatusPass,
+				StatusExtended: fmt.Sprintf("Access policy %s is configured", policy.Name),
+				ResourceID: policy.Name,
+				Provider: "gcp", Service: "accesscontextmanager",
+				Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+				FoundAt: time.Now(),
+			})
+		}
+	}
+
+	return findings, nil
 }
 
 // IngressPolicyCheck verifica ingress policies
@@ -235,7 +333,7 @@ func NewIngressPolicyCheck() *IngressPolicyCheck {
 			CheckTitle:      "Ingress policies are configured",
 			ServiceName:     "accesscontextmanager",
 			Severity:        "medium",
-			Description:     "Ingress policies should be configured",
+			Description:     "Ingress policies should be configured for service perimeters",
 			RemediationText: "Configure ingress policies",
 			Categories:      []string{"identity"},
 		},
@@ -245,15 +343,49 @@ func NewIngressPolicyCheck() *IngressPolicyCheck {
 func (c *IngressPolicyCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *IngressPolicyCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Ingress policy check completed",
-			Provider: "gcp", Service: "accesscontextmanager",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-			FoundAt: time.Now(),
-		},
-	}, nil
+	p, ok := provider.(accessContextManagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement accessContextManagerProvider")
+	}
+	svc, err := p.AccessContextManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	policies, err := svc.AccessPolicies.List().Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list access policies: %w", err)
+	}
+
+	for _, policy := range policies.AccessPolicies {
+		perimeters, err := svc.AccessPolicies.ServicePerimeters.List(policy.Name).Do()
+		if err != nil {
+			continue
+		}
+
+		for _, perimeter := range perimeters.ServicePerimeters {
+			// Check if perimeter has ingress policies via status field
+			hasIngressPolicy := perimeter.Status != nil && len(perimeter.Status.IngressPolicies) > 0
+			status := models.StatusPass
+			ext := fmt.Sprintf("Service perimeter %s has ingress policies configured", perimeter.Name)
+			if !hasIngressPolicy {
+				status = models.StatusFail
+				ext = fmt.Sprintf("Service perimeter %s does not have ingress policies configured", perimeter.Name)
+			}
+
+			findings = append(findings, models.Finding{
+				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+				Description: c.metadata.Description, Severity: c.metadata.Severity,
+				Status: status, StatusExtended: ext,
+				ResourceID: perimeter.Name,
+				Provider: "gcp", Service: "accesscontextmanager",
+				Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+				FoundAt: time.Now(),
+			})
+		}
+	}
+
+	return findings, nil
 }

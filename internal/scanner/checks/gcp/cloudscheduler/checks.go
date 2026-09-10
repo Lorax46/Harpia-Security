@@ -85,7 +85,7 @@ func (c *JobCheck) Execute(ctx context.Context, provider interface{}) ([]models.
 	return findings, nil
 }
 
-// JobIamCheck verifica IAM dos jobs
+// JobIamCheck verifica IAM dos jobs - verifica acesso público
 type JobIamCheck struct {
 	metadata models.CheckMetadata
 }
@@ -98,8 +98,8 @@ func NewJobIamCheck() *JobIamCheck {
 			CheckTitle:      "Cloud Scheduler jobs have proper IAM",
 			ServiceName:     "cloudscheduler",
 			Severity:        "medium",
-			Description:     "Cloud Scheduler jobs should have proper IAM configuration",
-			RemediationText: "Configure IAM for Cloud Scheduler jobs",
+			Description:     "Cloud Scheduler jobs should not have public IAM access",
+			RemediationText: "Remove allUsers from Cloud Scheduler job IAM",
 			Categories:      []string{"identity"},
 		},
 	}
@@ -108,17 +108,60 @@ func NewJobIamCheck() *JobIamCheck {
 func (c *JobIamCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *JobIamCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudschedulerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudschedulerProvider")
+	}
+	svc, err := p.CloudScheduler(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	jobs, err := svc.Projects.Locations.Jobs.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list scheduler jobs: %w", err)
+	}
+
+	for _, job := range jobs.Jobs {
+		iamPolicy, err := svc.Projects.Locations.Jobs.GetIamPolicy(job.Name, &cloudscheduler.GetIamPolicyRequest{}).Context(ctx).Do()
+		if err != nil {
+			continue
+		}
+
+		hasPublicAccess := false
+		for _, binding := range iamPolicy.Bindings {
+			for _, member := range binding.Members {
+				if member == "allUsers" || member == "allAuthenticatedUsers" {
+					hasPublicAccess = true
+					break
+				}
+			}
+		}
+
+		status := models.StatusPass
+		ext := "Job has proper IAM configuration"
+		if hasPublicAccess {
+			status = models.StatusFail
+			ext = "Job has public IAM access"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Scheduler IAM check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: job.Name,
 			Provider: "gcp", Service: "cloudscheduler",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // JobRetryCheck verifica retry dos jobs
@@ -134,7 +177,7 @@ func NewJobRetryCheck() *JobRetryCheck {
 			CheckTitle:      "Cloud Scheduler jobs have retry configured",
 			ServiceName:     "cloudscheduler",
 			Severity:        "low",
-			Description:     "Cloud Scheduler jobs should have retry configured",
+			Description:     "Cloud Scheduler jobs should have retry configured for reliability",
 			RemediationText: "Configure retry for Cloud Scheduler jobs",
 			Categories:      []string{"reliability"},
 		},
@@ -144,17 +187,46 @@ func NewJobRetryCheck() *JobRetryCheck {
 func (c *JobRetryCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *JobRetryCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudschedulerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudschedulerProvider")
+	}
+	svc, err := p.CloudScheduler(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	jobs, err := svc.Projects.Locations.Jobs.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list scheduler jobs: %w", err)
+	}
+
+	for _, job := range jobs.Jobs {
+		hasRetryConfig := job.RetryConfig != nil && job.RetryConfig.RetryCount > 0
+		status := models.StatusPass
+		ext := fmt.Sprintf("Job %s has retry configured", job.Name)
+		if !hasRetryConfig {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Job %s does not have retry configured", job.Name)
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Scheduler retry check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: job.Name,
 			Provider: "gcp", Service: "cloudscheduler",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // JobLoggingCheck verifica logging dos jobs
@@ -170,7 +242,7 @@ func NewJobLoggingCheck() *JobLoggingCheck {
 			CheckTitle:      "Cloud Scheduler jobs have logging",
 			ServiceName:     "cloudscheduler",
 			Severity:        "low",
-			Description:     "Cloud Scheduler jobs should have logging enabled",
+			Description:     "Cloud Scheduler jobs should have logging enabled for monitoring",
 			RemediationText: "Enable logging for Cloud Scheduler jobs",
 			Categories:      []string{"logging"},
 		},
@@ -180,17 +252,46 @@ func NewJobLoggingCheck() *JobLoggingCheck {
 func (c *JobLoggingCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *JobLoggingCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudschedulerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudschedulerProvider")
+	}
+	svc, err := p.CloudScheduler(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	jobs, err := svc.Projects.Locations.Jobs.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list scheduler jobs: %w", err)
+	}
+
+	for _, job := range jobs.Jobs {
+		hasLogging := job.LogConfig != nil && job.LogConfig.Enable
+		status := models.StatusPass
+		ext := fmt.Sprintf("Job %s has logging enabled", job.Name)
+		if !hasLogging {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Job %s does not have logging enabled", job.Name)
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Scheduler logging check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: job.Name,
 			Provider: "gcp", Service: "cloudscheduler",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // JobTargetCheck verifica targets dos jobs
@@ -216,15 +317,45 @@ func NewJobTargetCheck() *JobTargetCheck {
 func (c *JobTargetCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *JobTargetCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudschedulerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudschedulerProvider")
+	}
+	svc, err := p.CloudScheduler(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	jobs, err := svc.Projects.Locations.Jobs.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list scheduler jobs: %w", err)
+	}
+
+	for _, job := range jobs.Jobs {
+		// Check if job has a valid target configured
+		hasTarget := job.PubsubTarget != nil || job.HttpTarget != nil || job.AppEngineHttpTarget != nil
+		status := models.StatusPass
+		ext := fmt.Sprintf("Job %s has target configured", job.Name)
+		if !hasTarget {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Job %s does not have target configured", job.Name)
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Scheduler target check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: job.Name,
 			Provider: "gcp", Service: "cloudscheduler",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }

@@ -3,6 +3,7 @@ package artifactregistry
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
@@ -108,17 +109,61 @@ func NewRepositoryIamCheck() *RepositoryIamCheck {
 func (c *RepositoryIamCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *RepositoryIamCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(artifactregistryProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement artifactregistryProvider")
+	}
+	svc, err := p.ArtifactRegistry(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	repos, err := svc.Projects.Locations.Repositories.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+
+	for _, repo := range repos.Repositories {
+		iamPolicy, err := svc.Projects.Locations.Repositories.GetIamPolicy(repo.Name).Context(ctx).Do()
+		if err != nil {
+			continue
+		}
+
+		hasPublicAccess := false
+		publicPrincipals := []string{}
+		for _, binding := range iamPolicy.Bindings {
+			for _, member := range binding.Members {
+				if member == "allUsers" || member == "allAuthenticatedUsers" {
+					hasPublicAccess = true
+					publicPrincipals = append(publicPrincipals, member)
+				}
+			}
+		}
+
+		status := models.StatusPass
+		ext := "Repository has proper IAM configuration"
+		if hasPublicAccess {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Repository has public IAM access: %s", strings.Join(publicPrincipals, ", "))
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Artifact Registry IAM check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: repo.Name,
 			Provider: "gcp", Service: "artifactregistry",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }
 
 // RepositoryEncryptionCheck verifica criptografia dos repositórios
@@ -144,15 +189,45 @@ func NewRepositoryEncryptionCheck() *RepositoryEncryptionCheck {
 func (c *RepositoryEncryptionCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *RepositoryEncryptionCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(artifactregistryProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement artifactregistryProvider")
+	}
+	svc, err := p.ArtifactRegistry(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	region := p.Region()
+	findings := []models.Finding{}
+
+	parent := fmt.Sprintf("projects/%s/locations/%s", projectID, region)
+	repos, err := svc.Projects.Locations.Repositories.List(parent).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list repositories: %w", err)
+	}
+
+	for _, repo := range repos.Repositories {
+		hasCMEK := repo.EncryptionConfig != nil && repo.EncryptionConfig.KmsKey != ""
+
+		status := models.StatusPass
+		ext := "Repository is encrypted with CMEK"
+		if !hasCMEK {
+			status = models.StatusFail
+			ext = "Repository is not encrypted with CMEK"
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Artifact Registry encryption check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: repo.Name,
 			Provider: "gcp", Service: "artifactregistry",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	return findings, nil
 }

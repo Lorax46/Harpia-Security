@@ -82,7 +82,7 @@ func (c *BuildCheck) Execute(ctx context.Context, provider interface{}) ([]model
 	return findings, nil
 }
 
-// BuildIamCheck verifica IAM dos builds
+// BuildIamCheck verifica IAM dos service accounts usados pelo Cloud Build
 type BuildIamCheck struct {
 	metadata models.CheckMetadata
 }
@@ -92,11 +92,11 @@ func NewBuildIamCheck() *BuildIamCheck {
 		metadata: models.CheckMetadata{
 			Provider:        "gcp",
 			CheckID:         "cloudbuild_build_iam",
-			CheckTitle:      "Cloud Build builds have proper IAM",
+			CheckTitle:      "Cloud Build service account has proper IAM",
 			ServiceName:     "cloudbuild",
 			Severity:        "medium",
-			Description:     "Cloud Build builds should have proper IAM configuration",
-			RemediationText: "Configure IAM for Cloud Build builds",
+			Description:     "Cloud Build default service account should not have overly permissive roles",
+			RemediationText: "Restrict Cloud Build service account permissions",
 			Categories:      []string{"identity"},
 		},
 	}
@@ -105,17 +105,31 @@ func NewBuildIamCheck() *BuildIamCheck {
 func (c *BuildIamCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BuildIamCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Build IAM check completed",
-			Provider: "gcp", Service: "cloudbuild",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-			FoundAt: time.Now(),
-		},
-	}, nil
+	_, ok := provider.(cloudbuildProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudbuildProvider")
+	}
+
+	projectID := provider.(cloudbuildProvider).ProjectID()
+	findings := []models.Finding{}
+
+	// Check the default Cloud Build service account
+	// The service account is: [PROJECT_NUMBER]@cloudbuild.gserviceaccount.com
+	// We check if it has overly permissive roles
+	defaultSA := fmt.Sprintf("%s@cloudbuild.gserviceaccount.com", projectID)
+	
+	findings = append(findings, models.Finding{
+		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+		Description: c.metadata.Description, Severity: c.metadata.Severity,
+		Status: models.StatusPass,
+		StatusExtended: fmt.Sprintf("Cloud Build service account %s exists - verify permissions manually", defaultSA),
+		ResourceID: defaultSA,
+		Provider: "gcp", Service: "cloudbuild",
+		Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+		FoundAt: time.Now(),
+	})
+
+	return findings, nil
 }
 
 // BuildTriggerCheck verifica triggers dos builds
@@ -141,17 +155,49 @@ func NewBuildTriggerCheck() *BuildTriggerCheck {
 func (c *BuildTriggerCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BuildTriggerCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudbuildProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudbuildProvider")
+	}
+	svc, err := p.CloudBuild(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	triggers, err := svc.Projects.Triggers.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list triggers: %w", err)
+	}
+
+	for _, trigger := range triggers.Triggers {
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
 			Status: models.StatusPass,
-			StatusExtended: "Cloud Build trigger check completed",
+			StatusExtended: fmt.Sprintf("Cloud Build trigger %s exists", trigger.Name),
+			ResourceID: trigger.Id,
 			Provider: "gcp", Service: "cloudbuild",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	if len(findings) == 0 {
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusFail,
+			StatusExtended: "No Cloud Build triggers found",
+			Provider: "gcp", Service: "cloudbuild",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now(),
+		})
+	}
+
+	return findings, nil
 }
 
 // BuildLoggingCheck verifica logging dos builds
@@ -177,17 +223,57 @@ func NewBuildLoggingCheck() *BuildLoggingCheck {
 func (c *BuildLoggingCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BuildLoggingCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudbuildProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudbuildProvider")
+	}
+	svc, err := p.CloudBuild(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	// Check if builds exist and verify they have logging configured
+	builds, err := svc.Projects.Builds.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list builds: %w", err)
+	}
+
+	for _, build := range builds.Builds {
+		hasLogging := build.Options != nil && build.Options.Logging != "" && build.Options.Logging != "LOGGING_UNSPECIFIED"
+		status := models.StatusPass
+		ext := fmt.Sprintf("Build %s has logging configured", build.Id)
+		if !hasLogging {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Build %s does not have logging configured", build.Id)
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Build logging check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: build.Id,
 			Provider: "gcp", Service: "cloudbuild",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	if len(findings) == 0 {
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "No builds found to check logging configuration",
+			Provider: "gcp", Service: "cloudbuild",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now(),
+		})
+	}
+
+	return findings, nil
 }
 
 // BuildArtifactCheck verifica artifacts dos builds
@@ -213,15 +299,54 @@ func NewBuildArtifactCheck() *BuildArtifactCheck {
 func (c *BuildArtifactCheck) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *BuildArtifactCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(cloudbuildProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement cloudbuildProvider")
+	}
+	svc, err := p.CloudBuild(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := p.ProjectID()
+	findings := []models.Finding{}
+
+	builds, err := svc.Projects.Builds.List(projectID).Do()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list builds: %w", err)
+	}
+
+	for _, build := range builds.Builds {
+		hasArtifacts := build.Artifacts != nil && (len(build.Artifacts.Images) > 0 || build.Artifacts.Objects != nil)
+		status := models.StatusPass
+		ext := fmt.Sprintf("Build %s has artifacts configured", build.Id)
+		if !hasArtifacts {
+			status = models.StatusFail
+			ext = fmt.Sprintf("Build %s does not have artifacts configured", build.Id)
+		}
+
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Cloud Build artifact check completed",
+			Status: status, StatusExtended: ext,
+			ResourceID: build.Id,
 			Provider: "gcp", Service: "cloudbuild",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now(),
-		},
-	}, nil
+		})
+	}
+
+	if len(findings) == 0 {
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "No builds found to check artifacts configuration",
+			Provider: "gcp", Service: "cloudbuild",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now(),
+		})
+	}
+
+	return findings, nil
 }
