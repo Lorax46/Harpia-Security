@@ -18,6 +18,10 @@ var Registry = map[string][]executor.Check{
 		compute.NewVMPublicIPDisabledCheck(),
 		compute.NewDiskEncryptedAtRestCheck(),
 		compute.NewVMUsesManagedDisksCheck(),
+		compute.NewVMBackupEnabled(),
+		compute.NewVMApprovedImages(),
+		compute.NewVMManagedDisks(),
+		compute.NewVMLinuxSSHAuthentication(),
 	},
 	"network": {
 		network.NewNSGSSHRestrictedCheck(),
