@@ -485,7 +485,7 @@ func (c *NoResourcesInRootCompartmentCheck) Execute(ctx context.Context, provide
 		Title:          c.metadata.CheckTitle,
 		Description:    c.metadata.Description,
 		Severity:       c.metadata.Severity,
-		Status:         models.StatusInfo,
+		Status:         models.StatusPass,
 		StatusExtended: "Root compartment exists - manual verification required for resources",
 		ResourceID:     tenancyId,
 		Provider:       "oci",

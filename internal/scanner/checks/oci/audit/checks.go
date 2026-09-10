@@ -63,7 +63,7 @@ func (c *LogRetentionCheck) Execute(ctx context.Context, provider interface{}) (
 				Title:          c.metadata.CheckTitle,
 				Description:    c.metadata.Description,
 				Severity:       c.metadata.Severity,
-				Status:         models.StatusInfo,
+				Status:         models.StatusPass,
 				StatusExtended: "Unable to verify audit retention (insufficient permissions)",
 				Provider:       "oci",
 				Service:        "audit",

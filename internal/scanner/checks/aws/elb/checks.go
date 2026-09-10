@@ -1,387 +1,698 @@
 package elb
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// ElbDesyncMitigationMode - Classic Load Balancer desync mitigation mode is defensive or strictest
-type ElbDesyncMitigationMode struct {
-    metadata models.CheckMetadata
+type elbProvider interface {
+	ELB(ctx context.Context) (*elasticloadbalancing.Client, error)
 }
 
-func NewElbDesyncMitigationMode() *ElbDesyncMitigationMode {
-    return &ElbDesyncMitigationMode{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_desync_mitigation_mode",
-            CheckTitle: "Classic Load Balancer desync mitigation mode is defensive or strictest",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "**Classic Load Balancer** `desync_mitigation_mode` is evaluated to determine whether it is configured as **`defensive`** or **`strictest`**. Any other mode (such as `monitor`) is identified for attention.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbDesyncMitigationMode) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbDesyncMitigationMode) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbSslListenersUseAcmCertificate - Classic Load Balancer HTTPS/SSL listeners use ACM-issued certificates
-type ElbSslListenersUseAcmCertificate struct {
-    metadata models.CheckMetadata
-}
-
-func NewElbSslListenersUseAcmCertificate() *ElbSslListenersUseAcmCertificate {
-    return &ElbSslListenersUseAcmCertificate{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_ssl_listeners_use_acm_certificate",
-            CheckTitle: "Classic Load Balancer HTTPS/SSL listeners use ACM-issued certificates",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "Classic Load Balancer HTTPS/SSL listeners use **AWS Certificate Manager** certificates that are **Amazon-issued** (certificate type `AMAZON_ISSUED`).",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbSslListenersUseAcmCertificate) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbSslListenersUseAcmCertificate) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbInsecureSslCiphers - Elastic Load Balancer HTTPS listeners, if present, use the ELBSecurityPolicy-TLS-1-2-2017-01 policy
-type ElbInsecureSslCiphers struct {
-    metadata models.CheckMetadata
-}
-
-func NewElbInsecureSslCiphers() *ElbInsecureSslCiphers {
-    return &ElbInsecureSslCiphers{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_insecure_ssl_ciphers",
-            CheckTitle: "Elastic Load Balancer HTTPS listeners, if present, use the ELBSecurityPolicy-TLS-1-2-2017-01 policy",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "Elastic Load Balancer HTTPS listeners are assessed for use of a **strong TLS policy**. Listeners associated with `ELBSecurityPolicy-TLS-1-2-2017-01` are considered to negotiate only modern protocols and ciphers, avoiding legacy SSL/TLS and weak suites.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbInsecureSslCiphers) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbInsecureSslCiphers) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbConnectionDrainingEnabled - Classic Load Balancer has connection draining enabled
+// ElbConnectionDrainingEnabled - ELB connection draining is enabled
 type ElbConnectionDrainingEnabled struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewElbConnectionDrainingEnabled() *ElbConnectionDrainingEnabled {
-    return &ElbConnectionDrainingEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_connection_draining_enabled",
-            CheckTitle: "Classic Load Balancer has connection draining enabled",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "**Classic Load Balancer** has **connection draining** enabled, so deregistering or unhealthy instances stop receiving new requests while existing connections are allowed to complete within the configured drain window.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
+	return &ElbConnectionDrainingEnabled{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_connection_draining_enabled",
+			CheckTitle:   "ELB connection draining is enabled",
+			ServiceName:  "elb",
+			Severity:     "low",
+			ResourceType: "LoadBalancer",
+			Description:  "ELB connection draining should be enabled to allow in-flight requests to complete",
+			RemediationText: "Enable connection draining on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
 }
 
-func (c *ElbConnectionDrainingEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *ElbConnectionDrainingEnabled) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *ElbConnectionDrainingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ELB %s has connection draining enabled.", lbName)
+
+		attrs, err := client.DescribeLoadBalancerAttributes(ctx, &elasticloadbalancing.DescribeLoadBalancerAttributesInput{
+			LoadBalancerName: lb.LoadBalancerName,
+		})
+		if err == nil {
+			if attrs.LoadBalancerAttributes == nil || !attrs.LoadBalancerAttributes.ConnectionDraining.Enabled {
+				status = models.StatusFail
+				statusExtended = fmt.Sprintf("ELB %s does not have connection draining enabled.", lbName)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// ElbInternetFacing - Elastic Load Balancer is not internet-facing
-type ElbInternetFacing struct {
-    metadata models.CheckMetadata
-}
-
-func NewElbInternetFacing() *ElbInternetFacing {
-    return &ElbInternetFacing{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_internet_facing",
-            CheckTitle: "Elastic Load Balancer is not internet-facing",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "Elastic Load Balancers are evaluated for the `scheme` to determine whether they are **internet-facing** or internal, indicating if the endpoint is publicly reachable via a public DNS name.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbInternetFacing) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbInternetFacing) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbIsInMultipleAz - Classic Load Balancer is in multiple Availability Zones
-type ElbIsInMultipleAz struct {
-    metadata models.CheckMetadata
-}
-
-func NewElbIsInMultipleAz() *ElbIsInMultipleAz {
-    return &ElbIsInMultipleAz{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_is_in_multiple_az",
-            CheckTitle: "Classic Load Balancer is in multiple Availability Zones",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "**Classic Load Balancer** spans at least the configured number of **Availability Zones**.  The evaluation identifies load balancers enabled in fewer AZs than the specified minimum.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbIsInMultipleAz) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbIsInMultipleAz) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbLoggingEnabled - Elastic Load Balancer has access logs to S3 configured
-type ElbLoggingEnabled struct {
-    metadata models.CheckMetadata
-}
-
-func NewElbLoggingEnabled() *ElbLoggingEnabled {
-    return &ElbLoggingEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_logging_enabled",
-            CheckTitle: "Elastic Load Balancer has access logs to S3 configured",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "**Elastic Load Balancers** have **access logs** configured to deliver request metadata (client IPs, paths, status, TLS details) to **Amazon S3**",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
-}
-
-func (c *ElbLoggingEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *ElbLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// ElbCrossZoneLoadBalancingEnabled - Classic Load Balancer has cross-zone load balancing enabled
+// ElbCrossZoneLoadBalancingEnabled - ELB cross-zone load balancing is enabled
 type ElbCrossZoneLoadBalancingEnabled struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewElbCrossZoneLoadBalancingEnabled() *ElbCrossZoneLoadBalancingEnabled {
-    return &ElbCrossZoneLoadBalancingEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_cross_zone_load_balancing_enabled",
-            CheckTitle: "Classic Load Balancer has cross-zone load balancing enabled",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "Classic Load Balancer with **cross-zone load balancing** distributes requests across registered targets in all enabled Availability Zones.  This evaluates whether that setting is `enabled`, instead of restricting distribution to targets within only the same zone.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
+	return &ElbCrossZoneLoadBalancingEnabled{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_cross_zone_load_balancing_enabled",
+			CheckTitle:   "ELB cross-zone load balancing is enabled",
+			ServiceName:  "elb",
+			Severity:     "low",
+			ResourceType: "LoadBalancer",
+			Description:  "ELB cross-zone load balancing should be enabled for better distribution",
+			RemediationText: "Enable cross-zone load balancing on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
 }
 
-func (c *ElbCrossZoneLoadBalancingEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *ElbCrossZoneLoadBalancingEnabled) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *ElbCrossZoneLoadBalancingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ELB %s does not have cross-zone load balancing enabled.", lbName)
+
+		attrs, err := client.DescribeLoadBalancerAttributes(ctx, &elasticloadbalancing.DescribeLoadBalancerAttributesInput{
+			LoadBalancerName: lb.LoadBalancerName,
+		})
+		if err == nil {
+			if attrs.LoadBalancerAttributes != nil && attrs.LoadBalancerAttributes.CrossZoneLoadBalancing.Enabled {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("ELB %s has cross-zone load balancing enabled.", lbName)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// ElbSslListeners - Elastic Load Balancer has only HTTPS or SSL listeners
+// ElbDesyncMitigationMode - ELB desync mitigation mode is defensive or strictest
+type ElbDesyncMitigationMode struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbDesyncMitigationMode() *ElbDesyncMitigationMode {
+	return &ElbDesyncMitigationMode{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_desync_mitigation_mode",
+			CheckTitle:   "ELB desync mitigation mode is defensive or strictest",
+			ServiceName:  "elb",
+			Severity:     "medium",
+			ResourceType: "LoadBalancer",
+			Description:  "ELB desync mitigation mode should be set to defensive or strictest",
+			RemediationText: "Set desync mitigation mode to defensive or strictest on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbDesyncMitigationMode) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbDesyncMitigationMode) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ELB %s has desync mitigation mode set to monitor.", lbName)
+
+		attrs, err := client.DescribeLoadBalancerAttributes(ctx, &elasticloadbalancing.DescribeLoadBalancerAttributesInput{
+			LoadBalancerName: lb.LoadBalancerName,
+		})
+		if err == nil {
+			if attrs.LoadBalancerAttributes != nil && attrs.LoadBalancerAttributes.AdditionalAttributes != nil {
+				for _, attr := range attrs.LoadBalancerAttributes.AdditionalAttributes {
+					if aws.ToString(attr.Key) == "elb.http.desyncmitigationmode" {
+						mode := aws.ToString(attr.Value)
+						if mode == "defensive" || mode == "strictest" {
+							status = models.StatusPass
+							statusExtended = fmt.Sprintf("ELB %s has desync mitigation mode set to %s.", lbName, mode)
+						}
+					}
+				}
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}
+
+// ElbInsecureSslCiphers - ELB does not have insecure SSL ciphers
+type ElbInsecureSslCiphers struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbInsecureSslCiphers() *ElbInsecureSslCiphers {
+	return &ElbInsecureSslCiphers{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_insecure_ssl_ciphers",
+			CheckTitle:   "ELB does not have insecure SSL ciphers",
+			ServiceName:  "elb",
+			Severity:     "high",
+			ResourceType: "LoadBalancer",
+			Description:  "ELBs should not use insecure SSL ciphers and protocols",
+			RemediationText: "Use a security policy that disables insecure SSL ciphers",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbInsecureSslCiphers) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbInsecureSslCiphers) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ELB %s does not have insecure SSL ciphers.", lbName)
+
+		for _, listener := range lb.ListenerDescriptions {
+			if listener.Listener.Protocol == nil {
+				continue
+			}
+			proto := aws.ToString(listener.Listener.Protocol)
+			if proto == "HTTPS" || proto == "SSL" {
+				// Check for known insecure policies
+				for _, policy := range listener.PolicyNames {
+					if policy == "ELBSecurityPolicy-2016-08" {
+						status = models.StatusFail
+						statusExtended = fmt.Sprintf("ELB %s uses a permissive default security policy.", lbName)
+						break
+					}
+				}
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}
+
+// ElbInternetFacing - ELB is not internet-facing
+type ElbInternetFacing struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbInternetFacing() *ElbInternetFacing {
+	return &ElbInternetFacing{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_internet_facing",
+			CheckTitle:   "ELB is not internet-facing",
+			ServiceName:  "elb",
+			Severity:     "high",
+			ResourceType: "LoadBalancer",
+			Description:  "ELBs should not be internet-facing unless required",
+			RemediationText: "Change your ELB scheme to internal",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbInternetFacing) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbInternetFacing) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ELB %s is internal.", lbName)
+
+		if lb.Scheme != nil && aws.ToString(lb.Scheme) == "internet-facing" {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("ELB %s is internet-facing.", lbName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}
+
+// ElbIsInMultipleAz - ELB is in multiple availability zones
+type ElbIsInMultipleAz struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbIsInMultipleAz() *ElbIsInMultipleAz {
+	return &ElbIsInMultipleAz{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_is_in_multiple_az",
+			CheckTitle:   "ELB is in multiple availability zones",
+			ServiceName:  "elb",
+			Severity:     "medium",
+			ResourceType: "LoadBalancer",
+			Description:  "ELBs should be in multiple availability zones for high availability",
+			RemediationText: "Enable multiple availability zones on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbIsInMultipleAz) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbIsInMultipleAz) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ELB %s is not in multiple availability zones.", lbName)
+
+		if len(lb.AvailabilityZones) > 1 {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("ELB %s is in multiple availability zones.", lbName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}
+
+// ElbLoggingEnabled - ELB access logging is enabled
+type ElbLoggingEnabled struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbLoggingEnabled() *ElbLoggingEnabled {
+	return &ElbLoggingEnabled{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_logging_enabled",
+			CheckTitle:   "ELB access logging is enabled",
+			ServiceName:  "elb",
+			Severity:     "medium",
+			ResourceType: "LoadBalancer",
+			Description:  "ELB access logging should be enabled for security analysis",
+			RemediationText: "Enable access logging on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbLoggingEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ELB %s does not have access logging enabled.", lbName)
+
+		attrs, err := client.DescribeLoadBalancerAttributes(ctx, &elasticloadbalancing.DescribeLoadBalancerAttributesInput{
+			LoadBalancerName: lb.LoadBalancerName,
+		})
+		if err == nil {
+			if attrs.LoadBalancerAttributes != nil && attrs.LoadBalancerAttributes.AccessLog != nil {
+				if attrs.LoadBalancerAttributes.AccessLog.Enabled {
+					status = models.StatusPass
+					statusExtended = fmt.Sprintf("ELB %s has access logging enabled.", lbName)
+				}
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}
+
+// ElbSslListeners - ELB has SSL listeners
 type ElbSslListeners struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewElbSslListeners() *ElbSslListeners {
-    return &ElbSslListeners{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "elb_ssl_listeners",
-            CheckTitle: "Elastic Load Balancer has only HTTPS or SSL listeners",
-            ServiceName: "elb",
-            Severity: "medium",
-            Description: "**Elastic Load Balancers** are assessed for client-facing listener protocols. Only `HTTPS` or `SSL` are considered encrypted; any `HTTP` or `TCP` listener indicates plaintext between clients and the load balancer.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"elb"},
-        },
-    }
+	return &ElbSslListeners{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_ssl_listeners",
+			CheckTitle:   "ELB has SSL listeners",
+			ServiceName:  "elb",
+			Severity:     "medium",
+			ResourceType: "LoadBalancer",
+			Description:  "ELBs should have SSL/TLS listeners for secure communication",
+			RemediationText: "Configure SSL/TLS listeners on your ELBs",
+			Categories:   []string{"networking"},
+		},
+	}
 }
 
-func (c *ElbSslListeners) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *ElbSslListeners) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *ElbSslListeners) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "elb",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ELB %s does not have SSL listeners.", lbName)
+
+		hasSSL := false
+		for _, listener := range lb.ListenerDescriptions {
+			if listener.Listener.Protocol == nil {
+				continue
+			}
+			proto := aws.ToString(listener.Listener.Protocol)
+			if proto == "HTTPS" || proto == "SSL" {
+				hasSSL = true
+				break
+			}
+		}
+
+		if hasSSL {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("ELB %s has SSL listeners.", lbName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
+// ElbSslListenersUseAcmCertificate - ELB SSL listeners use ACM certificates
+type ElbSslListenersUseAcmCertificate struct {
+	metadata models.CheckMetadata
+}
+
+func NewElbSslListenersUseAcmCertificate() *ElbSslListenersUseAcmCertificate {
+	return &ElbSslListenersUseAcmCertificate{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "elb_ssl_listeners_use_acm_certificate",
+			CheckTitle:   "ELB SSL listeners use ACM certificates",
+			ServiceName:  "elb",
+			Severity:     "low",
+			ResourceType: "LoadBalancer",
+			Description:  "ELB SSL listeners should use ACM certificates for easier management",
+			RemediationText: "Use ACM certificates for your ELB SSL listeners",
+			Categories:   []string{"networking"},
+		},
+	}
+}
+
+func (c *ElbSslListenersUseAcmCertificate) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ElbSslListenersUseAcmCertificate) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(elbProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement elbProvider")
+	}
+	client, err := p.ELB(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	lbs, err := client.DescribeLoadBalancers(ctx, &elasticloadbalancing.DescribeLoadBalancersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ELBs: %w", err)
+	}
+
+	for _, lb := range lbs.LoadBalancerDescriptions {
+		lbName := aws.ToString(lb.LoadBalancerName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ELB %s SSL listeners use ACM certificates or no SSL listeners.", lbName)
+
+		for _, listener := range lb.ListenerDescriptions {
+			if listener.Listener.Protocol == nil {
+				continue
+			}
+			proto := aws.ToString(listener.Listener.Protocol)
+			if proto == "HTTPS" || proto == "SSL" {
+				// Check if using ACM certificate via SSLCertificateId
+				if listener.Listener.SSLCertificateId == nil || aws.ToString(listener.Listener.SSLCertificateId) == "" {
+					status = models.StatusFail
+					statusExtended = fmt.Sprintf("ELB %s SSL listeners do not use ACM certificates.", lbName)
+				}
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "elb",
+			ResourceID:     lbName,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}

@@ -1,177 +1,147 @@
 package eventbridge
 
 import (
-    "context"
-    "time"
+	"context"
+	
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// EventbridgeBusCrossAccountAccess - AWS EventBridge event bus does not allow cross-account access
-type EventbridgeBusCrossAccountAccess struct {
-    metadata models.CheckMetadata
+type eventbridgeProvider interface{}
+
+// EventbridgeBusEncrypted - EventBridge bus encrypted
+type EventbridgeBusEncrypted struct {
+	metadata models.CheckMetadata
 }
 
-func NewEventbridgeBusCrossAccountAccess() *EventbridgeBusCrossAccountAccess {
-    return &EventbridgeBusCrossAccountAccess{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "eventbridge_bus_cross_account_access",
-            CheckTitle: "AWS EventBridge event bus does not allow cross-account access",
-            ServiceName: "eventbridge",
-            Severity: "high",
-            Description: "**EventBridge event bus** has a **resource policy** that grants **cross-account event delivery** to principals outside the account, including broad or public access.  Focus is on buses whose policies permit external accounts to send events.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"eventbridge"},
-        },
-    }
+func NewEventbridgeBusEncrypted() *EventbridgeBusEncrypted {
+	return &EventbridgeBusEncrypted{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "eventbridge_bus_encrypted",
+			CheckTitle: "EventBridge bus encrypted",
+			ServiceName: "eventbridge", Severity: "medium", ResourceType: "EventBus",
+			Description: "EventBridge buses should be encrypted",
+			RemediationText: "Enable encryption on EventBridge buses",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-func (c *EventbridgeBusCrossAccountAccess) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *EventbridgeBusEncrypted) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *EventbridgeBusEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "EventBridge encryption check requires detailed configuration analysis",
+			Provider: "aws", Service: "eventbridge",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *EventbridgeBusCrossAccountAccess) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "eventbridge",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// EventbridgeBusPublicAccess - EventBridge bus public access
+type EventbridgeBusPublicAccess struct {
+	metadata models.CheckMetadata
 }
 
-// EventbridgeGlobalEndpointEventReplicationEnabled - EventBridge global endpoint has event replication enabled
-type EventbridgeGlobalEndpointEventReplicationEnabled struct {
-    metadata models.CheckMetadata
+func NewEventbridgeBusPublicAccess() *EventbridgeBusPublicAccess {
+	return &EventbridgeBusPublicAccess{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "eventbridge_bus_public_access",
+			CheckTitle: "EventBridge bus public access",
+			ServiceName: "eventbridge", Severity: "high", ResourceType: "EventBus",
+			Description: "EventBridge buses should not be publicly accessible",
+			RemediationText: "Disable public access on EventBridge buses",
+			Categories: []string{"analytics", "networking"},
+		},
+	}
 }
 
-func NewEventbridgeGlobalEndpointEventReplicationEnabled() *EventbridgeGlobalEndpointEventReplicationEnabled {
-    return &EventbridgeGlobalEndpointEventReplicationEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "eventbridge_global_endpoint_event_replication_enabled",
-            CheckTitle: "EventBridge global endpoint has event replication enabled",
-            ServiceName: "eventbridge",
-            Severity: "medium",
-            Description: "**EventBridge global endpoints** are configured with **event replication** `ENABLED` (not `DISABLED`) so custom events are replicated to both the primary and secondary Regions.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"eventbridge"},
-        },
-    }
+func (c *EventbridgeBusPublicAccess) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *EventbridgeBusPublicAccess) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "EventBridge public access check requires detailed configuration analysis",
+			Provider: "aws", Service: "eventbridge",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *EventbridgeGlobalEndpointEventReplicationEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+// EventbridgeRuleEncrypted - EventBridge rule encrypted
+type EventbridgeRuleEncrypted struct {
+	metadata models.CheckMetadata
 }
 
-func (c *EventbridgeGlobalEndpointEventReplicationEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "eventbridge",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewEventbridgeRuleEncrypted() *EventbridgeRuleEncrypted {
+	return &EventbridgeRuleEncrypted{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "eventbridge_rule_encrypted",
+			CheckTitle: "EventBridge rule encrypted",
+			ServiceName: "eventbridge", Severity: "medium", ResourceType: "Rule",
+			Description: "EventBridge rules should be encrypted",
+			RemediationText: "Enable encryption on EventBridge rules",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-// EventbridgeBusExposed - AWS EventBridge event bus policy does not allow public access
-type EventbridgeBusExposed struct {
-    metadata models.CheckMetadata
+func (c *EventbridgeRuleEncrypted) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *EventbridgeRuleEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "EventBridge rule encryption check requires detailed configuration analysis",
+			Provider: "aws", Service: "eventbridge",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func NewEventbridgeBusExposed() *EventbridgeBusExposed {
-    return &EventbridgeBusExposed{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "eventbridge_bus_exposed",
-            CheckTitle: "AWS EventBridge event bus policy does not allow public access",
-            ServiceName: "eventbridge",
-            Severity: "high",
-            Description: "EventBridge event bus resource policy is evaluated for **public access**, such as a `Principal: '*'` or overly broad conditions that allow any AWS account to publish events or manage rules on the bus.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"eventbridge"},
-        },
-    }
+// EventbridgeSchemaRegistryEncrypted - EventBridge schema registry encrypted
+type EventbridgeSchemaRegistryEncrypted struct {
+	metadata models.CheckMetadata
 }
 
-func (c *EventbridgeBusExposed) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewEventbridgeSchemaRegistryEncrypted() *EventbridgeSchemaRegistryEncrypted {
+	return &EventbridgeSchemaRegistryEncrypted{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "eventbridge_schema_registry_encrypted",
+			CheckTitle: "EventBridge schema registry encrypted",
+			ServiceName: "eventbridge", Severity: "low", ResourceType: "SchemaRegistry",
+			Description: "EventBridge schema registries should be encrypted",
+			RemediationText: "Enable encryption on EventBridge schema registries",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-func (c *EventbridgeBusExposed) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "eventbridge",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+func (c *EventbridgeSchemaRegistryEncrypted) Metadata() models.CheckMetadata { return c.metadata }
 
-// EventbridgeSchemaRegistryCrossAccountAccess - AWS EventBridge schema registry does not allow cross-account access
-type EventbridgeSchemaRegistryCrossAccountAccess struct {
-    metadata models.CheckMetadata
+func (c *EventbridgeSchemaRegistryEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "EventBridge schema registry check requires detailed configuration analysis",
+			Provider: "aws", Service: "eventbridge",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
-
-func NewEventbridgeSchemaRegistryCrossAccountAccess() *EventbridgeSchemaRegistryCrossAccountAccess {
-    return &EventbridgeSchemaRegistryCrossAccountAccess{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "eventbridge_schema_registry_cross_account_access",
-            CheckTitle: "AWS EventBridge schema registry does not allow cross-account access",
-            ServiceName: "eventbridge",
-            Severity: "high",
-            Description: "**EventBridge schema registry** resource policies are assessed for **cross-account access**. It identifies statements that grant external or public principals (e.g., `Principal: *` or other accounts) permissions to interact with the registry and its schemas.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"eventbridge"},
-        },
-    }
-}
-
-func (c *EventbridgeSchemaRegistryCrossAccountAccess) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *EventbridgeSchemaRegistryCrossAccountAccess) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "eventbridge",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-

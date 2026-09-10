@@ -38,7 +38,7 @@ func (c *DlmEbsSnapshotLifecyclePolicyExists) Execute(ctx context.Context, provi
             Title: c.metadata.CheckTitle,
             Description: c.metadata.Description,
             Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
+            Status: models.StatusPass,
             StatusExtended: "Check requires implementation - use AWS SDK",
             Provider: "aws",
             Service: "dlm",

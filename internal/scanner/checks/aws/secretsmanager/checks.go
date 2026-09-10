@@ -1,219 +1,347 @@
 package secretsmanager
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// SecretsmanagerSecretRotatedPeriodically - AWS Secrets Manager secret is rotated within the configured maximum number of days
-type SecretsmanagerSecretRotatedPeriodically struct {
-    metadata models.CheckMetadata
+type secretsmanagerProvider interface {
+	SecretsManager(ctx context.Context) (*secretsmanager.Client, error)
 }
 
-func NewSecretsmanagerSecretRotatedPeriodically() *SecretsmanagerSecretRotatedPeriodically {
-    return &SecretsmanagerSecretRotatedPeriodically{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "secretsmanager_secret_rotated_periodically",
-            CheckTitle: "AWS Secrets Manager secret is rotated within the configured maximum number of days",
-            ServiceName: "secretsmanager",
-            Severity: "medium",
-            Description: "**AWS Secrets Manager secrets** are evaluated for **periodic rotation** within a configured window (default `90` days).  Secrets with no recorded rotation, or with rotation older than the allowed window, are identified for review.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"secretsmanager"},
-        },
-    }
+// SecretsManagerSecretRotationEnabled - Secrets Manager secret rotation enabled
+type SecretsManagerSecretRotationEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *SecretsmanagerSecretRotatedPeriodically) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewSecretsManagerSecretRotationEnabled() *SecretsManagerSecretRotationEnabled {
+	return &SecretsManagerSecretRotationEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "secretsmanager_secret_rotation_enabled",
+			CheckTitle: "Secrets Manager secret rotation enabled",
+			ServiceName: "secretsmanager", Severity: "medium", ResourceType: "Secret",
+			Description: "Secrets Manager secrets should have rotation enabled",
+			RemediationText: "Enable rotation on Secrets Manager secrets",
+			Categories: []string{"secrets"},
+		},
+	}
 }
 
-func (c *SecretsmanagerSecretRotatedPeriodically) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "secretsmanager",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *SecretsManagerSecretRotationEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *SecretsManagerSecretRotationEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(secretsmanagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement secretsmanagerProvider")
+	}
+	smClient, err := p.SecretsManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	secrets, err := smClient.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	for _, secret := range secrets.SecretList {
+		secretName := aws.ToString(secret.Name)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("Secret %s does not have rotation enabled.", secretName)
+
+		if secret.RotationEnabled != nil && *secret.RotationEnabled {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("Secret %s has rotation enabled.", secretName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "secretsmanager", ResourceID: secretName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// SecretsmanagerSecretUnused - Secrets Manager secret has been accessed within the last 90 days
-type SecretsmanagerSecretUnused struct {
-    metadata models.CheckMetadata
+// SecretsManagerSecretUnused - Secrets Manager secret unused
+type SecretsManagerSecretUnused struct {
+	metadata models.CheckMetadata
 }
 
-func NewSecretsmanagerSecretUnused() *SecretsmanagerSecretUnused {
-    return &SecretsmanagerSecretUnused{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "secretsmanager_secret_unused",
-            CheckTitle: "Secrets Manager secret has been accessed within the last 90 days",
-            ServiceName: "secretsmanager",
-            Severity: "medium",
-            Description: "**AWS Secrets Manager secrets** with no retrieval activity beyond a configured window (default `90` days) are identified as **unused** based on their most recent access timestamp",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"secretsmanager"},
-        },
-    }
+func NewSecretsManagerSecretUnused() *SecretsManagerSecretUnused {
+	return &SecretsManagerSecretUnused{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "secretsmanager_secret_unused",
+			CheckTitle: "Secrets Manager secret unused",
+			ServiceName: "secretsmanager", Severity: "low", ResourceType: "Secret",
+			Description: "Secrets Manager secrets should be used",
+			RemediationText: "Remove unused secrets",
+			Categories: []string{"secrets"},
+		},
+	}
 }
 
-func (c *SecretsmanagerSecretUnused) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *SecretsManagerSecretUnused) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *SecretsManagerSecretUnused) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(secretsmanagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement secretsmanagerProvider")
+	}
+	smClient, err := p.SecretsManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	secrets, err := smClient.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	for _, secret := range secrets.SecretList {
+		secretName := aws.ToString(secret.Name)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Secret %s is in use.", secretName)
+
+		// Check if the secret has been accessed recently (LastAccessedDate)
+		// If LastAccessedDate is nil, the secret has never been accessed
+		if secret.LastAccessedDate == nil {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Secret %s has never been accessed (unused).", secretName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "secretsmanager", ResourceID: secretName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *SecretsmanagerSecretUnused) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "secretsmanager",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// SecretsManagerSecretVersionUnused - Secrets Manager secret version unused
+type SecretsManagerSecretVersionUnused struct {
+	metadata models.CheckMetadata
 }
 
-// SecretsmanagerAutomaticRotationEnabled - Secrets Manager secret has rotation enabled
-type SecretsmanagerAutomaticRotationEnabled struct {
-    metadata models.CheckMetadata
+func NewSecretsManagerSecretVersionUnused() *SecretsManagerSecretVersionUnused {
+	return &SecretsManagerSecretVersionUnused{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "secretsmanager_secret_version_unused",
+			CheckTitle: "Secrets Manager secret version unused",
+			ServiceName: "secretsmanager", Severity: "low", ResourceType: "Secret",
+			Description: "Secrets Manager secret versions should be used",
+			RemediationText: "Remove unused secret versions",
+			Categories: []string{"secrets"},
+		},
+	}
 }
 
-func NewSecretsmanagerAutomaticRotationEnabled() *SecretsmanagerAutomaticRotationEnabled {
-    return &SecretsmanagerAutomaticRotationEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "secretsmanager_automatic_rotation_enabled",
-            CheckTitle: "Secrets Manager secret has rotation enabled",
-            ServiceName: "secretsmanager",
-            Severity: "high",
-            Description: "**AWS Secrets Manager secrets** are evaluated for **automatic rotation**; the check determines if a rotation schedule is enabled for each secret",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"secretsmanager"},
-        },
-    }
+func (c *SecretsManagerSecretVersionUnused) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *SecretsManagerSecretVersionUnused) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(secretsmanagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement secretsmanagerProvider")
+	}
+	smClient, err := p.SecretsManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	secrets, err := smClient.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	for _, secret := range secrets.SecretList {
+		secretName := aws.ToString(secret.Name)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Secret %s has no unused versions.", secretName)
+
+		// Check for unused versions by listing secret versions
+		// If there are versions that are not in the default stages (AWSCURRENT, AWSPENDING), they are unused
+		versions, err := smClient.ListSecretVersionIds(ctx, &secretsmanager.ListSecretVersionIdsInput{
+			SecretId: secret.Name,
+		})
+		if err == nil {
+			unusedCount := 0
+			for _, version := range versions.Versions {
+				if version.VersionStages != nil {
+					hasDefaultStage := false
+					for _, stage := range version.VersionStages {
+						if stage == "AWSCURRENT" || stage == "AWSPENDING" || stage == "AWSPREVIOUS" {
+							hasDefaultStage = true
+							break
+						}
+					}
+					if !hasDefaultStage {
+						unusedCount++
+					}
+				}
+			}
+			if unusedCount > 0 {
+				status = models.StatusFail
+				statusExtended = fmt.Sprintf("Secret %s has %d unused version(s).", secretName, unusedCount)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "secretsmanager", ResourceID: secretName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *SecretsmanagerAutomaticRotationEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+// SecretsManagerSecretEncryptedWithCmk - Secrets Manager secret encrypted with CMK
+type SecretsManagerSecretEncryptedWithCmk struct {
+	metadata models.CheckMetadata
 }
 
-func (c *SecretsmanagerAutomaticRotationEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "secretsmanager",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewSecretsManagerSecretEncryptedWithCmk() *SecretsManagerSecretEncryptedWithCmk {
+	return &SecretsManagerSecretEncryptedWithCmk{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "secretsmanager_secret_encrypted_with_cmk",
+			CheckTitle: "Secrets Manager secret encrypted with CMK",
+			ServiceName: "secretsmanager", Severity: "medium", ResourceType: "Secret",
+			Description: "Secrets Manager secrets should be encrypted with CMK",
+			RemediationText: "Use CMK encryption for Secrets Manager secrets",
+			Categories: []string{"secrets", "encryption"},
+		},
+	}
 }
 
-// SecretsmanagerNotPubliclyAccessible - Secrets Manager secret resource policy does not allow public access
-type SecretsmanagerNotPubliclyAccessible struct {
-    metadata models.CheckMetadata
+func (c *SecretsManagerSecretEncryptedWithCmk) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *SecretsManagerSecretEncryptedWithCmk) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(secretsmanagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement secretsmanagerProvider")
+	}
+	smClient, err := p.SecretsManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	secrets, err := smClient.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
+
+	for _, secret := range secrets.SecretList {
+		secretName := aws.ToString(secret.Name)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Secret %s is encrypted with CMK.", secretName)
+
+		if secret.KmsKeyId == nil || aws.ToString(secret.KmsKeyId) == "" {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Secret %s is not encrypted with CMK.", secretName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "secretsmanager", ResourceID: secretName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func NewSecretsmanagerNotPubliclyAccessible() *SecretsmanagerNotPubliclyAccessible {
-    return &SecretsmanagerNotPubliclyAccessible{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "secretsmanager_not_publicly_accessible",
-            CheckTitle: "Secrets Manager secret resource policy does not allow public access",
-            ServiceName: "secretsmanager",
-            Severity: "high",
-            Description: "**AWS Secrets Manager secrets** are evaluated for **public exposure** through resource-based policies that grant broad access, such as `Principal: '*'`, which would allow any principal to perform actions on the secret.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"secretsmanager"},
-        },
-    }
+// SecretsManagerSecretUnused90Days - Secrets Manager secret unused 90 days
+type SecretsManagerSecretUnused90Days struct {
+	metadata models.CheckMetadata
 }
 
-func (c *SecretsmanagerNotPubliclyAccessible) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewSecretsManagerSecretUnused90Days() *SecretsManagerSecretUnused90Days {
+	return &SecretsManagerSecretUnused90Days{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "secretsmanager_secret_unused_90_days",
+			CheckTitle: "Secrets Manager secret unused 90 days",
+			ServiceName: "secretsmanager", Severity: "medium", ResourceType: "Secret",
+			Description: "Secrets Manager secrets should not be unused for 90 days",
+			RemediationText: "Remove unused secrets",
+			Categories: []string{"secrets"},
+		},
+	}
 }
 
-func (c *SecretsmanagerNotPubliclyAccessible) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "secretsmanager",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+func (c *SecretsManagerSecretUnused90Days) Metadata() models.CheckMetadata { return c.metadata }
 
-// SecretsmanagerHasRestrictiveResourcePolicy - Secrets Manager secret has a restrictive resource-based policy
-type SecretsmanagerHasRestrictiveResourcePolicy struct {
-    metadata models.CheckMetadata
-}
+func (c *SecretsManagerSecretUnused90Days) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(secretsmanagerProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement secretsmanagerProvider")
+	}
+	smClient, err := p.SecretsManager(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-func NewSecretsmanagerHasRestrictiveResourcePolicy() *SecretsmanagerHasRestrictiveResourcePolicy {
-    return &SecretsmanagerHasRestrictiveResourcePolicy{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "secretsmanager_has_restrictive_resource_policy",
-            CheckTitle: "Secrets Manager secret has a restrictive resource-based policy",
-            ServiceName: "secretsmanager",
-            Severity: "high",
-            Description: "**Secrets Manager secrets** are evaluated for **restrictive resource-based policies**: explicit **Deny** for unauthorized principals, **Organization** boundary via `PrincipalOrgID`, `aws:SourceAccount` for service access. Per-principal **NotAction** restrictions are optional (defense-in-depth). Regionalized service principals are supported.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"secretsmanager"},
-        },
-    }
-}
+	findings := []models.Finding{}
 
-func (c *SecretsmanagerHasRestrictiveResourcePolicy) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+	secrets, err := smClient.ListSecrets(ctx, &secretsmanager.ListSecretsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %w", err)
+	}
 
-func (c *SecretsmanagerHasRestrictiveResourcePolicy) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "secretsmanager",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+	for _, secret := range secrets.SecretList {
+		secretName := aws.ToString(secret.Name)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Secret %s has been accessed within 90 days.", secretName)
 
+		// Check if the secret has been accessed within the last 90 days
+		if secret.LastAccessedDate != nil {
+			daysSinceAccess := time.Since(*secret.LastAccessedDate).Hours() / 24
+			if daysSinceAccess > 90 {
+				status = models.StatusFail
+				statusExtended = fmt.Sprintf("Secret %s has not been accessed for %.0f days.", secretName, daysSinceAccess)
+			}
+		} else {
+			// Never accessed
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Secret %s has never been accessed.", secretName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "secretsmanager", ResourceID: secretName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}

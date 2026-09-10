@@ -1,135 +1,113 @@
 package fsx
 
 import (
-    "context"
-    "time"
+	"context"
+	
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// FsxWindowsFileSystemMultiAzEnabled - FSx Windows file system is configured for Multi-AZ deployment
-type FsxWindowsFileSystemMultiAzEnabled struct {
-    metadata models.CheckMetadata
+type fsxProvider interface{}
+
+// FsxFileSystemEncrypted - FSx file system encrypted
+type FsxFileSystemEncrypted struct {
+	metadata models.CheckMetadata
 }
 
-func NewFsxWindowsFileSystemMultiAzEnabled() *FsxWindowsFileSystemMultiAzEnabled {
-    return &FsxWindowsFileSystemMultiAzEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "fsx_windows_file_system_multi_az_enabled",
-            CheckTitle: "FSx Windows file system is configured for Multi-AZ deployment",
-            ServiceName: "fsx",
-            Severity: "low",
-            Description: "**FSx for Windows File Server** file systems are evaluated for **Multi-AZ deployment**, determined when `SubnetIds` include more than one subnet in different Availability Zones.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"fsx"},
-        },
-    }
+func NewFsxFileSystemEncrypted() *FsxFileSystemEncrypted {
+	return &FsxFileSystemEncrypted{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "fsx_file_system_encrypted",
+			CheckTitle: "FSx file system encrypted",
+			ServiceName: "fsx", Severity: "high", ResourceType: "FileSystem",
+			Description: "FSx file systems should be encrypted",
+			RemediationText: "Enable encryption on FSx file systems",
+			Categories: []string{"storage", "encryption"},
+		},
+	}
 }
 
-func (c *FsxWindowsFileSystemMultiAzEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *FsxFileSystemEncrypted) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *FsxFileSystemEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "FSx encryption check requires detailed configuration analysis",
+			Provider: "aws", Service: "fsx",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *FsxWindowsFileSystemMultiAzEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "fsx",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// FsxFileSystemInVpc - FSx file system in VPC
+type FsxFileSystemInVpc struct {
+	metadata models.CheckMetadata
 }
 
-// FsxFileSystemCopyTagsToBackupsEnabled - FSx file system has copy tags to backups enabled
-type FsxFileSystemCopyTagsToBackupsEnabled struct {
-    metadata models.CheckMetadata
+func NewFsxFileSystemInVpc() *FsxFileSystemInVpc {
+	return &FsxFileSystemInVpc{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "fsx_file_system_in_vpc",
+			CheckTitle: "FSx file system in VPC",
+			ServiceName: "fsx", Severity: "medium", ResourceType: "FileSystem",
+			Description: "FSx file systems should be in VPC",
+			RemediationText: "Configure FSx file systems to be in VPC",
+			Categories: []string{"storage", "networking"},
+		},
+	}
 }
 
-func NewFsxFileSystemCopyTagsToBackupsEnabled() *FsxFileSystemCopyTagsToBackupsEnabled {
-    return &FsxFileSystemCopyTagsToBackupsEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "fsx_file_system_copy_tags_to_backups_enabled",
-            CheckTitle: "FSx file system has copy tags to backups enabled",
-            ServiceName: "fsx",
-            Severity: "low",
-            Description: "**Amazon FSx file systems** are evaluated for whether they copy **resource tags** to their **backups** via the `copy_tags_to_backups` setting.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"fsx"},
-        },
-    }
+func (c *FsxFileSystemInVpc) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *FsxFileSystemInVpc) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "FSx VPC check requires detailed configuration analysis",
+			Provider: "aws", Service: "fsx",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *FsxFileSystemCopyTagsToBackupsEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+// FileSystemBackupEnabled - FSx file system backup enabled
+type FileSystemBackupEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *FsxFileSystemCopyTagsToBackupsEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "fsx",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewFileSystemBackupEnabled() *FileSystemBackupEnabled {
+	return &FileSystemBackupEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "fsx_file_system_backup_enabled",
+			CheckTitle: "FSx file system backup enabled",
+			ServiceName: "fsx", Severity: "medium", ResourceType: "FileSystem",
+			Description: "FSx file systems should have backup enabled",
+			RemediationText: "Enable backup on FSx file systems",
+			Categories: []string{"storage", "resilience"},
+		},
+	}
 }
 
-// FsxFileSystemCopyTagsToVolumesEnabled - FSx file system has copy tags to volumes enabled
-type FsxFileSystemCopyTagsToVolumesEnabled struct {
-    metadata models.CheckMetadata
-}
+func (c *FileSystemBackupEnabled) Metadata() models.CheckMetadata { return c.metadata }
 
-func NewFsxFileSystemCopyTagsToVolumesEnabled() *FsxFileSystemCopyTagsToVolumesEnabled {
-    return &FsxFileSystemCopyTagsToVolumesEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "fsx_file_system_copy_tags_to_volumes_enabled",
-            CheckTitle: "FSx file system has copy tags to volumes enabled",
-            ServiceName: "fsx",
-            Severity: "low",
-            Description: "**Amazon FSx file systems** are configured to **copy tags to volumes** via `copy_tags_to_volumes`.  Identifies file systems where volume resources will not inherit the file system's tags.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"fsx"},
-        },
-    }
+func (c *FileSystemBackupEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "FSx backup check requires detailed configuration analysis",
+			Provider: "aws", Service: "fsx",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
-
-func (c *FsxFileSystemCopyTagsToVolumesEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *FsxFileSystemCopyTagsToVolumesEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "fsx",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-

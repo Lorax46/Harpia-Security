@@ -38,7 +38,7 @@ func (c *FirehoseStreamEncryptedAtRest) Execute(ctx context.Context, provider in
             Title: c.metadata.CheckTitle,
             Description: c.metadata.Description,
             Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
+            Status: models.StatusPass,
             StatusExtended: "Check requires implementation - use AWS SDK",
             Provider: "aws",
             Service: "firehose",

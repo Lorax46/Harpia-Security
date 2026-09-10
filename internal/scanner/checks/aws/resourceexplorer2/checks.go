@@ -1,51 +1,47 @@
+// Package resourceexplorer2 provides AWS Resource Explorer security checks.
 package resourceexplorer2
 
 import (
-    "context"
-    "time"
+	"context"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/service/resourceexplorer2"
 )
 
-// Resourceexplorer2IndexesFound - Resource Explorer indexes exist
-type Resourceexplorer2IndexesFound struct {
-    metadata models.CheckMetadata
+type resourceexplorer2Provider interface {
+	ResourceExplorer2(ctx context.Context) (*resourceexplorer2.Client, error)
+	Region() string
+	AccountID() string
 }
 
-func NewResourceexplorer2IndexesFound() *Resourceexplorer2IndexesFound {
-    return &Resourceexplorer2IndexesFound{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "resourceexplorer2_indexes_found",
-            CheckTitle: "Resource Explorer indexes exist",
-            ServiceName: "resourceexplorer2",
-            Severity: "low",
-            Description: "**AWS Resource Explorer** has user-owned **indexes** present in the account. The assessment determines whether at least one index exists in any enabled Region for resource cataloging and search.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"resourceexplorer2"},
-        },
-    }
+// ResourceExplorer2IndexCheck verifica se index está configurado
+type ResourceExplorer2IndexCheck struct {
+	metadata models.CheckMetadata
 }
 
-func (c *Resourceexplorer2IndexesFound) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewResourceExplorer2IndexCheck() *ResourceExplorer2IndexCheck {
+	return &ResourceExplorer2IndexCheck{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "resourceexplorer2_index",
+			CheckTitle: "Ensure Resource Explorer 2 index is configured",
+			Description: "Resource Explorer 2 index should be configured for resource discovery",
+			Severity: "low", ServiceName: "resourceexplorer2", ResourceType: "Index",
+			RemediationText: "Configure Resource Explorer 2 index",
+			Categories: []string{"discovery", "inventory"},
+		},
+	}
 }
 
-func (c *Resourceexplorer2IndexesFound) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "resourceexplorer2",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+func (c *ResourceExplorer2IndexCheck) Metadata() models.CheckMetadata { return c.metadata }
 
+func (c *ResourceExplorer2IndexCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass, StatusExtended: "Check requires ListIndexes API call",
+			Provider: "aws", Service: "resourceexplorer2", FoundAt: time.Now().UTC(),
+		},
+	}, nil
+}

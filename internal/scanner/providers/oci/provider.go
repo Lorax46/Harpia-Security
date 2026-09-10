@@ -9,8 +9,10 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/cloudguard"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
+	"github.com/oracle/oci-go-sdk/v65/database"
 	"github.com/oracle/oci-go-sdk/v65/events"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	"github.com/oracle/oci-go-sdk/v65/ons"
 	objectstorage "github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
 
@@ -114,6 +116,26 @@ func (p *Provider) Events() (events.EventsClient, error) {
 	client, err := events.NewEventsClientWithConfigurationProvider(p.config)
 	if err != nil {
 		return client, fmt.Errorf("falha ao criar events client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// ONS retorna o cliente Notification Control Plane
+func (p *Provider) ONS() (ons.NotificationControlPlaneClient, error) {
+	client, err := ons.NewNotificationControlPlaneClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar ons client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Database retorna o cliente Database
+func (p *Provider) Database() (database.DatabaseClient, error) {
+	client, err := database.NewDatabaseClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar database client: %w", err)
 	}
 	client.SetRegion(p.region)
 	return client, nil

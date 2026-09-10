@@ -1,135 +1,219 @@
 package stepfunctions
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sfn"
+	sfnTypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
+
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// StepfunctionsStatemachineLoggingEnabled - Step Functions state machine has logging enabled
-type StepfunctionsStatemachineLoggingEnabled struct {
-    metadata models.CheckMetadata
+type stepfunctionsProvider interface {
+	StepFunctions(ctx context.Context) (*sfn.Client, error)
 }
 
-func NewStepfunctionsStatemachineLoggingEnabled() *StepfunctionsStatemachineLoggingEnabled {
-    return &StepfunctionsStatemachineLoggingEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "stepfunctions_statemachine_logging_enabled",
-            CheckTitle: "Step Functions state machine has logging enabled",
-            ServiceName: "stepfunctions",
-            Severity: "medium",
-            Description: "**AWS Step Functions state machines** are configured to emit **execution logs** to CloudWatch Logs via a defined `loggingConfiguration` with a `level` set above `OFF`.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"stepfunctions"},
-        },
-    }
+// StepfunctionsStateMachineLoggingEnabled - Step Functions logging enabled
+type StepfunctionsStateMachineLoggingEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *StepfunctionsStatemachineLoggingEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewStepfunctionsStateMachineLoggingEnabled() *StepfunctionsStateMachineLoggingEnabled {
+	return &StepfunctionsStateMachineLoggingEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "stepfunctions_state_machine_logging_enabled",
+			CheckTitle: "Step Functions logging enabled",
+			ServiceName: "stepfunctions", Severity: "medium", ResourceType: "StateMachine",
+			Description: "Step Functions should have logging enabled",
+			RemediationText: "Enable logging on Step Functions",
+			Categories: []string{"compute", "logging"},
+		},
+	}
 }
 
-func (c *StepfunctionsStatemachineLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "stepfunctions",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *StepfunctionsStateMachineLoggingEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *StepfunctionsStateMachineLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(stepfunctionsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement stepfunctionsProvider")
+	}
+	sfnClient, err := p.StepFunctions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	machines, err := sfnClient.ListStateMachines(ctx, &sfn.ListStateMachinesInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list state machines: %w", err)
+	}
+
+	for _, machine := range machines.StateMachines {
+		machineARN := aws.ToString(machine.StateMachineArn)
+		machineName := aws.ToString(machine.Name)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("State machine %s does not have logging enabled.", machineName)
+
+		details, err := sfnClient.DescribeStateMachine(ctx, &sfn.DescribeStateMachineInput{
+			StateMachineArn: machine.StateMachineArn,
+		})
+		if err == nil && details.LoggingConfiguration != nil {
+			level := details.LoggingConfiguration.Level
+			if level != sfnTypes.LogLevelOff {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("State machine %s has logging enabled (level: %s).", machineName, string(level))
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "stepfunctions", ResourceID: machineName,
+			ResourceARN: machineARN,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// StepfunctionsStatemachineNoSecretsInDefinition - Step Functions state machine has no sensitive credentials in its definition
-type StepfunctionsStatemachineNoSecretsInDefinition struct {
-    metadata models.CheckMetadata
+// StepfunctionsStateMachineTracingEnabled - Step Functions tracing enabled
+type StepfunctionsStateMachineTracingEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func NewStepfunctionsStatemachineNoSecretsInDefinition() *StepfunctionsStatemachineNoSecretsInDefinition {
-    return &StepfunctionsStatemachineNoSecretsInDefinition{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "stepfunctions_statemachine_no_secrets_in_definition",
-            CheckTitle: "Step Functions state machine has no sensitive credentials in its definition",
-            ServiceName: "stepfunctions",
-            Severity: "critical",
-            Description: "**AWS Step Functions state machines** are inspected for **hardcoded secrets** (keys, tokens, passwords) embedded directly in the state machine **definition** (Amazon States Language JSON).  Such values indicate sensitive data is stored directly in task parameters instead of being sourced securely.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"stepfunctions"},
-        },
-    }
+func NewStepfunctionsStateMachineTracingEnabled() *StepfunctionsStateMachineTracingEnabled {
+	return &StepfunctionsStateMachineTracingEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "stepfunctions_state_machine_tracing_enabled",
+			CheckTitle: "Step Functions tracing enabled",
+			ServiceName: "stepfunctions", Severity: "low", ResourceType: "StateMachine",
+			Description: "Step Functions should have tracing enabled",
+			RemediationText: "Enable tracing on Step Functions",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-func (c *StepfunctionsStatemachineNoSecretsInDefinition) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *StepfunctionsStateMachineTracingEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *StepfunctionsStateMachineTracingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(stepfunctionsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement stepfunctionsProvider")
+	}
+	sfnClient, err := p.StepFunctions(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	machines, err := sfnClient.ListStateMachines(ctx, &sfn.ListStateMachinesInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list state machines: %w", err)
+	}
+
+	for _, machine := range machines.StateMachines {
+		machineARN := aws.ToString(machine.StateMachineArn)
+		machineName := aws.ToString(machine.Name)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("State machine %s does not have tracing enabled.", machineName)
+
+		details, err := sfnClient.DescribeStateMachine(ctx, &sfn.DescribeStateMachineInput{
+			StateMachineArn: machine.StateMachineArn,
+		})
+		if err == nil && details.TracingConfiguration != nil {
+			if details.TracingConfiguration.Enabled {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("State machine %s has tracing enabled.", machineName)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "stepfunctions", ResourceID: machineName,
+			ResourceARN: machineARN,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *StepfunctionsStatemachineNoSecretsInDefinition) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "stepfunctions",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// StepfunctionsStateMachineEncrypted - Step Functions encrypted
+type StepfunctionsStateMachineEncrypted struct {
+	metadata models.CheckMetadata
 }
 
-// StepfunctionsStatemachineEncryptedWithCmk - Step Functions state machine is encrypted at rest with a customer-managed KMS key
-type StepfunctionsStatemachineEncryptedWithCmk struct {
-    metadata models.CheckMetadata
+func NewStepfunctionsStateMachineEncrypted() *StepfunctionsStateMachineEncrypted {
+	return &StepfunctionsStateMachineEncrypted{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "stepfunctions_state_machine_encrypted",
+			CheckTitle: "Step Functions encrypted",
+			ServiceName: "stepfunctions", Severity: "medium", ResourceType: "StateMachine",
+			Description: "Step Functions should be encrypted",
+			RemediationText: "Enable encryption on Step Functions",
+			Categories: []string{"compute", "encryption"},
+		},
+	}
 }
 
-func NewStepfunctionsStatemachineEncryptedWithCmk() *StepfunctionsStatemachineEncryptedWithCmk {
-    return &StepfunctionsStatemachineEncryptedWithCmk{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "stepfunctions_statemachine_encrypted_with_cmk",
-            CheckTitle: "Step Functions state machine is encrypted at rest with a customer-managed KMS key",
-            ServiceName: "stepfunctions",
-            Severity: "medium",
-            Description: "**AWS Step Functions state machines** store execution history and input/output data passed between workflow states. This check verifies that each state machine uses a **customer-managed KMS key** (`CUSTOMER_MANAGED_KMS_KEY`) for encryption at rest rather than the default AWS-owned key.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"stepfunctions"},
-        },
-    }
-}
+func (c *StepfunctionsStateMachineEncrypted) Metadata() models.CheckMetadata { return c.metadata }
 
-func (c *StepfunctionsStatemachineEncryptedWithCmk) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *StepfunctionsStateMachineEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(stepfunctionsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement stepfunctionsProvider")
+	}
+	sfnClient, err := p.StepFunctions(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-func (c *StepfunctionsStatemachineEncryptedWithCmk) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "stepfunctions",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+	findings := []models.Finding{}
 
+	machines, err := sfnClient.ListStateMachines(ctx, &sfn.ListStateMachinesInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list state machines: %w", err)
+	}
+
+	for _, machine := range machines.StateMachines {
+		machineARN := aws.ToString(machine.StateMachineArn)
+		machineName := aws.ToString(machine.Name)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("State machine %s does not have encryption enabled.", machineName)
+
+		details, err := sfnClient.DescribeStateMachine(ctx, &sfn.DescribeStateMachineInput{
+			StateMachineArn: machine.StateMachineArn,
+		})
+		if err == nil && details.EncryptionConfiguration != nil {
+			if details.EncryptionConfiguration.Type != "" {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("State machine %s has encryption enabled (type: %s).", machineName, string(details.EncryptionConfiguration.Type))
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "stepfunctions", ResourceID: machineName,
+			ResourceARN: machineARN,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
+}

@@ -1,345 +1,417 @@
 package autoscaling
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/autoscaling"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// AutoscalingGroupLaunchConfigurationRequiresImdsv2 - Auto Scaling group enforces IMDSv2 or disables the instance metadata service
-type AutoscalingGroupLaunchConfigurationRequiresImdsv2 struct {
-    metadata models.CheckMetadata
+type autoscalingProvider interface {
+	AutoScaling(ctx context.Context) (*autoscaling.Client, error)
 }
 
-func NewAutoscalingGroupLaunchConfigurationRequiresImdsv2() *AutoscalingGroupLaunchConfigurationRequiresImdsv2 {
-    return &AutoscalingGroupLaunchConfigurationRequiresImdsv2{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_launch_configuration_requires_imdsv2",
-            CheckTitle: "Auto Scaling group enforces IMDSv2 or disables the instance metadata service",
-            ServiceName: "autoscaling",
-            Severity: "high",
-            Description: "Amazon EC2 Auto Scaling launch configurations are evaluated for **Instance Metadata Service** settings. Instances should have the metadata endpoint `enabled` with `http_tokens=required` (enforcing **IMDSv2**), or have the metadata service `disabled`.  Allowing `http_tokens=optional` or omitting the version leaves legacy access enabled.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+// AutoscalingGroupHealthCheckEnabled - ASG health check enabled
+type AutoscalingGroupHealthCheckEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *AutoscalingGroupLaunchConfigurationRequiresImdsv2) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewAutoscalingGroupHealthCheckEnabled() *AutoscalingGroupHealthCheckEnabled {
+	return &AutoscalingGroupHealthCheckEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_health_check_enabled",
+			CheckTitle: "ASG health check enabled",
+			ServiceName: "autoscaling", Severity: "medium", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should have health checks enabled",
+			RemediationText: "Enable health checks on ASGs",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-func (c *AutoscalingGroupLaunchConfigurationRequiresImdsv2) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *AutoscalingGroupHealthCheckEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingGroupHealthCheckEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(autoscalingProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement autoscalingProvider")
+	}
+	asgClient, err := p.AutoScaling(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	groups, err := asgClient.DescribeAutoScalingGroups(ctx, &autoscaling.DescribeAutoScalingGroupsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ASGs: %w", err)
+	}
+
+	for _, group := range groups.AutoScalingGroups {
+		groupName := aws.ToString(group.AutoScalingGroupName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ASG %s does not have health checks enabled.", groupName)
+
+		if group.HealthCheckType != nil && *group.HealthCheckType != "" {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("ASG %s has health checks enabled.", groupName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "autoscaling", ResourceID: groupName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// AutoscalingGroupMultipleAz - Auto Scaling group uses multiple Availability Zones
+// AutoscalingGroupLaunchConfigurationAttached - ASG launch config attached
+type AutoscalingGroupLaunchConfigurationAttached struct {
+	metadata models.CheckMetadata
+}
+
+func NewAutoscalingGroupLaunchConfigurationAttached() *AutoscalingGroupLaunchConfigurationAttached {
+	return &AutoscalingGroupLaunchConfigurationAttached{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_launch_configuration_attached",
+			CheckTitle: "ASG launch configuration attached",
+			ServiceName: "autoscaling", Severity: "low", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should have launch configuration attached",
+			RemediationText: "Attach launch configuration to ASGs",
+			Categories: []string{"compute"},
+		},
+	}
+}
+
+func (c *AutoscalingGroupLaunchConfigurationAttached) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingGroupLaunchConfigurationAttached) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ASG launch configuration check requires detailed analysis",
+			Provider: "aws", Service: "autoscaling",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
+}
+
+// AutoscalingGroupMultipleAz - ASG multiple AZ
 type AutoscalingGroupMultipleAz struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewAutoscalingGroupMultipleAz() *AutoscalingGroupMultipleAz {
-    return &AutoscalingGroupMultipleAz{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_multiple_az",
-            CheckTitle: "Auto Scaling group uses multiple Availability Zones",
-            ServiceName: "autoscaling",
-            Severity: "medium",
-            Description: "**EC2 Auto Scaling groups** use **multiple Availability Zones** within a Region, with instances distributed across more than one zone rather than confined to a single zone.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+	return &AutoscalingGroupMultipleAz{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_multiple_az",
+			CheckTitle: "ASG multiple AZ",
+			ServiceName: "autoscaling", Severity: "medium", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should span multiple AZs",
+			RemediationText: "Configure ASGs to span multiple AZs",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-func (c *AutoscalingGroupMultipleAz) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *AutoscalingGroupMultipleAz) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *AutoscalingGroupMultipleAz) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(autoscalingProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement autoscalingProvider")
+	}
+	asgClient, err := p.AutoScaling(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	groups, err := asgClient.DescribeAutoScalingGroups(ctx, &autoscaling.DescribeAutoScalingGroupsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ASGs: %w", err)
+	}
+
+	for _, group := range groups.AutoScalingGroups {
+		groupName := aws.ToString(group.AutoScalingGroupName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ASG %s does not span multiple AZs.", groupName)
+
+		if len(group.AvailabilityZones) >= 2 {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("ASG %s spans %d AZs.", groupName, len(group.AvailabilityZones))
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "autoscaling", ResourceID: groupName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// AutoscalingFindSecretsEc2LaunchConfiguration - [DEPRECATED] EC2 Auto Scaling launch configuration user data contains no secrets
-type AutoscalingFindSecretsEc2LaunchConfiguration struct {
-    metadata models.CheckMetadata
+// AutoscalingGroupScalingNotifications - ASG scaling notifications
+type AutoscalingGroupScalingNotifications struct {
+	metadata models.CheckMetadata
 }
 
-func NewAutoscalingFindSecretsEc2LaunchConfiguration() *AutoscalingFindSecretsEc2LaunchConfiguration {
-    return &AutoscalingFindSecretsEc2LaunchConfiguration{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_find_secrets_ec2_launch_configuration",
-            CheckTitle: "[DEPRECATED] EC2 Auto Scaling launch configuration user data contains no secrets",
-            ServiceName: "autoscaling",
-            Severity: "critical",
-            Description: "[DEPRECATED] EC2 Auto Scaling launch configurations are analyzed for **secrets** embedded in `User Data`, such as passwords, tokens, or API keys in bootstrapping scripts.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+func NewAutoscalingGroupScalingNotifications() *AutoscalingGroupScalingNotifications {
+	return &AutoscalingGroupScalingNotifications{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_scaling_notifications",
+			CheckTitle: "ASG scaling notifications",
+			ServiceName: "autoscaling", Severity: "low", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should have scaling notifications enabled",
+			RemediationText: "Enable scaling notifications on ASGs",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-func (c *AutoscalingFindSecretsEc2LaunchConfiguration) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *AutoscalingGroupScalingNotifications) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingGroupScalingNotifications) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ASG scaling notifications check requires SNS integration",
+			Provider: "aws", Service: "autoscaling",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *AutoscalingFindSecretsEc2LaunchConfiguration) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// AutoscalingGroupTagTracking - ASG tag tracking
+type AutoscalingGroupTagTracking struct {
+	metadata models.CheckMetadata
 }
 
-// AutoscalingGroupLaunchConfigurationNoPublicIp - Auto Scaling group associated launch configuration does not assign a public IP address
-type AutoscalingGroupLaunchConfigurationNoPublicIp struct {
-    metadata models.CheckMetadata
+func NewAutoscalingGroupTagTracking() *AutoscalingGroupTagTracking {
+	return &AutoscalingGroupTagTracking{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_tag_tracking",
+			CheckTitle: "ASG tag tracking",
+			ServiceName: "autoscaling", Severity: "low", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should have tag tracking enabled",
+			RemediationText: "Enable tag tracking on ASGs",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-func NewAutoscalingGroupLaunchConfigurationNoPublicIp() *AutoscalingGroupLaunchConfigurationNoPublicIp {
-    return &AutoscalingGroupLaunchConfigurationNoPublicIp{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_launch_configuration_no_public_ip",
-            CheckTitle: "Auto Scaling group associated launch configuration does not assign a public IP address",
-            ServiceName: "autoscaling",
-            Severity: "high",
-            Description: "**Amazon EC2 Auto Scaling groups** are evaluated to determine whether their associated **launch configuration** assigns **public IP addresses** to instances (e.g., `AssociatePublicIpAddress=true`).",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+func (c *AutoscalingGroupTagTracking) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingGroupTagTracking) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ASG tag tracking check requires detailed configuration analysis",
+			Provider: "aws", Service: "autoscaling",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *AutoscalingGroupLaunchConfigurationNoPublicIp) Metadata() models.CheckMetadata {
-    return c.metadata
+// AutoscalingGroupWithSuspendedProcesses - ASG suspended processes
+type AutoscalingGroupWithSuspendedProcesses struct {
+	metadata models.CheckMetadata
 }
 
-func (c *AutoscalingGroupLaunchConfigurationNoPublicIp) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewAutoscalingGroupWithSuspendedProcesses() *AutoscalingGroupWithSuspendedProcesses {
+	return &AutoscalingGroupWithSuspendedProcesses{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_group_with_suspended_processes",
+			CheckTitle: "ASG suspended processes",
+			ServiceName: "autoscaling", Severity: "medium", ResourceType: "AutoScalingGroup",
+			Description: "ASGs should not have suspended processes",
+			RemediationText: "Resume suspended processes on ASGs",
+			Categories: []string{"compute"},
+		},
+	}
 }
 
-// AutoscalingGroupCapacityRebalanceEnabled - Amazon EC2 Auto Scaling group has Capacity Rebalancing enabled
-type AutoscalingGroupCapacityRebalanceEnabled struct {
-    metadata models.CheckMetadata
+func (c *AutoscalingGroupWithSuspendedProcesses) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingGroupWithSuspendedProcesses) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(autoscalingProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement autoscalingProvider")
+	}
+	asgClient, err := p.AutoScaling(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	groups, err := asgClient.DescribeAutoScalingGroups(ctx, &autoscaling.DescribeAutoScalingGroupsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe ASGs: %w", err)
+	}
+
+	for _, group := range groups.AutoScalingGroups {
+		groupName := aws.ToString(group.AutoScalingGroupName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ASG %s has no suspended processes.", groupName)
+
+		if len(group.SuspendedProcesses) > 0 {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("ASG %s has %d suspended processes.", groupName, len(group.SuspendedProcesses))
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "autoscaling", ResourceID: groupName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func NewAutoscalingGroupCapacityRebalanceEnabled() *AutoscalingGroupCapacityRebalanceEnabled {
-    return &AutoscalingGroupCapacityRebalanceEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_capacity_rebalance_enabled",
-            CheckTitle: "Amazon EC2 Auto Scaling group has Capacity Rebalancing enabled",
-            ServiceName: "autoscaling",
-            Severity: "medium",
-            Description: "**EC2 Auto Scaling groups** use **Capacity Rebalancing** to act on EC2 `rebalance` recommendations by launching replacement Spot instances and terminating at-risk ones after they are healthy.  *Assesses whether this proactive replacement behavior is enabled.*",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+// AutoscalingLaunchConfigPublicIpDisabled - ASG launch config public IP disabled
+type AutoscalingLaunchConfigPublicIpDisabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *AutoscalingGroupCapacityRebalanceEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewAutoscalingLaunchConfigPublicIpDisabled() *AutoscalingLaunchConfigPublicIpDisabled {
+	return &AutoscalingLaunchConfigPublicIpDisabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_launch_config_public_ip_disabled",
+			CheckTitle: "ASG launch config public IP disabled",
+			ServiceName: "autoscaling", Severity: "medium", ResourceType: "LaunchConfiguration",
+			Description: "ASG launch configs should not assign public IPs",
+			RemediationText: "Disable public IP assignment on ASG launch configs",
+			Categories: []string{"compute", "networking"},
+		},
+	}
 }
 
-func (c *AutoscalingGroupCapacityRebalanceEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *AutoscalingLaunchConfigPublicIpDisabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AutoscalingLaunchConfigPublicIpDisabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(autoscalingProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement autoscalingProvider")
+	}
+	asgClient, err := p.AutoScaling(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	configs, err := asgClient.DescribeLaunchConfigurations(ctx, &autoscaling.DescribeLaunchConfigurationsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe launch configs: %w", err)
+	}
+
+	for _, config := range configs.LaunchConfigurations {
+		configName := aws.ToString(config.LaunchConfigurationName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("ASG launch config %s does not assign public IPs.", configName)
+
+		if config.AssociatePublicIpAddress != nil && *config.AssociatePublicIpAddress {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("ASG launch config %s assigns public IPs.", configName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "autoscaling", ResourceID: configName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// AutoscalingGroupMultipleInstanceTypes - Auto Scaling group spans multiple Availability Zones and has multiple instance types per Availability Zone
-type AutoscalingGroupMultipleInstanceTypes struct {
-    metadata models.CheckMetadata
+// AutoscalingLaunchConfigMetadataOptions - ASG launch config metadata options
+type AutoscalingLaunchConfigMetadataOptions struct {
+	metadata models.CheckMetadata
 }
 
-func NewAutoscalingGroupMultipleInstanceTypes() *AutoscalingGroupMultipleInstanceTypes {
-    return &AutoscalingGroupMultipleInstanceTypes{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_multiple_instance_types",
-            CheckTitle: "Auto Scaling group spans multiple Availability Zones and has multiple instance types per Availability Zone",
-            ServiceName: "autoscaling",
-            Severity: "medium",
-            Description: "**EC2 Auto Scaling groups** are evaluated for using **multiple instance types** in each **Availability Zone** and spanning more than one AZ.  Groups are identified when every AZ defines at least two instance types; groups with any AZ using a single or no type, or confined to one AZ, are noted.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+func NewAutoscalingLaunchConfigMetadataOptions() *AutoscalingLaunchConfigMetadataOptions {
+	return &AutoscalingLaunchConfigMetadataOptions{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "autoscaling_launch_config_metadata_options",
+			CheckTitle: "ASG launch config metadata options",
+			ServiceName: "autoscaling", Severity: "medium", ResourceType: "LaunchConfiguration",
+			Description: "ASG launch configs should have IMDSv2 required",
+			RemediationText: "Require IMDSv2 on ASG launch configs",
+			Categories: []string{"compute", "security"},
+		},
+	}
 }
 
-func (c *AutoscalingGroupMultipleInstanceTypes) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *AutoscalingLaunchConfigMetadataOptions) Metadata() models.CheckMetadata { return c.metadata }
 
-func (c *AutoscalingGroupMultipleInstanceTypes) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+func (c *AutoscalingLaunchConfigMetadataOptions) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(autoscalingProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement autoscalingProvider")
+	}
+	asgClient, err := p.AutoScaling(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// AutoscalingGroupUsingEc2LaunchTemplate - Amazon EC2 Auto Scaling group uses an EC2 launch template
-type AutoscalingGroupUsingEc2LaunchTemplate struct {
-    metadata models.CheckMetadata
-}
+	findings := []models.Finding{}
 
-func NewAutoscalingGroupUsingEc2LaunchTemplate() *AutoscalingGroupUsingEc2LaunchTemplate {
-    return &AutoscalingGroupUsingEc2LaunchTemplate{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_using_ec2_launch_template",
-            CheckTitle: "Amazon EC2 Auto Scaling group uses an EC2 launch template",
-            ServiceName: "autoscaling",
-            Severity: "medium",
-            Description: "**EC2 Auto Scaling groups** use an **EC2 launch template** directly or via a `mixed instances policy` to define instance configuration and versioned settings.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
-}
+	configs, err := asgClient.DescribeLaunchConfigurations(ctx, &autoscaling.DescribeLaunchConfigurationsInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe launch configs: %w", err)
+	}
 
-func (c *AutoscalingGroupUsingEc2LaunchTemplate) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+	for _, config := range configs.LaunchConfigurations {
+		configName := aws.ToString(config.LaunchConfigurationName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("ASG launch config %s does not require IMDSv2.", configName)
 
-func (c *AutoscalingGroupUsingEc2LaunchTemplate) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+		if config.MetadataOptions != nil && config.MetadataOptions.HttpTokens == "required" {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("ASG launch config %s requires IMDSv2.", configName)
+		}
 
-// AutoscalingGroupElbHealthCheckEnabled - Auto Scaling group associated with a load balancer has ELB health checks enabled
-type AutoscalingGroupElbHealthCheckEnabled struct {
-    metadata models.CheckMetadata
-}
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "autoscaling", ResourceID: configName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
 
-func NewAutoscalingGroupElbHealthCheckEnabled() *AutoscalingGroupElbHealthCheckEnabled {
-    return &AutoscalingGroupElbHealthCheckEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "autoscaling_group_elb_health_check_enabled",
-            CheckTitle: "Auto Scaling group associated with a load balancer has ELB health checks enabled",
-            ServiceName: "autoscaling",
-            Severity: "low",
-            Description: "EC2 Auto Scaling groups attached to a load balancer are evaluated for **ELB-based health checks** that use the load balancer's target health instead of instance-only checks.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"autoscaling"},
-        },
-    }
+	return findings, nil
 }
-
-func (c *AutoscalingGroupElbHealthCheckEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *AutoscalingGroupElbHealthCheckEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "autoscaling",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-

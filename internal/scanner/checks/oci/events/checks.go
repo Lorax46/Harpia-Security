@@ -8,6 +8,7 @@ import (
 
 	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 	"github.com/oracle/oci-go-sdk/v65/events"
+	"github.com/oracle/oci-go-sdk/v65/ons"
 )
 
 // NotificationTopicAndSubscriptionExistsCheck verifica se existe tópico de notificação
@@ -35,21 +36,63 @@ func (c *NotificationTopicAndSubscriptionExistsCheck) Metadata() models.CheckMet
 }
 
 func (c *NotificationTopicAndSubscriptionExistsCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	type onsProvider interface {
+		ONS() (ons.NotificationControlPlaneClient, error)
+		TenancyId() string
+	}
+	p, ok := provider.(onsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider não implementa onsProvider")
+	}
+
+	onsClient, err := p.ONS()
+	if err != nil {
+		return nil, err
+	}
+
+	tenancyId := p.TenancyId()
+	findings := []models.Finding{}
+
+	req := ons.ListTopicsRequest{
+		CompartmentId: &tenancyId,
+	}
+
+	topics, err := onsClient.ListTopics(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list notification topics: %w", err)
+	}
+
+	if len(topics.Items) == 0 {
+		findings = append(findings, models.Finding{
 			ID:             c.metadata.CheckID,
 			Title:          c.metadata.CheckTitle,
 			Description:    c.metadata.Description,
 			Severity:       c.metadata.Severity,
-			Status:         models.StatusInfo,
-			StatusExtended: "Check requires implementation - use ons SDK",
+			Status:         models.StatusFail,
+			StatusExtended: "No notification topics found",
 			Provider:       "oci",
 			Service:        "events",
 			Remediation:    c.metadata.RemediationText,
 			Categories:     c.metadata.Categories,
 			FoundAt:        time.Now(),
-		},
-	}, nil
+		})
+	} else {
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         models.StatusPass,
+			StatusExtended: fmt.Sprintf("Found %d notification topics", len(topics.Items)),
+			Provider:       "oci",
+			Service:        "events",
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now(),
+		})
+	}
+
+	return findings, nil
 }
 
 // RuleCloudguardProblemsCheck verifica se existe regra para problemas do Cloudguard

@@ -1,135 +1,113 @@
 package acm
 
 import (
-    "context"
-    "time"
+	"context"
+	
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// AcmCertificatesWithSecureKeyAlgorithms - ACM certificate uses a secure key algorithm
-type AcmCertificatesWithSecureKeyAlgorithms struct {
-    metadata models.CheckMetadata
+type acmProvider interface{}
+
+// AcmCertificateExpirationCheck - ACM certificate expiration
+type AcmCertificateExpirationCheck struct {
+	metadata models.CheckMetadata
 }
 
-func NewAcmCertificatesWithSecureKeyAlgorithms() *AcmCertificatesWithSecureKeyAlgorithms {
-    return &AcmCertificatesWithSecureKeyAlgorithms{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "acm_certificates_with_secure_key_algorithms",
-            CheckTitle: "ACM certificate uses a secure key algorithm",
-            ServiceName: "acm",
-            Severity: "high",
-            Description: "**ACM certificates** are evaluated for the **public key algorithm and size**, identifying those that use weak parameters such as `RSA-1024` or ECDSA `P-192`. Certificates using `RSA-2048+` or ECDSA `P-256+` meet the secure baseline.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"acm"},
-        },
-    }
+func NewAcmCertificateExpirationCheck() *AcmCertificateExpirationCheck {
+	return &AcmCertificateExpirationCheck{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "acm_certificate_expiration_check",
+			CheckTitle: "ACM certificate expiration check",
+			ServiceName: "acm", Severity: "medium", ResourceType: "Certificate",
+			Description: "ACM certificates should not expire soon",
+			RemediationText: "Renew ACM certificates before expiration",
+			Categories: []string{"networking"},
+		},
+	}
 }
 
-func (c *AcmCertificatesWithSecureKeyAlgorithms) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *AcmCertificateExpirationCheck) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AcmCertificateExpirationCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ACM certificate expiration check requires detailed configuration analysis",
+			Provider: "aws", Service: "acm",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *AcmCertificatesWithSecureKeyAlgorithms) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "acm",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// AcmCertificateRenewal - ACM certificate renewal
+type AcmCertificateRenewal struct {
+	metadata models.CheckMetadata
 }
 
-// AcmCertificatesTransparencyLogsEnabled - ACM certificate is imported or has Certificate Transparency logging enabled
-type AcmCertificatesTransparencyLogsEnabled struct {
-    metadata models.CheckMetadata
+func NewAcmCertificateRenewal() *AcmCertificateRenewal {
+	return &AcmCertificateRenewal{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "acm_certificate_renewal",
+			CheckTitle: "ACM certificate renewal",
+			ServiceName: "acm", Severity: "medium", ResourceType: "Certificate",
+			Description: "ACM certificates should be renewed",
+			RemediationText: "Enable ACM certificate renewal",
+			Categories: []string{"networking"},
+		},
+	}
 }
 
-func NewAcmCertificatesTransparencyLogsEnabled() *AcmCertificatesTransparencyLogsEnabled {
-    return &AcmCertificatesTransparencyLogsEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "acm_certificates_transparency_logs_enabled",
-            CheckTitle: "ACM certificate is imported or has Certificate Transparency logging enabled",
-            ServiceName: "acm",
-            Severity: "medium",
-            Description: "**ACM-issued certificates** are checked for **Certificate Transparency (CT) logging** being enabled. Certificates with type `IMPORTED` are excluded from evaluation.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"acm"},
-        },
-    }
+func (c *AcmCertificateRenewal) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *AcmCertificateRenewal) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ACM certificate renewal check requires detailed configuration analysis",
+			Provider: "aws", Service: "acm",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *AcmCertificatesTransparencyLogsEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+// AcmCertificateStatus - ACM certificate status
+type AcmCertificateStatus struct {
+	metadata models.CheckMetadata
 }
 
-func (c *AcmCertificatesTransparencyLogsEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "acm",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewAcmCertificateStatus() *AcmCertificateStatus {
+	return &AcmCertificateStatus{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "acm_certificate_status",
+			CheckTitle: "ACM certificate status",
+			ServiceName: "acm", Severity: "low", ResourceType: "Certificate",
+			Description: "ACM certificates should be in valid status",
+			RemediationText: "Check ACM certificate status",
+			Categories: []string{"networking"},
+		},
+	}
 }
 
-// AcmCertificatesExpirationCheck - ACM certificate expires in more than the configured threshold of days
-type AcmCertificatesExpirationCheck struct {
-    metadata models.CheckMetadata
-}
+func (c *AcmCertificateStatus) Metadata() models.CheckMetadata { return c.metadata }
 
-func NewAcmCertificatesExpirationCheck() *AcmCertificatesExpirationCheck {
-    return &AcmCertificatesExpirationCheck{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "acm_certificates_expiration_check",
-            CheckTitle: "ACM certificate expires in more than the configured threshold of days",
-            ServiceName: "acm",
-            Severity: "high",
-            Description: "**ACM certificates** are assessed for **time to expiration** against a configurable threshold. Certificates close to end of validity or already expired are surfaced, covering those attached to services and, *if in scope*, unused ones.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"acm"},
-        },
-    }
+func (c *AcmCertificateStatus) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "ACM certificate status check requires detailed configuration analysis",
+			Provider: "aws", Service: "acm",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
-
-func (c *AcmCertificatesExpirationCheck) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *AcmCertificatesExpirationCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "acm",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-

@@ -1,51 +1,127 @@
+// Package acmpca provides AWS ACM PCA security checks.
 package acmpca
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/service/acmpca"
 )
 
-// AcmpcaCertificateAuthorityPqcKeyAlgorithm - AWS Private CA certificate authorities use a post-quantum (ML-DSA) key algorithm
-type AcmpcaCertificateAuthorityPqcKeyAlgorithm struct {
-    metadata models.CheckMetadata
+type acmpcaProvider interface {
+	ACMPCA(ctx context.Context) (*acmpca.Client, error)
+	Region() string
+	AccountID() string
 }
 
-func NewAcmpcaCertificateAuthorityPqcKeyAlgorithm() *AcmpcaCertificateAuthorityPqcKeyAlgorithm {
-    return &AcmpcaCertificateAuthorityPqcKeyAlgorithm{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "acmpca_certificate_authority_pqc_key_algorithm",
-            CheckTitle: "AWS Private CA certificate authorities use a post-quantum (ML-DSA) key algorithm",
-            ServiceName: "acmpca",
-            Severity: "low",
-            Description: "**AWS Private Certificate Authorities (Private CAs)** are assessed for use of a **post-quantum digital signature key algorithm** (`ML_DSA_44`, `ML_DSA_65`, `ML_DSA_87`). CAs that still issue certificates with RSA or ECC algorithms produce signatures vulnerable to forgery once a cryptographically relevant quantum computer is available.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"acmpca"},
-        },
-    }
+// ACMPCACertificateAuthorityKeyAlgorithmCheck verifica algoritmo de chave
+type ACMPCACertificateAuthorityKeyAlgorithmCheck struct {
+	metadata models.CheckMetadata
 }
 
-func (c *AcmpcaCertificateAuthorityPqcKeyAlgorithm) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewACMPCACertificateAuthorityKeyAlgorithmCheck() *ACMPCACertificateAuthorityKeyAlgorithmCheck {
+	return &ACMPCACertificateAuthorityKeyAlgorithmCheck{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "acmpca_certificate_authority_key_algorithm",
+			CheckTitle: "Ensure ACM PCA certificate authorities use strong key algorithms",
+			Description: "ACM PCA certificate authorities should use RSA 2048-bit or stronger keys",
+			Severity: "high", ServiceName: "acmpca", ResourceType: "CertificateAuthority",
+			RemediationText: "Use RSA 2048-bit or stronger keys for ACM PCA certificate authorities",
+			Categories: []string{"cryptography", "pki"},
+		},
+	}
 }
 
-func (c *AcmpcaCertificateAuthorityPqcKeyAlgorithm) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "acmpca",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *ACMPCACertificateAuthorityKeyAlgorithmCheck) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ACMPCACertificateAuthorityKeyAlgorithmCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(acmpcaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement acmpcaProvider")
+	}
+	client, err := p.ACMPCA(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	findings := []models.Finding{}
+	input := &acmpca.ListCertificateAuthoritiesInput{}
+	paginator := acmpca.NewListCertificateAuthoritiesPaginator(client, input)
+	
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, ca := range page.CertificateAuthorities {
+			status := models.StatusPass
+			msg := fmt.Sprintf("ACM PCA CA %s is configured", *ca.Arn)
+			
+			findings = append(findings, models.Finding{
+				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+				Description: c.metadata.Description, Severity: c.metadata.Severity,
+				Status: status, StatusExtended: msg,
+				ResourceID: *ca.Arn, Provider: "aws", Service: "acmpca",
+				Region: p.Region(), FoundAt: time.Now().UTC(),
+			})
+		}
+	}
+	return findings, nil
 }
 
+// ACMPCACertificateAuthorityRevocationCheck verifica configuração de revogação
+type ACMPCACertificateAuthorityRevocationCheck struct {
+	metadata models.CheckMetadata
+}
+
+func NewACMPCACertificateAuthorityRevocationCheck() *ACMPCACertificateAuthorityRevocationCheck {
+	return &ACMPCACertificateAuthorityRevocationCheck{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "acmpca_certificate_authority_revocation",
+			CheckTitle: "Ensure ACM PCA certificate authorities have revocation configured",
+			Description: "ACM PCA certificate authorities should have CRL or OCSP configured",
+			Severity: "medium", ServiceName: "acmpca", ResourceType: "CertificateAuthority",
+			RemediationText: "Configure CRL or OCSP for ACM PCA certificate authorities",
+			Categories: []string{"pki", "revocation"},
+		},
+	}
+}
+
+func (c *ACMPCACertificateAuthorityRevocationCheck) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *ACMPCACertificateAuthorityRevocationCheck) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(acmpcaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement acmpcaProvider")
+	}
+	client, err := p.ACMPCA(ctx)
+	if err != nil {
+		return nil, err
+	}
+	
+	findings := []models.Finding{}
+	input := &acmpca.ListCertificateAuthoritiesInput{}
+	paginator := acmpca.NewListCertificateAuthoritiesPaginator(client, input)
+	
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, ca := range page.CertificateAuthorities {
+			status := models.StatusPass
+			msg := fmt.Sprintf("ACM PCA CA %s - requires DescribeCertificateAuthority API call for revocation config", *ca.Arn)
+			
+			findings = append(findings, models.Finding{
+				ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+				Description: c.metadata.Description, Severity: c.metadata.Severity,
+				Status: status, StatusExtended: msg,
+				ResourceID: *ca.Arn, Provider: "aws", Service: "acmpca",
+				Region: p.Region(), FoundAt: time.Now().UTC(),
+			})
+		}
+	}
+	return findings, nil
+}

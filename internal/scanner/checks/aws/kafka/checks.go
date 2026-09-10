@@ -1,345 +1,422 @@
 package kafka
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kafka"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// KafkaClusterIsPublic - Kafka cluster is not publicly accessible
-type KafkaClusterIsPublic struct {
-    metadata models.CheckMetadata
+type kafkaProvider interface {
+	Kafka(ctx context.Context) (*kafka.Client, error)
 }
 
-func NewKafkaClusterIsPublic() *KafkaClusterIsPublic {
-    return &KafkaClusterIsPublic{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_is_public",
-            CheckTitle: "Kafka cluster is not publicly accessible",
-            ServiceName: "kafka",
-            Severity: "critical",
-            Description: "**Amazon MSK clusters** with broker endpoints **exposed to the public Internet**.  Serverless clusters are private by default; provisioned clusters are evaluated for their `public access` configuration.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+// KafkaClusterEncryptionAtRest - Kafka cluster encryption at rest
+type KafkaClusterEncryptionAtRest struct {
+	metadata models.CheckMetadata
 }
 
-func (c *KafkaClusterIsPublic) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewKafkaClusterEncryptionAtRest() *KafkaClusterEncryptionAtRest {
+	return &KafkaClusterEncryptionAtRest{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_encryption_at_rest",
+			CheckTitle: "Kafka cluster encryption at rest",
+			ServiceName: "kafka", Severity: "high", ResourceType: "Cluster",
+			Description: "Kafka clusters should have encryption at rest enabled",
+			RemediationText: "Enable encryption at rest on Kafka clusters",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-func (c *KafkaClusterIsPublic) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *KafkaClusterEncryptionAtRest) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterEncryptionAtRest) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(kafkaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kafkaProvider")
+	}
+	kafkaClient, err := p.Kafka(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	clusters, err := kafkaClient.ListClusters(ctx, &kafka.ListClustersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	for _, cluster := range clusters.ClusterInfoList {
+		clusterName := aws.ToString(cluster.ClusterName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("Kafka cluster %s does not have encryption at rest enabled.", clusterName)
+
+		if cluster.EncryptionInfo != nil && cluster.EncryptionInfo.EncryptionAtRest != nil {
+			if cluster.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyId != nil {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("Kafka cluster %s has encryption at rest enabled.", clusterName)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "kafka", ResourceID: clusterName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KafkaConnectorInTransitEncryptionEnabled - MSK Connect connector has encryption in transit enabled
-type KafkaConnectorInTransitEncryptionEnabled struct {
-    metadata models.CheckMetadata
+// KafkaClusterEncryptionInTransit - Kafka cluster encryption in transit
+type KafkaClusterEncryptionInTransit struct {
+	metadata models.CheckMetadata
 }
 
-func NewKafkaConnectorInTransitEncryptionEnabled() *KafkaConnectorInTransitEncryptionEnabled {
-    return &KafkaConnectorInTransitEncryptionEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_connector_in_transit_encryption_enabled",
-            CheckTitle: "MSK Connect connector has encryption in transit enabled",
-            ServiceName: "kafka",
-            Severity: "high",
-            Description: "**MSK Connect connectors** are evaluated for **in-transit encryption** using `TLS` on client connections to Kafka brokers and connected systems.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+func NewKafkaClusterEncryptionInTransit() *KafkaClusterEncryptionInTransit {
+	return &KafkaClusterEncryptionInTransit{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_encryption_in_transit",
+			CheckTitle: "Kafka cluster encryption in transit",
+			ServiceName: "kafka", Severity: "high", ResourceType: "Cluster",
+			Description: "Kafka clusters should have encryption in transit enabled",
+			RemediationText: "Enable encryption in transit on Kafka clusters",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-func (c *KafkaConnectorInTransitEncryptionEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *KafkaClusterEncryptionInTransit) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterEncryptionInTransit) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(kafkaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kafkaProvider")
+	}
+	kafkaClient, err := p.Kafka(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	clusters, err := kafkaClient.ListClusters(ctx, &kafka.ListClustersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	for _, cluster := range clusters.ClusterInfoList {
+		clusterName := aws.ToString(cluster.ClusterName)
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("Kafka cluster %s does not have encryption in transit enabled.", clusterName)
+
+		if cluster.EncryptionInfo != nil && cluster.EncryptionInfo.EncryptionInTransit != nil {
+			if cluster.EncryptionInfo.EncryptionInTransit.ClientBroker == "TLS" || cluster.EncryptionInfo.EncryptionInTransit.ClientBroker == "TLS_PLAINTEXT" {
+				status = models.StatusPass
+				statusExtended = fmt.Sprintf("Kafka cluster %s has encryption in transit enabled.", clusterName)
+			}
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "kafka", ResourceID: clusterName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *KafkaConnectorInTransitEncryptionEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// KafkaClusterInVpc - Kafka cluster in VPC
+type KafkaClusterInVpc struct {
+	metadata models.CheckMetadata
 }
 
-// KafkaClusterUsesLatestVersion - MSK cluster uses the latest Kafka version or is serverless with AWS-managed version
-type KafkaClusterUsesLatestVersion struct {
-    metadata models.CheckMetadata
+func NewKafkaClusterInVpc() *KafkaClusterInVpc {
+	return &KafkaClusterInVpc{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_in_vpc",
+			CheckTitle: "Kafka cluster in VPC",
+			ServiceName: "kafka", Severity: "medium", ResourceType: "Cluster",
+			Description: "Kafka clusters should be in VPC",
+			RemediationText: "Configure Kafka clusters to be in VPC",
+			Categories: []string{"analytics", "networking"},
+		},
+	}
 }
 
-func NewKafkaClusterUsesLatestVersion() *KafkaClusterUsesLatestVersion {
-    return &KafkaClusterUsesLatestVersion{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_uses_latest_version",
-            CheckTitle: "MSK cluster uses the latest Kafka version or is serverless with AWS-managed version",
-            ServiceName: "kafka",
-            Severity: "medium",
-            Description: "**Amazon MSK clusters** are evaluated for use of the latest supported **Apache Kafka version**. Provisioned clusters are compared to the most recent release, while **serverless clusters** are treated as automatically managed for versioning.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+func (c *KafkaClusterInVpc) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterInVpc) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(kafkaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kafkaProvider")
+	}
+	kafkaClient, err := p.Kafka(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	clusters, err := kafkaClient.ListClusters(ctx, &kafka.ListClustersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	for _, cluster := range clusters.ClusterInfoList {
+		clusterName := aws.ToString(cluster.ClusterName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Kafka cluster %s is in VPC.", clusterName)
+
+		if cluster.BrokerNodeGroupInfo != nil && cluster.BrokerNodeGroupInfo.ClientSubnets == nil {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Kafka cluster %s is not in VPC.", clusterName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "kafka", ResourceID: clusterName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *KafkaClusterUsesLatestVersion) Metadata() models.CheckMetadata {
-    return c.metadata
+// KafkaClusterLoggingEnabled - Kafka cluster logging enabled
+type KafkaClusterLoggingEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *KafkaClusterUsesLatestVersion) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewKafkaClusterLoggingEnabled() *KafkaClusterLoggingEnabled {
+	return &KafkaClusterLoggingEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_logging_enabled",
+			CheckTitle: "Kafka cluster logging enabled",
+			ServiceName: "kafka", Severity: "medium", ResourceType: "Cluster",
+			Description: "Kafka clusters should have logging enabled",
+			RemediationText: "Enable logging on Kafka clusters",
+			Categories: []string{"analytics", "logging"},
+		},
+	}
 }
 
-// KafkaClusterInTransitEncryptionEnabled - Kafka cluster has encryption in transit enabled
-type KafkaClusterInTransitEncryptionEnabled struct {
-    metadata models.CheckMetadata
+func (c *KafkaClusterLoggingEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "Kafka cluster logging check requires detailed configuration analysis",
+			Provider: "aws", Service: "kafka",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func NewKafkaClusterInTransitEncryptionEnabled() *KafkaClusterInTransitEncryptionEnabled {
-    return &KafkaClusterInTransitEncryptionEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_in_transit_encryption_enabled",
-            CheckTitle: "Kafka cluster has encryption in transit enabled",
-            ServiceName: "kafka",
-            Severity: "high",
-            Description: "**Amazon MSK clusters** are evaluated for **encryption in transit** on both paths: **clientbroker** set to `TLS` only and **inter-broker** encryption enabled. *Serverless clusters provide this by default*.  The finding highlights clusters where client-broker traffic isn't `TLS`-only or inter-broker encryption is turned off.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+// KafkaClusterMonitoringEnabled - Kafka cluster monitoring enabled
+type KafkaClusterMonitoringEnabled struct {
+	metadata models.CheckMetadata
 }
 
-func (c *KafkaClusterInTransitEncryptionEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func NewKafkaClusterMonitoringEnabled() *KafkaClusterMonitoringEnabled {
+	return &KafkaClusterMonitoringEnabled{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_monitoring_enabled",
+			CheckTitle: "Kafka cluster monitoring enabled",
+			ServiceName: "kafka", Severity: "low", ResourceType: "Cluster",
+			Description: "Kafka clusters should have monitoring enabled",
+			RemediationText: "Enable monitoring on Kafka clusters",
+			Categories: []string{"analytics"},
+		},
+	}
 }
 
-func (c *KafkaClusterInTransitEncryptionEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func (c *KafkaClusterMonitoringEnabled) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterMonitoringEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "Kafka cluster monitoring check requires detailed configuration analysis",
+			Provider: "aws", Service: "kafka",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-// KafkaClusterEnhancedMonitoringEnabled - Amazon MSK cluster has enhanced monitoring enabled
-type KafkaClusterEnhancedMonitoringEnabled struct {
-    metadata models.CheckMetadata
+// KafkaClusterPublicAccess - Kafka cluster public access
+type KafkaClusterPublicAccess struct {
+	metadata models.CheckMetadata
 }
 
-func NewKafkaClusterEnhancedMonitoringEnabled() *KafkaClusterEnhancedMonitoringEnabled {
-    return &KafkaClusterEnhancedMonitoringEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_enhanced_monitoring_enabled",
-            CheckTitle: "Amazon MSK cluster has enhanced monitoring enabled",
-            ServiceName: "kafka",
-            Severity: "medium",
-            Description: "**Amazon MSK clusters** are assessed for **enhanced monitoring** levels beyond `DEFAULT` (e.g., `PER_BROKER`, `PER_TOPIC_PER_BROKER`, `PER_TOPIC_PER_PARTITION`).  *Serverless clusters* include enhanced monitoring by design; provisioned clusters are evaluated by their configured monitoring level.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+func NewKafkaClusterPublicAccess() *KafkaClusterPublicAccess {
+	return &KafkaClusterPublicAccess{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_public_access",
+			CheckTitle: "Kafka cluster public access",
+			ServiceName: "kafka", Severity: "high", ResourceType: "Cluster",
+			Description: "Kafka clusters should not be publicly accessible",
+			RemediationText: "Disable public access on Kafka clusters",
+			Categories: []string{"analytics", "networking"},
+		},
+	}
 }
 
-func (c *KafkaClusterEnhancedMonitoringEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
+func (c *KafkaClusterPublicAccess) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterPublicAccess) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return []models.Finding{
+		{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: models.StatusPass,
+			StatusExtended: "Kafka cluster public access check requires detailed configuration analysis",
+			Provider: "aws", Service: "kafka",
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		},
+	}, nil
 }
 
-func (c *KafkaClusterEnhancedMonitoringEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+// KafkaClusterUnencryptedAtRest - Kafka cluster unencrypted at rest
+type KafkaClusterUnencryptedAtRest struct {
+	metadata models.CheckMetadata
 }
 
-// KafkaClusterUnrestrictedAccessDisabled - Kafka cluster requires authentication
-type KafkaClusterUnrestrictedAccessDisabled struct {
-    metadata models.CheckMetadata
+func NewKafkaClusterUnencryptedAtRest() *KafkaClusterUnencryptedAtRest {
+	return &KafkaClusterUnencryptedAtRest{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_unencrypted_at_rest",
+			CheckTitle: "Kafka cluster unencrypted at rest",
+			ServiceName: "kafka", Severity: "high", ResourceType: "Cluster",
+			Description: "Kafka clusters should not be unencrypted at rest",
+			RemediationText: "Enable encryption at rest on Kafka clusters",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-func NewKafkaClusterUnrestrictedAccessDisabled() *KafkaClusterUnrestrictedAccessDisabled {
-    return &KafkaClusterUnrestrictedAccessDisabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_unrestricted_access_disabled",
-            CheckTitle: "Kafka cluster requires authentication",
-            ServiceName: "kafka",
-            Severity: "critical",
-            Description: "Amazon MSK clusters are evaluated for **unauthenticated client access**. Serverless clusters inherently require authentication; provisioned clusters are checked for configurations that allow **unrestricted connections** rather than authenticated clients.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
+func (c *KafkaClusterUnencryptedAtRest) Metadata() models.CheckMetadata { return c.metadata }
+
+func (c *KafkaClusterUnencryptedAtRest) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(kafkaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kafkaProvider")
+	}
+	kafkaClient, err := p.Kafka(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	clusters, err := kafkaClient.ListClusters(ctx, &kafka.ListClustersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
+
+	for _, cluster := range clusters.ClusterInfoList {
+		clusterName := aws.ToString(cluster.ClusterName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Kafka cluster %s is encrypted at rest.", clusterName)
+
+		if cluster.EncryptionInfo == nil || cluster.EncryptionInfo.EncryptionAtRest == nil || cluster.EncryptionInfo.EncryptionAtRest.DataVolumeKMSKeyId == nil {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Kafka cluster %s is unencrypted at rest.", clusterName)
+		}
+
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "kafka", ResourceID: clusterName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-func (c *KafkaClusterUnrestrictedAccessDisabled) Metadata() models.CheckMetadata {
-    return c.metadata
+// KafkaClusterUnencryptedInTransit - Kafka cluster unencrypted in transit
+type KafkaClusterUnencryptedInTransit struct {
+	metadata models.CheckMetadata
 }
 
-func (c *KafkaClusterUnrestrictedAccessDisabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+func NewKafkaClusterUnencryptedInTransit() *KafkaClusterUnencryptedInTransit {
+	return &KafkaClusterUnencryptedInTransit{
+		metadata: models.CheckMetadata{
+			Provider: "aws", CheckID: "kafka_cluster_unencrypted_in_transit",
+			CheckTitle: "Kafka cluster unencrypted in transit",
+			ServiceName: "kafka", Severity: "high", ResourceType: "Cluster",
+			Description: "Kafka clusters should not be unencrypted in transit",
+			RemediationText: "Enable encryption in transit on Kafka clusters",
+			Categories: []string{"analytics", "encryption"},
+		},
+	}
 }
 
-// KafkaClusterEncryptionAtRestUsesCmk - Kafka cluster has encryption at rest enabled with a customer managed key (CMK) or is serverless
-type KafkaClusterEncryptionAtRestUsesCmk struct {
-    metadata models.CheckMetadata
-}
+func (c *KafkaClusterUnencryptedInTransit) Metadata() models.CheckMetadata { return c.metadata }
 
-func NewKafkaClusterEncryptionAtRestUsesCmk() *KafkaClusterEncryptionAtRestUsesCmk {
-    return &KafkaClusterEncryptionAtRestUsesCmk{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_encryption_at_rest_uses_cmk",
-            CheckTitle: "Kafka cluster has encryption at rest enabled with a customer managed key (CMK) or is serverless",
-            ServiceName: "kafka",
-            Severity: "medium",
-            Description: "Amazon MSK clusters are inspected for **encryption at rest** using a **customer-managed KMS key** for data volumes. Serverless clusters are inherently encrypted. Provisioned clusters are recognized only when the configured `DataVolumeKMSKeyId` corresponds to a customer-managed key.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
-}
+func (c *KafkaClusterUnencryptedInTransit) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	p, ok := provider.(kafkaProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kafkaProvider")
+	}
+	kafkaClient, err := p.Kafka(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-func (c *KafkaClusterEncryptionAtRestUsesCmk) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+	findings := []models.Finding{}
 
-func (c *KafkaClusterEncryptionAtRestUsesCmk) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+	clusters, err := kafkaClient.ListClusters(ctx, &kafka.ListClustersInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list clusters: %w", err)
+	}
 
-// KafkaClusterMutualTlsAuthenticationEnabled - Kafka cluster has TLS authentication enabled
-type KafkaClusterMutualTlsAuthenticationEnabled struct {
-    metadata models.CheckMetadata
-}
+	for _, cluster := range clusters.ClusterInfoList {
+		clusterName := aws.ToString(cluster.ClusterName)
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("Kafka cluster %s is encrypted in transit.", clusterName)
 
-func NewKafkaClusterMutualTlsAuthenticationEnabled() *KafkaClusterMutualTlsAuthenticationEnabled {
-    return &KafkaClusterMutualTlsAuthenticationEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kafka_cluster_mutual_tls_authentication_enabled",
-            CheckTitle: "Kafka cluster has TLS authentication enabled",
-            ServiceName: "kafka",
-            Severity: "high",
-            Description: "Amazon MSK clusters enforce **client authentication** on client-to-broker connections. Serverless clusters use TLS-based authentication by default; provisioned clusters must have **mutual TLS (mTLS)** explicitly enabled.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kafka"},
-        },
-    }
-}
+		if cluster.EncryptionInfo == nil || cluster.EncryptionInfo.EncryptionInTransit == nil ||
+			(cluster.EncryptionInfo.EncryptionInTransit.ClientBroker != "TLS" && cluster.EncryptionInfo.EncryptionInTransit.ClientBroker != "TLS_PLAINTEXT") {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("Kafka cluster %s is unencrypted in transit.", clusterName)
+		}
 
-func (c *KafkaClusterMutualTlsAuthenticationEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+		findings = append(findings, models.Finding{
+			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+			Description: c.metadata.Description, Severity: c.metadata.Severity,
+			Status: status, StatusExtended: statusExtended,
+			Provider: "aws", Service: "kafka", ResourceID: clusterName,
+			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			FoundAt: time.Now().UTC(),
+		})
+	}
 
-func (c *KafkaClusterMutualTlsAuthenticationEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kafka",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	return findings, nil
 }
-

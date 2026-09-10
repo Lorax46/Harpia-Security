@@ -1,0 +1,882 @@
+[
+  {
+    "service": "apikeys",
+    "check_name": "apikeys_api_restricted_with_gemini_api",
+    "check_title": "API key is restricted to specific Google APIs when the Gemini (Generative Language) API is enabled",
+    "severity": "high",
+    "description": "The Gemini API (a.k.a. Generative Language API, `generativelanguage.googleapis.com`) uses API keys to authenticate requests for uploaded files and cached content. For projects with the Gemini API enabled, each API key should have API restrictions configured to limit access to specific services.",
+    "recommendation": "Apply **API restrictions** so that each key only has access to specific APIs. Do *not* allow access to the \"Generative Language API\" in particular.\nIf access to the \"Generative Language API\" is required, be aware of the consequences. Only use the key for this specific purpose and ensure adequate **secrets storage**.\n\nAlternatively, completely disable the Gemini API (a.k.a. Generative Language API, `generativelanguage.googleapis.com`) in the project's enabled services."
+  },
+  {
+    "service": "apikeys",
+    "check_name": "apikeys_api_restrictions_configured",
+    "check_title": "API key is restricted to specific Google APIs",
+    "severity": "high",
+    "description": "Google Cloud API keys have **API restrictions** limiting calls to specific services. The finding checks that keys are restricted to named Google APIs and do not include the broad `cloudapis.googleapis.com`, indicating keys are scoped only to intended use.",
+    "recommendation": "Apply **least privilege**: restrict each API key to only the specific APIs it must access and never include `cloudapis.googleapis.com`. Add **application restrictions** (referrers, IPs, app IDs), rotate keys, and monitor usage. Prefer **service accounts** or short-lived tokens for production as part of **defense in depth**."
+  },
+  {
+    "service": "apikeys",
+    "check_name": "apikeys_key_exists",
+    "check_title": "Project has no active API keys",
+    "severity": "medium",
+    "description": "Google Cloud projects are evaluated for **active API keys**. The finding indicates whether any keys exist and are enabled in the project, regardless of restrictions or usage.",
+    "recommendation": "Prefer **service accounts** with short-lived credentials or **OAuth 2.0**, enforcing **least privilege**. *If keys are necessary*, restrict by API and application, store them in a secrets manager, rotate and revoke promptly, monitor with alerts as **defense in depth**, and remove unused keys."
+  },
+  {
+    "service": "apikeys",
+    "check_name": "apikeys_key_rotated_in_90_days",
+    "check_title": "API key was created within the last 90 days",
+    "severity": "medium",
+    "description": "**Google Cloud API keys** are evaluated for **rotation age** using their `creation_time`. Keys created within the last `90` days are treated as recently rotated; keys older than `90` days are treated as overdue.",
+    "recommendation": "Rotate API keys at least every `90` days. Prefer **service accounts** or OAuth with short-lived credentials. Enforce **API** and **application/IP restrictions**. Store keys in a **secrets manager**, avoid client-side embedding, and monitor usage. Apply **least privilege** and **defense in depth**."
+  },
+  {
+    "service": "artifacts",
+    "check_name": "artifacts_container_analysis_enabled",
+    "check_title": "GCP project has Artifact Registry Container Analysis API enabled",
+    "severity": "medium",
+    "description": "Evaluates whether **Artifact Analysis** (`containeranalysis.googleapis.com`) is enabled at the project level to support **vulnerability scanning** and metadata for container images in Artifact Registry or Container Registry.",
+    "recommendation": "Enable **Artifact Analysis** (`containeranalysis.googleapis.com`) for projects hosting container images. Integrate scan results into CI/CD policy gates, apply **least privilege** to findings access, and rebuild images promptly to maintain **defense in depth**."
+  },
+  {
+    "service": "bigquery",
+    "check_name": "bigquery_dataset_cmk_encryption",
+    "check_title": "BigQuery dataset is encrypted with Customer-Managed Keys (CMKs)",
+    "severity": "high",
+    "description": "**BigQuery datasets** use **Customer-Managed Encryption Keys** (`CMEK`) rather than Google-managed encryption. The evaluation identifies datasets configured to use a customer-managed key for data-at-rest protection.",
+    "recommendation": "Protect datasets with **CMEK** via Cloud KMS:\n- Set a dataset or project default key\n- Align key location with dataset region\n- Enforce **least privilege** and separation of duties on key usage\n- Rotate keys and define revocation procedures\n- Audit key usage and use org policies to require CMEK"
+  },
+  {
+    "service": "bigquery",
+    "check_name": "bigquery_dataset_public_access",
+    "check_title": "BigQuery dataset is not publicly accessible",
+    "severity": "high",
+    "description": "BigQuery datasets are evaluated for exposure to **public identities**. The finding highlights datasets that grant any role to `allUsers` or `allAuthenticatedUsers`, which makes the dataset publicly accessible beyond intended principals.",
+    "recommendation": "Apply **least privilege** on datasets:\n- Remove `allUsers` and `allAuthenticatedUsers`\n- Grant access only to required groups or service accounts\n- Use **authorized views** or controlled listings for sharing\n- Review access regularly and enforce org policies that block public identities for **defense in depth**"
+  },
+  {
+    "service": "bigquery",
+    "check_name": "bigquery_table_cmk_encryption",
+    "check_title": "BigQuery table is encrypted with a Customer-Managed Key (CMK)",
+    "severity": "high",
+    "description": "**BigQuery tables** use **customer-managed encryption keys** (`CMEK`) for at-rest encryption. The evaluation identifies tables lacking a configured **Cloud KMS key**, indicating use of default Google-managed encryption instead.",
+    "recommendation": "Protect BigQuery tables with **Cloud KMS CMEK** to retain key ownership and control.\n- Set dataset/project default keys\n- Match key location to dataset region\n- Enforce least-privilege on KMS and monitor usage\n- Rotate keys and define revocation procedures\n- Apply org policies to require CMEK and restrict permissible key projects"
+  },
+  {
+    "service": "cloudfunction",
+    "check_name": "cloudfunction_function_inside_vpc",
+    "check_title": "Cloud Function is connected to a VPC network",
+    "severity": "medium",
+    "description": "Cloud Functions are attached to a **Serverless VPC Access connector** so egress traffic is routed through a private VPC network instead of the public internet.\n\nThe evaluation reviews each function's network configuration to confirm that a connector is configured.",
+    "recommendation": "Apply **defense in depth** by routing Cloud Function egress through a **Serverless VPC Access connector** when the function must reach internal resources.\n\nScope each connector to **least privilege** subnets so functions cannot reach unintended endpoints."
+  },
+  {
+    "service": "cloudfunction",
+    "check_name": "cloudfunction_function_not_publicly_accessible",
+    "check_title": "Cloud Function is not publicly invocable",
+    "severity": "high",
+    "description": "Cloud Functions deny invocation to `allUsers` and `allAuthenticatedUsers`, so only **explicitly authorized identities or services** can trigger them.\n\nThe evaluation reviews each function's IAM policy bindings to confirm no public principals are granted invoker access.",
+    "recommendation": "Apply **least privilege** to Cloud Function invocation: grant `roles/cloudfunctions.invoker` only to specific service accounts or groups.\n\nFor externally exposed functions, front them with **API Gateway** or **Cloud Endpoints** that enforce authentication and rate limiting."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_automated_backups",
+    "check_title": "Cloud SQL database instance has automated backups configured",
+    "severity": "high",
+    "description": "**Cloud SQL instances** are checked for **automated backups** being configured to run on a schedule and support point-in-time recovery.",
+    "recommendation": "Enable **automated backups** on all Cloud SQL instances holding important data. Set retention and schedules to meet `RPO`/`RTO`, and enable point-in-time recovery. Apply **least privilege** to backup access, use **separation of duties**, consider cross-region resilience, and regularly test restores with monitoring and alerts for failures."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_cmek_encryption_enabled",
+    "check_title": "Cloud SQL instance is encrypted with a customer-managed key (CMEK)",
+    "severity": "medium",
+    "description": "**Cloud SQL instances** use **customer-managed encryption keys** (`CMEK`) via Cloud KMS for at-rest encryption. The evaluation identifies instances lacking a configured **Cloud KMS key**, indicating use of default Google-managed encryption instead.",
+    "recommendation": "For instances storing personal or sensitive data, create new Cloud SQL instances with CMEK using a Cloud KMS key in the same region. Ensure the Cloud SQL service account has the roles/cloudkms.cryptoKeyEncrypterDecrypter role on the key, and enable key rotation per your policy."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_high_availability_enabled",
+    "check_title": "Cloud SQL instance has high availability (REGIONAL) configured",
+    "severity": "medium",
+    "description": "Ensures that Cloud SQL instances have high availability configured by setting availabilityType to REGIONAL. A REGIONAL instance maintains a standby replica in a different zone within the same region and automatically fails over on zone-level outages.",
+    "recommendation": "Set availabilityType to REGIONAL for all production Cloud SQL instances. This creates a standby replica in a different zone and enables automatic failover, reducing RTO in the event of a zone outage."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_mysql_local_infile_flag",
+    "check_title": "Cloud SQL MySQL instance has the local_infile database flag set to off",
+    "severity": "high",
+    "description": "**Cloud SQL for MySQL** instances are evaluated for the `local_infile` database flag being explicitly set to `off`, disabling use of `LOAD DATA LOCAL`.\n\nInstances where `local_infile` is absent or not `off` are identified.",
+    "recommendation": "Keep `local_infile` set to `off`. Use governed import channels (e.g., controlled object storage imports) and enforce **least privilege** for bulk-loading. Apply **separation of duties** between ingestion and admin roles, validate file sources and formats, and monitor high-volume loads. *If ever needed, enable only briefly for vetted tasks.*"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_mysql_skip_show_database_flag",
+    "check_title": "Cloud SQL MySQL instance has skip_show_database flag set to on",
+    "severity": "low",
+    "description": "**Cloud SQL MySQL** instances configure the `skip_show_database` database flag to `on`, limiting use of `SHOW DATABASES` to accounts with the `SHOW DATABASES` privilege.",
+    "recommendation": "Set `skip_show_database` to `on` for all Cloud SQL MySQL instances. Enforce **least privilege** by granting `SHOW DATABASES` only when necessary and reviewing roles regularly. Use **defense in depth**: monitor access and admin actions, and plan changes in maintenance windows as flag updates may trigger restarts."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_enable_pgaudit_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has 'cloudsql.enable_pgaudit' flag set to 'on'",
+    "severity": "high",
+    "description": "**Cloud SQL for PostgreSQL** instances are evaluated for the database flag `cloudsql.enable_pgaudit` being set to `on`",
+    "recommendation": "Enable `cloudsql.enable_pgaudit` and configure **pgAudit** to log required classes (e.g., `read`, `write`, `ddl`) under least privilege. Centralize logs, enforce retention and RBAC, and monitor with alerts. *Scope auditing to sensitive data to reduce noise and overhead, and review coverage regularly.*"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_connections_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has log_connections flag set to on",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** instances have the `log_connections` flag set to `on`, causing the server to record every connection attempt and the result of client authentication.",
+    "recommendation": "Enable `log_connections`=`on` for all PostgreSQL instances.\n- Apply **defense in depth**: also capture disconnects and audit events\n- Centralize logs, retain them, and alert on anomalies\n- Enforce **least privilege** and strong authentication to reduce exposure and improve detection"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_disconnections_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has log_disconnections flag set to on",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** instances have the `log_disconnections` flag set to `on`, creating a record each time a client session ends, including its duration and status",
+    "recommendation": "Enable `log_disconnections=on` to ensure complete session auditing.\n- Pair with `log_connections` and a consistent `log_line_prefix`\n- Centralize and retain logs; alert on anomalies\n- Apply **defense in depth** with routine review of access and audit events"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_error_verbosity_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has log_error_verbosity flag set to default",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** evaluates the `log_error_verbosity` database flag and expects the value `default`.\n\nConfigurations using `terse` or `verbose` are flagged as deviations.",
+    "recommendation": "Set `log_error_verbosity` to `default` to balance **data minimization** and **observability**.\n\n- Avoid `verbose` in production; restrict log access (least privilege)\n- Avoid `terse` except briefly to curb noise\n- Centralize logs with retention and tamper protection for **defense in depth**"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_min_duration_statement_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has the log_min_duration_statement flag set to -1",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** evaluates whether `log_min_duration_statement` is set to `-1`, disabling **statement duration logging**.",
+    "recommendation": "Keep `log_min_duration_statement` at `-1` in production to avoid writing sensitive query text to logs. Apply **least privilege** to log access, enforce **data minimization** with redaction and short retention. *If troubleshooting is required*, enable narrowly and temporarily, prefer non-prod, and monitor access."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_min_error_statement_flag",
+    "check_title": "Cloud SQL for PostgreSQL instance has log_min_error_statement set to error",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** uses the `log_min_error_statement` flag and expects it set to `error`, the severity threshold that controls when SQL text is logged with error messages.",
+    "recommendation": "Set `log_min_error_statement` to `error` to balance insight and exposure. Enforce a **logging policy** that limits sensitive data in queries and supports **defense in depth**. Periodically review severity and retention to match workload and compliance needs and maintain reliable forensic readiness."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_min_messages_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has the log_min_messages flag set to WARNING or higher",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** instances are evaluated for the `log_min_messages` flag being set to a sufficiently high severity. Instances with the flag missing or set below `ERROR` (e.g., `DEBUG*`, `INFO`, `NOTICE`) are identified.",
+    "recommendation": "Set `log_min_messages` to **ERROR or stricter** to ensure error statements are captured with context. Align with centralized logging, retention, and review processes. Prefer **defense in depth** by preserving actionable error telemetry, while balancing verbosity and cost per your logging policy."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_postgres_log_statement_flag",
+    "check_title": "Cloud SQL PostgreSQL instance has 'log_statement' flag set to 'ddl'",
+    "severity": "medium",
+    "description": "**Cloud SQL for PostgreSQL** instances have `log_statement` set to `ddl`, recording only data definition statements in server logs",
+    "recommendation": "Configure `log_statement` to `ddl` to capture schema changes without excessive noise. Apply **defense in depth**: use targeted auditing for data access, restrict and monitor log access with **least privilege**, and enforce log retention and rotation to protect availability."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_private_ip_assignment",
+    "check_title": "Cloud SQL instance has no public IP addresses",
+    "severity": "high",
+    "description": "Cloud SQL instances are evaluated for IP assignment, highlighting instances that have any **public IP** instead of being restricted to **private IP** only.",
+    "recommendation": "Use **private IP-only** connectivity for databases. Remove public IPs, segment access to required VPCs/subnets, and enforce **least privilege** with strong auth and TLS. For external access, use secure private channels (VPN/Interconnect) or a hardened bastion. Monitor connections as part of **defense in depth**."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_public_access",
+    "check_title": "Cloud SQL instance does not allow 0.0.0.0/0 in authorized networks",
+    "severity": "critical",
+    "description": "**Cloud SQL authorized networks** are checked for the open CIDR `0.0.0.0/0` on instances using a public IP.\n\nThe finding flags configurations where a catch-all entry exists instead of specific client ranges.",
+    "recommendation": "Enforce **least privilege** network access:\n- Remove `0.0.0.0/0`; allow only trusted, fixed IP ranges\n- Prefer **private IP** or **Private Service Connect** with VPC controls\n- Use proxied access (Cloud SQL Auth Proxy) over direct public connections\n- Apply org policies to prevent broad allowlists"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_public_ip",
+    "check_title": "Cloud SQL database instance does not have a public IP address",
+    "severity": "high",
+    "description": "**Cloud SQL instances** are evaluated for exposure via **public IP addresses** instead of `private IP` connectivity within a VPC.\n\nInstances with an externally routable database endpoint are surfaced.",
+    "recommendation": "Prefer **private IP** and disable public endpoints. Access databases over VPC, VPN/Interconnect, or **Private Service Connect**. If `authorized networks` are required, restrict to specific sources-never `0.0.0.0/0`. Enforce **least privilege** IAM, use Cloud SQL connectors/proxy, and layer **defense in depth** with network controls and monitoring."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_contained_database_authentication_flag",
+    "check_title": "Cloud SQL for SQL Server instance has 'contained database authentication' flag set to off",
+    "severity": "medium",
+    "description": "Cloud SQL for SQL Server instances are evaluated for the **contained database authentication** setting. The check inspects the `contained database authentication` flag and expects its value to be `off`.",
+    "recommendation": "Keep `contained database authentication` set to `off`. Centralize authentication and auditing at the server layer or via directory integration, and apply **least privilege**. Avoid `USER WITH PASSWORD` contained users. If containment is unavoidable, tightly scope usage, enforce strong credentials, and monitor login activity."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_cross_db_ownership_chaining_flag",
+    "check_title": "Cloud SQL SQL Server instance has 'cross db ownership chaining' flag set to off",
+    "severity": "high",
+    "description": "**Cloud SQL SQL Server** instances are evaluated for the `cross db ownership chaining` server flag. The finding identifies SQL Server instances where this flag isn't set to `off`, meaning cross-database ownership chaining is permitted.",
+    "recommendation": "Keep `cross db ownership chaining` set to `off` to maintain database isolation. Enforce **least privilege** with explicit per-database permissions and **separation of duties**. Prefer controlled execution patterns (e.g., signed modules) over implicit trusts, and periodically review flags and access. *This flag is deprecated-do not enable it.*"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_external_scripts_enabled_flag",
+    "check_title": "Cloud SQL SQL Server instance has 'external scripts enabled' flag set to 'off'",
+    "severity": "high",
+    "description": "**Cloud SQL for SQL Server** instances have the `external scripts enabled` database flag set to `off`",
+    "recommendation": "Keep `external scripts enabled` set to `off`. Apply **least privilege** and **defense in depth** by disabling code-execution features in the database. If analytics are required, use isolated instances, restrict outbound network access, and enforce change control and auditing to prevent misuse."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_remote_access_flag",
+    "check_title": "Cloud SQL SQL Server instance has 'remote access' database flag set to 'off'",
+    "severity": "medium",
+    "description": "**Cloud SQL for SQL Server** instances where the `remote access` database flag is `on`, allowing remote procedure calls between servers",
+    "recommendation": "Set `remote access` to `off` to reduce the attack surface. Apply **least privilege** and **defense in depth**: avoid remote stored procedures; if business-required, allow only trusted peers, enforce strong authentication, audit calls, and monitor for abuse."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_trace_flag",
+    "check_title": "Cloud SQL for SQL Server instance has trace flag 3625 set to 'on'",
+    "severity": "medium",
+    "description": "**Cloud SQL for SQL Server** instances have the `3625 (trace flag)` database flag set to `on`",
+    "recommendation": "Set trace flag `3625` to `on` for all SQL Server instances in Cloud SQL to limit error details for non-admins. Apply **least privilege**, practice **defense in depth** with application-level error handling, and centralize diagnostics in logs rather than returning verbose messages to clients."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_user_connections_flag",
+    "check_title": "Cloud SQL SQL Server instance has the 'user connections' database flag set to 0",
+    "severity": "medium",
+    "description": "**Cloud SQL for SQL Server** instances are evaluated to ensure the `user connections` database flag is set to `0` (unlimited), avoiding any artificial cap on concurrent user sessions",
+    "recommendation": "Set `user connections` to `0` to prevent artificial limits. Preserve **availability** with **connection pooling**, controlled retries, and **capacity planning** based on peak usage. *If a cap is required*, size it with ample headroom, monitor connection counts, and review regularly."
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_sqlserver_user_options_flag",
+    "check_title": "Cloud SQL for SQL Server instance does not have the 'user options' flag configured",
+    "severity": "medium",
+    "description": "**Cloud SQL for SQL Server** instances are evaluated for the `user options` database flag configured with any value.\n\nThis flag sets global defaults for session `SET` behaviors; the check identifies instances where this global override is present.",
+    "recommendation": "Leave `user options` unset at the instance level; keep default behavior. Control `SET` options explicitly at session or database scope.\n\n- Enforce **least privilege** for flag management\n- Use **change control** and testing before rollout\n- Monitor for configuration drift as part of **defense in depth**"
+  },
+  {
+    "service": "cloudsql",
+    "check_name": "cloudsql_instance_ssl_connections",
+    "check_title": "Cloud SQL database instance requires SSL for all incoming connections",
+    "severity": "high",
+    "description": "Cloud SQL instances enforce **SSL/TLS-only connections**, rejecting plaintext traffic. The connection policy requires encryption for all clients (e.g., `ENCRYPTED_ONLY` or `TRUSTED_CLIENT_CERTIFICATE_REQUIRED`) instead of allowing both encrypted and unencrypted connections.",
+    "recommendation": "Require **TLS for all connections**. Prefer `TRUSTED_CLIENT_CERTIFICATE_REQUIRED` or use Cloud SQL Auth Proxy/Connectors for encrypted, authenticated channels.\n- Disallow mixed plaintext/SSL modes\n- Rotate and monitor certificates\n- Combine with **least privilege** and private access"
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_audit_logs_enabled",
+    "check_title": "Data Access audit logs are enabled for Cloud Storage",
+    "severity": "medium",
+    "description": "Data Access audit logs (DATA_READ and DATA_WRITE) are enabled for Cloud Storage at the project level. Unlike Admin Activity logs (enabled by default), Data Access logs must be explicitly configured to track read and write operations on Cloud Storage objects.",
+    "recommendation": "Enable Data Access audit logs (DATA_READ and DATA_WRITE) for Cloud Storage at the project level to track all read and write operations on storage objects for security monitoring and compliance."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_lifecycle_management_enabled",
+    "check_title": "Cloud Storage bucket has lifecycle management enabled with at least one valid rule",
+    "severity": "low",
+    "description": "**Cloud Storage buckets** use **Object Lifecycle Management** with at least one valid rule (supported `action` and non-empty `condition`) to automatically transition storage class or delete objects.",
+    "recommendation": "Define lifecycle policies by data classification to enforce **least data retention**. Use `Delete` for TTL/age and `SetStorageClass` for archival, with version-aware conditions like `isLive=false` or `numNewerVersions`. Test on a limited dataset, review regularly, and align with **defense in depth**."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_log_retention_policy_lock",
+    "check_title": "Cloud Storage log sink bucket has a retention policy with Bucket Lock enabled",
+    "severity": "high",
+    "description": "**Cloud Storage log sink buckets** have a configured **retention period** with **Bucket Lock** applied, ensuring the retention policy cannot be shortened or removed.",
+    "recommendation": "Set a **retention policy** on every log sink bucket and enable **Bucket Lock**. Choose durations that meet investigative and regulatory needs. Enforce **least privilege** and **separation of duties** for bucket and logging administration, and apply **defense in depth** so no single actor can weaken log retention."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_logging_enabled",
+    "check_title": "Cloud Storage buckets have Usage and Storage Logs enabled",
+    "severity": "medium",
+    "description": "**Google Cloud Storage buckets** are evaluated to ensure that **Usage and Storage Logs** are enabled. Enabling these logs provides detailed visibility into access requests, usage patterns, and storage activity within each bucket.",
+    "recommendation": "Enable Usage and Storage Logs for all Cloud Storage buckets to track access, detect anomalies, and maintain audit visibility of data operations."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_public_access",
+    "check_title": "Cloud Storage bucket is not publicly accessible",
+    "severity": "critical",
+    "description": "**Cloud Storage buckets** are assessed for **anonymous or public access** by detecting permissions granted to broad principals like `allUsers` or `allAuthenticatedUsers` that make bucket data reachable without authentication.",
+    "recommendation": "Adopt **least privilege**: remove `allUsers`/`allAuthenticatedUsers` and grant only required identities. Enforce **Public Access Prevention** and use uniform bucket-level access. *If external sharing is needed*, issue **signed URLs** or use an authenticated proxy/CDN, and review permissions regularly."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_soft_delete_enabled",
+    "check_title": "Cloud Storage bucket has Soft Delete enabled",
+    "severity": "medium",
+    "description": "**Google Cloud Storage buckets** are assessed for **Soft Delete** being enabled with a non-zero retention window, meaning deleted objects are temporarily preserved and can be restored until the window expires.",
+    "recommendation": "Enable **Soft Delete** with a retention window aligned to your RPO/RTO. Apply **least privilege** for delete/undelete actions and use **defense in depth** with object versioning and retention policies. Monitor deletion events and regularly test restore procedures to ensure recoverability."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_sufficient_retention_period",
+    "check_title": "Cloud Storage bucket has a sufficient Retention Policy period",
+    "severity": "medium",
+    "description": "Cloud Storage bucket has a bucket-level Retention Policy with a retentionPeriod that meets or exceeds the organization-defined minimum, preventing deletion or modification of objects before the required time.",
+    "recommendation": "Define and apply a bucket-level Retention Policy that meets your minimum retention requirement (e.g., 90 or 365 days) to enforce data recoverability and compliance."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_uniform_bucket_level_access",
+    "check_title": "Cloud Storage bucket has uniform bucket-level access enabled",
+    "severity": "medium",
+    "description": "Cloud Storage buckets have **uniform bucket-level access (UBLA)** enabled so object permissions are controlled solely by **bucket-level IAM**, with object ACLs disabled.",
+    "recommendation": "Enable **UBLA** on all buckets to centralize authorization and apply **least privilege** with IAM. Eliminate reliance on object ACLs; use **Public Access Prevention** and **organization policies** to enforce non-public defaults. Monitor access with logs and periodic reviews as part of **defense in depth**."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_bucket_versioning_enabled",
+    "check_title": "Cloud Storage bucket has Object Versioning enabled",
+    "severity": "medium",
+    "description": "**Cloud Storage buckets** with **Object Versioning** keep prior object generations. The finding indicates whether the bucket's `versioning` setting is enabled.",
+    "recommendation": "Enable **Object Versioning** on buckets holding important data. Pair with `lifecycle` rules to expire noncurrent versions and control cost. Enforce **least privilege** for delete/overwrite actions, and add bucket `retention` policies or object holds for defense-in-depth and auditability."
+  },
+  {
+    "service": "cloudstorage",
+    "check_name": "cloudstorage_uses_vpc_service_controls",
+    "check_title": "Cloud Storage services are protected by VPC Service Controls",
+    "severity": "medium",
+    "description": "**GCP Projects** are evaluated to ensure they have **VPC Service Controls** enabled for Cloud Storage. VPC Service Controls establish security boundaries by restricting access to Cloud Storage resources to specific networks and trusted clients, preventing unauthorized data access and exfiltration.",
+    "recommendation": "Enable VPC Service Controls for all Cloud Storage buckets by adding their projects to a service perimeter with storage.googleapis.com as a restricted service. This prevents data exfiltration and ensures API calls are only allowed from authorized networks."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_firewall_rdp_access_from_the_internet_allowed",
+    "check_title": "Firewall rule does not allow ingress from 0.0.0.0/0 to TCP port 3389 (RDP)",
+    "severity": "critical",
+    "description": "**VPC firewall rules** permitting inbound **RDP** (`TCP 3389`) from `0.0.0.0/0` are flagged, including ingress rules that allow all TCP ports or `all` protocols",
+    "recommendation": "Restrict **RDP** to trusted IP ranges or a hardened **bastion/IAP** proxy; prefer private access with no public IPs. Apply **least privilege** and network segmentation, use just-in-time access and strong authentication, and monitor logs. Aim for **defense in depth** to minimize exposure."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_firewall_ssh_access_from_the_internet_allowed",
+    "check_title": "Firewall does not expose TCP port 22 (SSH) to the Internet",
+    "severity": "critical",
+    "description": "**VPC firewall rules** allowing Internet-sourced **ingress** (`0.0.0.0/0`) to `TCP port 22 (SSH)` are identified, including rules using protocol `all` or `tcp` whose ports or ranges include `22`.",
+    "recommendation": "Restrict **SSH** to trusted sources; avoid `0.0.0.0/0`. Prefer **bastion hosts** or **IAP TCP forwarding**, or use **VPN/peering**. Enforce **least privilege** and **defense in depth**: limit to required CIDRs, use **key-based auth**, disable `PasswordAuthentication`, and monitor/alert on access attempts."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_image_not_publicly_shared",
+    "check_title": "Compute Engine disk image is not publicly shared",
+    "severity": "medium",
+    "description": "Custom disk images should not be shared publicly with **allAuthenticatedUsers**. Per Google Cloud API restrictions, **allUsers** cannot be assigned to Compute Engine images. The concern is **allAuthenticatedUsers**, which grants access to anyone with a Google account, potentially exposing application snapshots and sensitive data.",
+    "recommendation": "Restrict access to custom disk images by removing the **allAuthenticatedUsers** IAM binding. Apply the principle of least privilege by granting access only to specific users, groups, or service accounts that require it."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_automatic_restart_enabled",
+    "check_title": "Compute Engine VM instances have Automatic Restart enabled",
+    "severity": "medium",
+    "description": "**Google Compute Engine virtual machine instances** are evaluated to ensure that **Automatic Restart** is enabled. This feature allows the Google Cloud Compute Engine service to automatically restart VM instances when they are terminated due to non-user-initiated reasons such as maintenance events, hardware failures, or software failures.",
+    "recommendation": "Enable the Automatic Restart feature for Compute Engine VM instances to enhance system reliability by automatically recovering from crashes or system-initiated terminations. This setting does not interfere with user-initiated shutdowns or stops."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_block_project_wide_ssh_keys_disabled",
+    "check_title": "VM instance has Block project-wide SSH keys enabled",
+    "severity": "medium",
+    "description": "**Compute Engine VMs** are evaluated for the metadata key `block-project-ssh-keys` set to `true`, indicating **project-wide SSH keys** are blocked and only instance-level or OS Login credentials are honored.",
+    "recommendation": "Set `block-project-ssh-keys=true` to prevent shared key inheritance. Prefer **OS Login** or instance-specific keys, enforce **least privilege** and **separation of duties** for metadata changes, use **short-lived credentials** with rotation, limit direct SSH, and monitor access for anomalies."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_confidential_computing_enabled",
+    "check_title": "Compute instance has Confidential Computing enabled",
+    "severity": "medium",
+    "description": "**Google Compute Engine VMs** configured as **Confidential VMs** encrypt data in use with hardware-based memory protection and per-instance keys.\n\nThis assessment identifies whether **Confidential Computing** is enabled on each VM instance.",
+    "recommendation": "Enable **Confidential VMs** for workloads processing sensitive data to protect data-in-use. Apply **defense in depth**: enforce **least privilege** on administrative access, use disk encryption with `CMEK`, and require workload attestation/trusted images. *If unsupported*, isolate or refactor workloads to compatible options."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_default_service_account_in_use",
+    "check_title": "Compute Engine instance does not use the default service account",
+    "severity": "medium",
+    "description": "**Compute Engine VMs** are evaluated for use of the **default service account** (`[PROJECT_NUMBER]-compute@developer.gserviceaccount.com`). The finding highlights instances configured with that account rather than a workload-specific service account. *GKE node VMs are ignored.*",
+    "recommendation": "Avoid the default service account. Create per-workload service accounts and grant only required roles under **least privilege** and **separation of duties**. Remove broad roles like `roles/editor`. Prefer short-lived credentials and monitor service account usage to enforce **defense in depth**."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_default_service_account_in_use_with_full_api_access",
+    "check_title": "Compute Engine instance does not use the default service account with full access to all Cloud APIs",
+    "severity": "medium",
+    "description": "**Compute Engine VM instances** using the **default service account** with the `cloud-platform` scope (`Allow full access to all Cloud APIs`) are identified. *GKE nodes are excluded.*",
+    "recommendation": "Use a **custom, least-privileged service account** per VM and avoid the default account. Restrict Cloud API scopes-prefer minimal or per-API scopes, not `Allow full access to all Cloud APIs`. Enforce **least privilege** and **separation of duties**, and regularly review roles to remove excessive permissions."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_deletion_protection_enabled",
+    "check_title": "VM instance has deletion protection enabled",
+    "severity": "medium",
+    "description": "This check verifies whether GCP Compute Engine VM instances have **deletion protection** enabled to prevent accidental termination of production or critical workloads.",
+    "recommendation": "Enable deletion protection on all production and business-critical VM instances to prevent accidental termination. Regularly review instances to ensure critical workloads are protected."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_disk_auto_delete_disabled",
+    "check_title": "VM instance attached disks have auto-delete disabled",
+    "severity": "medium",
+    "description": "This check verifies whether GCP Compute Engine VM instances have **auto-delete** disabled for their attached persistent disks.\n\nWhen auto-delete is enabled, persistent disks are automatically removed when the associated VM instance is deleted, which can lead to unintended data loss.",
+    "recommendation": "Disable `auto-delete` for all persistent disks attached to **production** and **business-critical** VM instances to prevent **accidental data loss**. Regularly review disk configurations to ensure data retention requirements are met."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_encryption_with_csek_enabled",
+    "check_title": "VM instance has all disks encrypted with Customer-Supplied Encryption Keys (CSEK)",
+    "severity": "high",
+    "description": "Compute Engine VM disks use **Customer-Supplied Encryption Keys** (`CSEK`) rather than provider-managed keys. The finding flags instances where any attached disk is not protected with the customer-provided key.",
+    "recommendation": "Use **CSEK** for VM disks that require full control over data-at-rest keys. Apply **least privilege** to key custodians, store keys in hardened vaults/HSMs, enforce rotation and rapid revocation, and document recovery procedures. Combine with **defense in depth** (network and IAM controls) to limit blast radius."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_group_autohealing_enabled",
+    "check_title": "Managed Instance Group has autohealing enabled with a valid health check",
+    "severity": "high",
+    "description": "Managed Instance Groups (MIGs) should have **autohealing** enabled with a valid health check configured. Autohealing automatically recreates unhealthy instances based on application-level health checks, ensuring continuous availability.",
+    "recommendation": "Enable autohealing on all Managed Instance Groups by configuring a health check that validates application-level health. Set an appropriate initial delay to allow instances time to start before health checks begin."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_group_load_balancer_attached",
+    "check_title": "Managed Instance Group is attached to a load balancer",
+    "severity": "low",
+    "description": "Managed Instance Groups (MIGs) should be attached to load balancers via backend services to enable traffic distribution across instances. Load balancers provide health checking, autoscaling integration, and high availability features that are essential for production workloads.",
+    "recommendation": "Attach Managed Instance Groups to load balancers using backend services to enable traffic distribution, health checking, and seamless autoscaling. This ensures high availability and optimal performance for production workloads."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_group_multiple_zones",
+    "check_title": "Managed Instance Groups span multiple zones for high availability",
+    "severity": "low",
+    "description": "Managed Instance Groups (MIGs) should be configured for multi-zone deployments to ensure high availability and fault tolerance. A multi-zone MIG distributes instances across multiple zones within a region, protecting applications from zonal failures.",
+    "recommendation": "Use regional managed instance groups instead of zonal MIGs to distribute instances across multiple zones. This provides automatic failover and load distribution, ensuring high availability for production workloads."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_ip_forwarding_is_enabled",
+    "check_title": "Compute Engine VM instance has IP forwarding disabled",
+    "severity": "medium",
+    "description": "**Compute Engine VM instances** with `canIpForward` enabled are identified. This setting allows a VM to process packets not addressed to its own IP.\n\nInstances created by GKE (`gke-` prefix) are excluded from this evaluation.",
+    "recommendation": "Disable **IP forwarding** on general-purpose VMs and allow it only for vetted **network appliances**, following **least privilege**.\n\nEnforce **network segmentation**, restrict routes, review exceptions regularly, and monitor egress to uphold **defense in depth**. *Exclude platform-managed nodes that require forwarding.*"
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_on_host_maintenance_migrate",
+    "check_title": "Compute Engine VM instance has On Host Maintenance set to MIGRATE",
+    "severity": "medium",
+    "description": "**Compute Engine VM instances** should have their **On Host Maintenance** setting configured to `MIGRATE` for live migration during host maintenance events, ensuring continuous availability without downtime.",
+    "recommendation": "Configure VM instances to use **live migration** during host maintenance events to ensure continuous availability. This is the recommended setting for production workloads that require high availability."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_preemptible_vm_disabled",
+    "check_title": "VM instance is not configured as preemptible or Spot VM",
+    "severity": "medium",
+    "description": "This check verifies that VM instances are not configured as **preemptible** or **Spot VMs**.\n\nBoth preemptible and Spot VMs can be terminated by Google at any time when resources are needed elsewhere, making them unsuitable for production and business-critical workloads. Spot VMs are the newer version of preemptible VMs and are Google's recommended approach for interruptible workloads.",
+    "recommendation": "Use standard provisioning model for production and business-critical VM instances. Preemptible and Spot VMs should only be used for fault-tolerant, batch processing, or non-critical workloads that can handle interruptions."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_public_ip",
+    "check_title": "VM instance does not have a public IP address",
+    "severity": "high",
+    "description": "**Compute Engine VM instances** with an assigned **external (public) IP address** on any network interface are identified.\n\nInstances without an external IP are considered internal-only.",
+    "recommendation": "Adopt **private-only VMs** and remove external IPs.\n- Place workloads behind **load balancers** or **reverse proxies**\n- Use **Cloud NAT** for egress; admin access via **IAP**, **VPN**, or a hardened **bastion**\n- Apply **least privilege** firewall rules and network segmentation for **defense in depth**"
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_serial_ports_in_use",
+    "check_title": "VM instance has 'Enable Connecting to Serial Ports' disabled",
+    "severity": "medium",
+    "description": "**Compute Engine VM instance** with the **interactive serial console** enabled via metadata `serial-port-enable` (`1`/`true`). Instances with this flag disabled do not allow interactive serial console connections.",
+    "recommendation": "Disable the **interactive serial console** on production VMs (`serial-port-enable=false`). Use it only for *break-glass* cases. Enforce **least privilege** for console roles, prefer controlled access paths (IAP/SSH or session tools), and monitor access. Apply **defense in depth** to reduce alternate entry points."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_shielded_vm_enabled",
+    "check_title": "Compute instance has vTPM and Integrity Monitoring enabled",
+    "severity": "medium",
+    "description": "Compute Engine VM instances have **vTPM** and **Integrity Monitoring** enabled as part of Shielded VM configuration.",
+    "recommendation": "Enable **Shielded VM** with `vTPM` and **Integrity Monitoring** set to `enabled` on all VMs. Prefer **Secure Boot** where compatible. Enforce via hardened images/templates, apply **least privilege** to shielded settings, and monitor integrity results-supporting **defense in depth** and trusted boot."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_single_network_interface",
+    "check_title": "VM instance has a single network interface",
+    "severity": "medium",
+    "description": "VM instances should be configured with only **one network interface** unless multiple interfaces are explicitly required for complex network configurations.\n\nMultiple network interfaces expand the attack surface and create additional network pathways that may be exploited.",
+    "recommendation": "Configure VM instances with only the **minimum network connectivity** required for their intended purpose. Review instances with multiple network interfaces and consolidate to a single interface unless multi-NIC configuration is explicitly required for network appliance or routing purposes."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_instance_suspended_without_persistent_disks",
+    "check_title": "Suspended VM instance does not have persistent disks attached",
+    "severity": "medium",
+    "description": "This check identifies VM instances in a **SUSPENDED** or **SUSPENDING** state with persistent disks still attached.\n\nPersistent disks on suspended VMs remain accessible through the GCP API and could contain **sensitive data** while the instance is inactive, potentially creating security blind spots in long-forgotten infrastructure.",
+    "recommendation": "Regularly review suspended VM instances to reduce your attack surface. Either **resume** instances if still needed, or **delete** them along with their attached disks to eliminate potential data exposure. Implement automated policies to detect and alert on long-suspended instances as part of your security monitoring."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_loadbalancer_logging_enabled",
+    "check_title": "HTTP(S) load balancer has logging enabled",
+    "severity": "high",
+    "description": "**Application Load Balancer** (HTTP/S) backend services have **Cloud Logging for requests** enabled at the backend service level.\n\n*Only load balancers with a backend service support this setting.*",
+    "recommendation": "Enable **request logging** on backend services with a risk-appropriate `sampleRate`; include key optional fields when needed. Export logs to monitoring for alerts and dashboards, enforce retention and integrity controls, and restrict access using **least privilege** and **defense in depth**."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_network_default_in_use",
+    "check_title": "Project does not have a default VPC network",
+    "severity": "medium",
+    "description": "Projects are assessed for a **VPC network** named `default` (the pre-created, auto-mode network).",
+    "recommendation": "Prefer **custom VPCs** over `default`. Remove unused default networks and apply **least privilege** with explicit firewall rules, private connectivity, and workload-based segmentation. Enforce creation controls (e.g., org policy to skip default network) and use **defense in depth** with logging and monitoring."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_network_dns_logging_enabled",
+    "check_title": "VPC network has Cloud DNS logging enabled",
+    "severity": "medium",
+    "description": "**VPC networks** are assessed for a **DNS policy** that enables **Cloud DNS query logging**. When present, resolvers record queries for the network from VMs, GKE, peering, and inbound forwarding, with entries written to Cloud Logging.",
+    "recommendation": "Enable **Cloud DNS query logging** for all VPC networks via **DNS policies** and route logs to centralized analysis. Enforce **least privilege** on log access, set retention and sampling to manage cost, and add detections for malicious domains. Apply **defense in depth** with DNS response policies and egress controls."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_network_not_legacy",
+    "check_title": "VPC network is not legacy",
+    "severity": "medium",
+    "description": "**Google Cloud networks** are evaluated for **legacy mode** (`subnet_mode: legacy`). The finding highlights networks using the older, non-subnetted design instead of **VPC with regional subnets**.",
+    "recommendation": "Decommission legacy networks. Migrate to **custom-mode VPCs** with regional subnets and granular firewall policies. Apply **least privilege** segmentation, enable private access and **Cloud NAT** to avoid public exposure, and use peering or private connectivity for dependencies. *Plan and test migration to limit downtime*."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_project_os_login_2fa_enabled",
+    "check_title": "GCP project has OS Login with 2FA enabled",
+    "severity": "high",
+    "description": "OS Login **Two-Factor Authentication (2FA)** requires users to verify their identity with a second factor when connecting via SSH to VM instances.\n\nThis provides an additional security layer beyond passwords or SSH keys, significantly reducing the risk of unauthorized access even if credentials are compromised.",
+    "recommendation": "Enable OS Login with 2FA at the project level to enforce multi-factor authentication for all SSH connections. This adds a critical security layer by requiring users to complete a second verification step, protecting against credential theft and unauthorized access."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_project_os_login_enabled",
+    "check_title": "Project has OS Login enabled",
+    "severity": "low",
+    "description": "Project metadata has **OS Login** enabled (`enable-oslogin`), so VM SSH access uses IAM-linked Linux identities instead of static project or instance keys.",
+    "recommendation": "Enable **OS Login** at the project level to centralize SSH through **IAM**.\n- Apply **least privilege** to OS Login roles\n- Remove metadata SSH keys\n- Enforce MFA and short-lived credentials\n- Monitor login activity and add network restrictions for **defense in depth**"
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_public_address_shodan",
+    "check_title": "Public IP address is not listed in Shodan",
+    "severity": "medium",
+    "description": "**Compute Engine** public IP addresses are cross-checked with **Shodan** to identify Internet-exposed hosts that have been indexed, including observed open ports and metadata.\n\n*Only `EXTERNAL` addresses are evaluated.*",
+    "recommendation": "Minimize Internet exposure:\n- Remove unused public IPs; prefer private addressing with controlled egress\n- Avoid `0.0.0.0/0`; restrict by allowlists and firewall policies\n- Place services behind proxies/VPN/bastions; close unused ports\n\nApply **least privilege** and **defense in depth**; continuously monitor external footprint."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_snapshot_not_outdated",
+    "check_title": "Compute Engine disk snapshot is not outdated",
+    "severity": "low",
+    "description": "Compute Engine **disk snapshots** are evaluated against a configurable age threshold (default `90` days) to identify snapshots exceeding the organization's retention policy.",
+    "recommendation": "Implement a snapshot lifecycle policy to automatically delete snapshots older than your organization's retention requirements. Regularly review and clean up outdated snapshots to reduce storage costs and minimize data exposure risks. Consider using scheduled snapshots with automatic deletion policies."
+  },
+  {
+    "service": "compute",
+    "check_name": "compute_subnet_flow_logs_enabled",
+    "check_title": "Subnet has VPC Flow Logs enabled",
+    "severity": "medium",
+    "description": "**GCP VPC subnets** have **VPC Flow Logs** enabled at the subnet scope to capture connection metadata for traffic to and from VM interfaces.",
+    "recommendation": "Enable **VPC Flow Logs** on all production subnets. Tune aggregation, sampling, and metadata to balance visibility and cost.\n\nExport to centralized logging for analytics and alerting, apply **least privilege** to log access, and use organization guardrails to enforce consistent coverage as part of **defense in depth**."
+  },
+  {
+    "service": "dataproc",
+    "check_name": "dataproc_encrypted_with_cmks_disabled",
+    "check_title": "Dataproc cluster is encrypted with a customer-managed encryption key (CMEK)",
+    "severity": "medium",
+    "description": "Dataproc clusters use **Customer-Managed Encryption Keys** (`CMEK`) for VM **persistent disk** encryption. The finding determines whether a customer KMS key is configured for disk data instead of the default Google-managed keys.",
+    "recommendation": "Enable **CMEK** for Dataproc disk, job-argument, and staging-bucket encryption.\n- Grant KMS access with **least privilege** to required service accounts\n- Enforce **regular rotation** and support **revocation/disable** procedures\n- Keep keys co-located with data and monitor KMS usage\n- Consider **Cloud EKM** for external key control"
+  },
+  {
+    "service": "dns",
+    "check_name": "dns_dnssec_disabled",
+    "check_title": "Cloud DNS managed zone has DNSSEC enabled",
+    "severity": "medium",
+    "description": "**Cloud DNS managed zones** are assessed for **DNSSEC** status. Zones with DNSSEC sign zone data and publish `DNSKEY`/`RRSIG`; zones without it remain unsigned and unauthenticated.",
+    "recommendation": "Enable **DNSSEC** on public zones and complete the chain of trust by publishing a `DS` record at your registrar. Use DNSSEC-validating resolvers, apply **least privilege** for DNS administration, and monitor key lifecycle events. *Private zones are not DNSSEC-signed.*"
+  },
+  {
+    "service": "dns",
+    "check_name": "dns_rsasha1_in_use_to_key_sign_in_dnssec",
+    "check_title": "Cloud DNS managed zone DNSSEC key-signing key does not use RSASHA1",
+    "severity": "medium",
+    "description": "**Cloud DNS zones** are assessed for DNSSEC **Key-Signing Key (KSK)** algorithms, specifically detecting use of `rsasha1`. Zones with KSKs on modern algorithms are distinguished from those still using `rsasha1`.",
+    "recommendation": "Adopt **strong, supported DNSSEC algorithms** for KSKs (e.g., `ECDSAP256SHA256` or `RSASHA256`) and retire `rsasha1`. Rotate keys and validate changes before deployment. Keep KSK and ZSK algorithms consistent, document key-rotation policy, and enforce **least privilege** for DNS/DNSSEC administration."
+  },
+  {
+    "service": "dns",
+    "check_name": "dns_rsasha1_in_use_to_zone_sign_in_dnssec",
+    "check_title": "Cloud DNS managed zone does not use the RSASHA1 algorithm for the DNSSEC zone-signing key",
+    "severity": "medium",
+    "description": "**Cloud DNS** DNSSEC settings are inspected for the **zone-signing key algorithm**. Zones that use `rsasha1` for zone signing are identified.",
+    "recommendation": "Use **strong DNSSEC algorithms** for zone signing (e.g., `rsasha256`, `ecdsa-p256-sha256`, `ed25519`) and avoid `rsasha1`. Practice **crypto agility**: standardize secure defaults, rotate keys, and periodically validate signatures with modern resolvers. Apply **defense in depth** by monitoring DNSSEC health and limiting who can change settings."
+  },
+  {
+    "service": "gcr",
+    "check_name": "gcr_container_scanning_enabled",
+    "check_title": "Project has GCR Container Scanning API enabled",
+    "severity": "medium",
+    "description": "**Google Cloud projects** with `containerscanning.googleapis.com` enabled perform **automatic vulnerability scanning** for images in Container Registry and Artifact Registry.\n\nThe finding indicates whether that service is active to generate and refresh vulnerability metadata for your container images.",
+    "recommendation": "Enable `containerscanning.googleapis.com` and integrate results into CI/CD gates. Apply **defense in depth**:\n- Use **Binary Authorization** to block noncompliant images\n- Enforce **least privilege** over who can disable scanning\n- Rebuild and patch frequently; prefer trusted, signed base images"
+  },
+  {
+    "service": "gemini",
+    "check_name": "gemini_api_disabled",
+    "check_title": "Gemini (Generative Language) API is disabled",
+    "severity": "medium",
+    "description": "The Gemini API (a.k.a. Generative Language API, `generativelanguage.googleapis.com`) should not be used. It does not adhere to GCP's general security & compliance standards.",
+    "recommendation": "Do not use the Gemini API. Instead, consider using Gemini through the Vertex AI API, which does not have the described issues."
+  },
+  {
+    "service": "gke",
+    "check_name": "gke_cluster_no_default_service_account",
+    "check_title": "GKE cluster does not use the Compute Engine default service account",
+    "severity": "medium",
+    "description": "**GKE clusters** are evaluated for use of the **Compute Engine default service account** (`default`) as the node identity. The expectation is that clusters and node pools run with dedicated, minimally privileged IAM service accounts instead of the project-wide default.",
+    "recommendation": "Assign a **custom, least-privileged IAM service account** to each node pool instead of `default`.\n- Grant only permissions required for node logging/monitoring and operations\n- Enforce **separation of duties** and restrict impersonation\n- Periodically review roles and audit usage for **defense in depth**"
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_account_access_approval_enabled",
+    "check_title": "Project has Access Approval enabled",
+    "severity": "high",
+    "description": "**GCP project** has **Access Approval** configured at the project level, requiring explicit customer authorization before Google personnel can access project data. The evaluation looks for Access Approval settings associated with the project.",
+    "recommendation": "Enable **Access Approval** for projects and *where feasible* at higher hierarchy for consistency. Assign **least-privilege approvers** with **separation of duties**, integrate timely notifications, and monitor **Access Transparency** records to maintain **defense in depth**."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_audit_logs_enabled",
+    "check_title": "GCP project has Cloud Audit Logs enabled",
+    "severity": "medium",
+    "description": "**GCP project** has **Cloud Audit Logs** configured to capture administrative operations and data access events for services and principals (*per IAM Audit Logs*, including `ADMIN_READ`, `DATA_READ`, `DATA_WRITE`).",
+    "recommendation": "Enable comprehensive **Cloud Audit Logs** for all services and principals, including `ADMIN_READ`, `DATA_READ`, `DATA_WRITE`. *Avoid exemptions.* Set org/folder defaults, centralize and retain logs, enforce least privilege on log access, protect logs from alteration, and alert on anomalous access."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_cloud_asset_inventory_enabled",
+    "check_title": "Project has Cloud Asset Inventory API enabled",
+    "severity": "high",
+    "description": "**Project service usage** includes the **Cloud Asset Inventory** API (`cloudasset.googleapis.com`), enabling resource and IAM policy inventory with time-series metadata and change history.",
+    "recommendation": "Enable **Cloud Asset Inventory** across all projects *and, if applicable, at the organization level* to maintain authoritative asset and IAM histories. Centralize analysis, retain records per policy, and use the data to enforce **least privilege** and **defense in depth**."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_no_service_roles_at_project_level",
+    "check_title": "Project has no IAM users assigned the Service Account User or Service Account Token Creator roles at project level",
+    "severity": "medium",
+    "description": "**Google Cloud IAM policies** are inspected for **project-level grants** of `roles/iam.serviceAccountUser` and `roles/iam.serviceAccountTokenCreator` to principals. The focus is on bindings that enable attaching or impersonating service accounts at the project scope rather than on individual service accounts.",
+    "recommendation": "Assign `roles/iam.serviceAccountUser` and `roles/iam.serviceAccountTokenCreator` only on the specific service account, not at project scope. Enforce **least privilege** and **separation of duties** with per-SA grants, conditional bindings, and time-bound access. Prefer **short-lived impersonation**; review grants regularly."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_organization_essential_contacts_configured",
+    "check_title": "Organization has Essential Contacts configured",
+    "severity": "medium",
+    "description": "Google Cloud organization has **Essential Contacts** defined at the organization level for categories such as `SECURITY`, `BILLING`, `LEGAL`, `SUSPENSION`, `TECHNICAL`, or `PRODUCT_UPDATES`.\n\nEvaluates whether at least one contact is configured.",
+    "recommendation": "Configure **Essential Contacts** at the organization (and inherit to folders/projects) with group aliases for `SECURITY`, `BILLING`, `LEGAL`, `SUSPENSION`, `TECHNICAL`, and `PRODUCT_UPDATES`.\n\nApply **least privilege** and **separation of duties**. Review quarterly, verify delivery, and restrict contacts to approved domains."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_role_kms_enforce_separation_of_duties",
+    "check_title": "Project members are not assigned both Cloud KMS Admin and CryptoKey Encrypter/Decrypter roles",
+    "severity": "medium",
+    "description": "Project IAM assignments are analyzed for **Cloud KMS** separation of duties: principals simultaneously granted `roles/cloudkms.admin` and any of `roles/cloudkms.cryptoKeyEncrypterDecrypter`, `roles/cloudkms.cryptoKeyEncrypter`, or `roles/cloudkms.cryptoKeyDecrypter`.",
+    "recommendation": "Apply **least privilege** and **separation of duties**:\n- Never combine `roles/cloudkms.admin` with any `roles/cloudkms.cryptoKey*`\n- Isolate key management and usage in dedicated projects\n- Require approvals, log all key access, and monitor\n- Avoid broad `roles/owner` on key scopes"
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_role_sa_enforce_separation_of_duties",
+    "check_title": "Project enforces separation of duties for Service Account Admin and Service Account User roles",
+    "severity": "medium",
+    "description": "Google Cloud IAM policies are evaluated to find principals granted both `roles/iam.serviceAccountAdmin` and `roles/iam.serviceAccountUser` within a project. **Service-account related roles** are expected to be segregated so that service account lifecycle management is distinct from their use or impersonation.",
+    "recommendation": "Enforce separation of duties: assign `roles/iam.serviceAccountAdmin` for lifecycle tasks and `roles/iam.serviceAccountUser` for attach/impersonate, never both to one principal.\n- Apply **least privilege** with narrow scope and conditions\n- Use temporary elevation/approvals\n- Regularly audit IAM bindings and logs"
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_sa_no_administrative_privileges",
+    "check_title": "Service account has no administrative privileges",
+    "severity": "high",
+    "description": "Google Cloud service accounts with **high-privilege IAM roles** are identified, including `roles/owner`, `roles/editor`, or any role containing `admin`. The evaluation looks for service accounts bound to these roles in IAM policies across the project hierarchy.",
+    "recommendation": "Apply **least privilege**: replace `roles/owner`, `roles/editor`, and roles containing `admin` with narrowly scoped predefined or custom roles. Use **separation of duties**, **temporary elevation**, and **IAM Conditions** to limit scope and time. Prefer **impersonation** over long-lived keys and monitor SA usage."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_sa_no_user_managed_keys",
+    "check_title": "Service account has no user-managed keys",
+    "severity": "medium",
+    "description": "**IAM service accounts** do not have keys of type `USER_MANAGED`; only Google-managed keys (or no keys) are present.",
+    "recommendation": "Avoid **user-managed keys**. Use **service account impersonation** or **Workload Identity Federation** for short-lived credentials and **least privilege**. Enforce `iam.disableServiceAccountKeyCreation`, restrict who can create keys, and monitor usage. *If exceptions are unavoidable*, tightly scope, rotate aggressively, and store keys securely."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_sa_user_managed_key_rotate_90_days",
+    "check_title": "Service account user-managed key has been rotated within the last 90 days",
+    "severity": "low",
+    "description": "**GCP IAM service account user-managed keys** are evaluated by last rotation. Keys of type `USER_MANAGED` older than `90` days are identified; those rotated within `90` days align with the expected rotation cadence.",
+    "recommendation": "Rotate **user-managed keys** at least every `90` days and prefer **Workload Identity Federation** or other short-lived credentials over static keys.\n- Minimize key count; remove unused keys\n- Enforce **least privilege** on service accounts\n- Automate rotation and alert on aged keys\n- Set key expiry as **defense in depth**"
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_sa_user_managed_key_unused",
+    "check_title": "User-managed service account key was used within the allowed inactivity period",
+    "severity": "medium",
+    "description": "**User-managed service account keys** with no recorded activity during the last `max_unused_account_days` are identified using key-usage metrics per service account.",
+    "recommendation": "Prefer **managed workload identities** and **service account impersonation** over user-managed keys. Enforce `iam.disableServiceAccountKeyCreation`, remove unused keys, and use short key lifetimes with rotation when unavoidable. Apply **least privilege**, monitor key usage, and enforce **separation of duties** to limit blast radius."
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_service_account_unused",
+    "check_title": "Service account was used within the configured maximum unused period",
+    "severity": "medium",
+    "description": "Google Cloud service accounts are evaluated for **recent usage** within a configurable window (default `180` days) using usage telemetry.\n\nIt highlights which accounts show activity versus those with **no observed use** in that period.",
+    "recommendation": "Apply **least privilege** and **reduce attack surface**:\n- Verify inactivity, then *disable* and later delete unused accounts\n- Revoke role bindings and keys; favor short-lived impersonation over keys\n- Avoid powerful defaults; enforce separation of duties\n- Continuously monitor usage and alert on dormancy"
+  },
+  {
+    "service": "iam",
+    "check_name": "iam_workload_identity_pool_provider_attribute_condition",
+    "check_title": "Workload Identity Federation providers trusting a multi-tenant issuer enforce an attribute condition",
+    "severity": "high",
+    "description": "**Workload Identity Federation providers** define an `attributeCondition` (CEL) restricting which external identities may impersonate Google Cloud principals. When a provider trusts a **multi-tenant issuer** (GitHub Actions, GitLab.com and other shared issuers), omitting the condition trusts every identity that issuer can mint. Providers trusting a dedicated single-tenant issuer are not flagged.",
+    "recommendation": "Set an attribute condition on any active Workload Identity Federation provider that trusts a multi-tenant issuer so only the intended external identities can impersonate Google Cloud principals, and pair OIDC providers with a restricted audience. Providers trusting a dedicated single-tenant issuer should still add a condition as defense-in-depth. Audit pools and providers regularly for unexpected entries."
+  },
+  {
+    "service": "kms",
+    "check_name": "kms_key_not_publicly_accessible",
+    "check_title": "Cloud KMS key has no public IAM access",
+    "severity": "high",
+    "description": "**Cloud KMS crypto keys** are evaluated for **public principals** in their IAM bindings, specifically `allUsers` and `allAuthenticatedUsers`.\n\nThe finding reflects whether these memberships are present on a key.",
+    "recommendation": "Remove `allUsers` and `allAuthenticatedUsers` from key IAM. Grant access only to specific groups or service accounts with **least privilege** at the key scope. Enforce **separation of duties** between admins and users, and regularly review inherited bindings and audit logs."
+  },
+  {
+    "service": "kms",
+    "check_name": "kms_key_rotation_enabled",
+    "check_title": "KMS key has automatic rotation enabled",
+    "severity": "low",
+    "description": "Google Cloud KMS customer-managed keys have **automatic rotation** enabled, regardless of the rotation interval.\n\nThe evaluation reviews each key's rotation settings to confirm that a rotation period is configured so new key versions are created periodically.",
+    "recommendation": "Enable **auto-rotation** for customer-managed keys by configuring a rotation period.\n\nAdopt a **key lifecycle** policy: enforce **least privilege** on key usage, apply **separation of duties** between key admins and users, monitor key access, and rehearse emergency rotation to minimize blast radius."
+  },
+  {
+    "service": "kms",
+    "check_name": "kms_key_rotation_max_90_days",
+    "check_title": "KMS key is rotated every 90 days or less",
+    "severity": "low",
+    "description": "Google Cloud KMS customer-managed keys are rotated with an interval of `90` days or less, in line with the CIS Benchmark.\n\nThe evaluation reviews each key's rotation settings to confirm that both the rotation period and the next rotation time stay within 90 days.",
+    "recommendation": "Enable **auto-rotation** for customer-managed keys with an interval of `90` days or less.\n\nAdopt a **key lifecycle** policy: enforce **least privilege** on key usage, apply **separation of duties** between key admins and users, monitor key access, and rehearse emergency rotation to minimize blast radius."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_audit_configuration_changes_enabled",
+    "check_title": "Log metric filter for audit configuration changes has an associated alert policy",
+    "severity": "medium",
+    "description": "**Cloud Logging** log-based metrics capture **audit configuration changes** (e.g., `SetIamPolicy` with `auditConfigDeltas`), and an associated **Cloud Monitoring alert policy** notifies when such log entries occur.",
+    "recommendation": "Create a log-based metric for **audit configuration changes** and pair it with a **log-based alert policy** that notifies responders.\n- Enforce **least privilege** on logging/IAM changes\n- Apply **change control** and **separation of duties**\n- Route alerts to durable channels and include response runbooks for **defense in depth**"
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_bucket_permission_changes_enabled",
+    "check_title": "Log metric filter for Cloud Storage IAM permission changes has an associated alert policy",
+    "severity": "medium",
+    "description": "**Cloud Logging** defines a log-based metric for **Cloud Storage IAM changes** using filter `resource.type=\"gcs_bucket\" AND protoPayload.methodName=\"storage.setIamPermissions\"`, and a **Cloud Monitoring alert policy** that references that metric.",
+    "recommendation": "Establish a **log-based metric** for bucket IAM permission changes with filter `resource.type=\"gcs_bucket\" AND protoPayload.methodName=\"storage.setIamPermissions\"` and link a **log-based alert policy** with clear notifications. Enforce **least privilege** and **separation of duties**, and routinely review alerts and audit logs to prevent and contain unauthorized access."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_compute_configuration_changes_enabled",
+    "check_title": "Compute Engine configuration changes are monitored with log metric filters and alerts",
+    "severity": "medium",
+    "description": "Log metric filters and alerts for **Compute Engine configuration changes** provide visibility into modifications to instances, disks, networks, firewalls, and routes. These monitoring controls enable security teams to detect unauthorized changes and investigate suspicious infrastructure modifications.",
+    "recommendation": "Configure log-based metric filters to detect Compute Engine configuration changes and create alert policies that trigger notifications when these metrics increment. Apply the **principle of least privilege** to limit who can modify compute resources, and establish **change management processes** to review and approve infrastructure modifications."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_custom_role_changes_enabled",
+    "check_title": "Log metric filter for IAM custom role changes has an associated alert policy",
+    "severity": "medium",
+    "description": "Cloud projects are assessed for log-based metrics that filter `resource.type=\"iam_role\"` and the methods `CreateRole`, `DeleteRole`, `UpdateRole`, and for an associated Cloud Monitoring **alert policy** that references those metrics.",
+    "recommendation": "Define log-based metrics capturing `resource.type=\"iam_role\"` events for `CreateRole`, `DeleteRole`, and `UpdateRole`, and attach **alert policies** to notify responders.\n\nEnforce **least privilege**, **separation of duties**, and **change control** for role management, and retain **audit logs** for investigation."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_project_ownership_changes_enabled",
+    "check_title": "Log metric filter for project ownership assignments/changes has an associated alert policy",
+    "severity": "medium",
+    "description": "Cloud Logging contains a **log-based metric** targeting project ownership changes in Cloud Resource Manager events, and Cloud Monitoring has an **alerting policy** tied to that metric. It detects metrics matching `roles/owner` additions/removals or ownership invites, and whether an alert references that metric.",
+    "recommendation": "Create a log-based metric for ownership assignment/removal events and link it to an alerting policy that notifies a monitored channel. Minimize use of `roles/owner` per **least privilege**, require approvals and separation of duties, and apply **defense in depth** with centralized monitoring of IAM changes across projects."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_sql_instance_configuration_changes_enabled",
+    "check_title": "Log metric filter for Cloud SQL instance configuration changes has an associated alert policy",
+    "severity": "medium",
+    "description": "**Cloud Logging** has a log-based metric matching Cloud SQL instance updates (`protoPayload.methodName=\"cloudsql.instances.update\"`) and a **Cloud Monitoring** alert policy references that metric to notify on configuration changes.",
+    "recommendation": "Implement a **log-based metric** for Cloud SQL update events and attach a **Monitoring alert policy** that routes timely notifications. Apply **least privilege** for admin actions, enforce **change management** and **separation of duties**, and integrate alerts with on-call workflows to speed triage and prevent misconfigurations."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_vpc_firewall_rule_changes_enabled",
+    "check_title": "Log metric filter for VPC network firewall rule changes has an associated alert policy",
+    "severity": "medium",
+    "description": "Cloud Logging has a log-based metric for **VPC firewall rule** changes, matching `resource.type=\"gce_firewall_rule\"` and `protoPayload.methodName` of `compute.firewalls.insert`, `compute.firewalls.patch`, or `compute.firewalls.delete`, and Cloud Monitoring includes an alerting policy that references this metric.",
+    "recommendation": "Establish a log-based metric for `gce_firewall_rule` insert/patch/delete events and tie it to an alerting policy that notifies responders.\n\nEnforce **least privilege** and change control on firewall updates, apply **separation of duties**, and monitor all projects for rapid, auditable detection of network control changes."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_vpc_network_changes_enabled",
+    "check_title": "Log metric filter for VPC network changes has an associated alert policy",
+    "severity": "medium",
+    "description": "Cloud projects are evaluated for a **log-based metric** with a linked **Cloud Monitoring alert** that targets **VPC network changes** on `gce_network` audit events: `compute.networks.insert`, `patch`, `delete`, `addPeering`, `removePeering`.\n\nIt checks that these changes are captured and generate notifications.",
+    "recommendation": "Implement a **log-based metric** for VPC change audit events and attach an **alerting policy** that notifies accountable teams.\n\nApply **least privilege** for network admins, enforce **change approval**, and adopt **defense in depth** to prevent and quickly detect unintended network changes."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_log_metric_filter_and_alert_for_vpc_network_route_changes_enabled",
+    "check_title": "Log metric filter for VPC network route changes has an associated alert policy",
+    "severity": "medium",
+    "description": "**Cloud Logging** includes a **log-based metric** for **VPC route modifications** and a linked **Cloud Monitoring alert**.\n\nIt targets `gce_route` entries for `compute.routes.insert` and `compute.routes.delete` so route creations or deletions generate alertable signals.",
+    "recommendation": "Create a **log-based metric** for `compute.routes.insert` and `compute.routes.delete`, and attach a **log-based alert** with reliable notifications.\n\nApply **least privilege** to route management, require **change approval**, and use **defense in depth** (egress filtering, private routing, durable audit logs)."
+  },
+  {
+    "service": "logging",
+    "check_name": "logging_sink_created",
+    "check_title": "Project has at least one logging sink exporting copies of all log entries",
+    "severity": "medium",
+    "description": "**Cloud Logging** project contains at least one **sink** that exports a copy of **all log entries** to a destination for centralized retention or processing",
+    "recommendation": "Create a **centralized export sink** that routes all logs to a secured, durable, preferably **immutable** destination with extended retention. Apply **least privilege** to sink identities, separate duties by isolating destinations, use **defense in depth** (encryption, access controls), and monitor sink health for continuity."
+  },
+  {
+    "service": "secretmanager",
+    "check_name": "secretmanager_secret_not_publicly_accessible",
+    "check_title": "Secret Manager secret is not publicly accessible",
+    "severity": "critical",
+    "description": "Secret Manager secrets deny access to `allUsers` and `allAuthenticatedUsers`, so only **explicitly authorized identities** can read or use them.\n\nThe evaluation reviews each secret's IAM policy bindings to confirm no public principals are granted access.",
+    "recommendation": "Apply **least privilege** to Secret Manager: grant `roles/secretmanager.secretAccessor` only to the specific service accounts or groups that need to read each secret.\n\nUse **workload identity** for GKE workloads and rotate credentials regularly to limit blast radius when a binding is misconfigured."
+  },
+  {
+    "service": "secretmanager",
+    "check_name": "secretmanager_secret_rotation_enabled",
+    "check_title": "Secret Manager secret is rotated every 90 days or less",
+    "severity": "medium",
+    "description": "Secret Manager secrets have **automatic rotation** configured with a rotation period of `90` days or less and the next scheduled rotation has not been missed.\n\nThe evaluation reviews each secret's `rotation` settings to confirm both the period and the upcoming rotation time are within bounds.",
+    "recommendation": "Enable **automatic rotation** for every Secret Manager secret with a period of `90` days or less.\n\nWire **Pub/Sub notifications** to trigger rotation logic and apply **defense in depth** by versioning each secret update so consumers can roll back without losing availability."
+  }
+]

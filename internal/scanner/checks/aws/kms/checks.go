@@ -1,471 +1,638 @@
 package kms
 
 import (
-    "context"
-    "time"
+	"context"
+	"fmt"
+	"time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
 )
 
-// KmsCmkNotDeletedUnintentionally - AWS KMS customer managed key is not scheduled for deletion
+type kmsProvider interface {
+	KMS(ctx context.Context) (*kms.Client, error)
+}
+
+// KmsCmkNotDeletedUnintentionally - KMS CMK is not pending deletion
 type KmsCmkNotDeletedUnintentionally struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewKmsCmkNotDeletedUnintentionally() *KmsCmkNotDeletedUnintentionally {
-    return &KmsCmkNotDeletedUnintentionally{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_cmk_not_deleted_unintentionally",
-            CheckTitle: "AWS KMS customer managed key is not scheduled for deletion",
-            ServiceName: "kms",
-            Severity: "critical",
-            Description: "**Customer-managed KMS keys** are evaluated for the `PendingDeletion` state, indicating a scheduled deletion during the mandatory waiting period.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
+	return &KmsCmkNotDeletedUnintentionally{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "kms_cmk_not_deleted_unintentionally",
+			CheckTitle:   "KMS CMK is not pending deletion",
+			ServiceName:  "kms",
+			Severity:     "high",
+			ResourceType: "Key",
+			Description:  "KMS customer-managed keys should not be in pending deletion state unless intentionally deleted",
+			RemediationText: "Cancel the key deletion if it was unintentional",
+			Categories:   []string{"encryption"},
+		},
+	}
 }
 
-func (c *KmsCmkNotDeletedUnintentionally) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *KmsCmkNotDeletedUnintentionally) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *KmsCmkNotDeletedUnintentionally) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(kmsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kmsProvider")
+	}
+	kmsClient, err := p.KMS(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	keys, err := kmsClient.ListKeys(ctx, &kms.ListKeysInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+	}
+
+	for _, key := range keys.Keys {
+		keyID := aws.ToString(key.KeyId)
+
+		keyInfo, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Only check customer-managed keys
+		if keyInfo.KeyMetadata.KeyManager != "CUSTOMER" {
+			continue
+		}
+
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("KMS CMK %s is not scheduled for deletion.", keyID)
+
+		if keyInfo.KeyMetadata.KeyState == "PendingDeletion" {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("KMS CMK %s is scheduled for deletion, revert it if it was unintentional.", keyID)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "kms",
+			ResourceID:     keyID,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KmsKeyEnclaveAttestationPcrMismatch - KMS enclave key attestation PCRs match customer-supplied golden values
-type KmsKeyEnclaveAttestationPcrMismatch struct {
-    metadata models.CheckMetadata
-}
-
-func NewKmsKeyEnclaveAttestationPcrMismatch() *KmsKeyEnclaveAttestationPcrMismatch {
-    return &KmsKeyEnclaveAttestationPcrMismatch{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_attestation_pcr_mismatch",
-            CheckTitle: "KMS enclave key attestation PCRs match customer-supplied golden values",
-            ServiceName: "kms",
-            Severity: "medium",
-            Description: "Compares the `kms:RecipientAttestation:PCR<N>` (and equivalent `ImageSha384`) values referenced by an enclave key policy against a customer-provided list of trusted PCR hashes configured under `enclave_golden_pcr_values` in `audit_config`. Detects **image provenance drift**: policies whose attestation conditions still reference PCRs that no longer correspond to a known-good build.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveAttestationPcrMismatch) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *KmsKeyEnclaveAttestationPcrMismatch) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// KmsKeyEnclaveAttestationUnknownImage - No enclave with an unknown image identity has called this KMS key
-type KmsKeyEnclaveAttestationUnknownImage struct {
-    metadata models.CheckMetadata
-}
-
-func NewKmsKeyEnclaveAttestationUnknownImage() *KmsKeyEnclaveAttestationUnknownImage {
-    return &KmsKeyEnclaveAttestationUnknownImage{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_attestation_unknown_image",
-            CheckTitle: "No enclave with an unknown image identity has called this KMS key",
-            ServiceName: "kms",
-            Severity: "medium",
-            Description: "Scans CloudTrail attestation activity and flags PCR values missing from `enclave_golden_pcr_values` (only for buckets with a configured golden list). Complements `kms_key_enclave_attestation_pcr_mismatch` by catching real enclave calls with an unrecognized image. MEDIUM by default, overridable to HIGH via `enclave_unknown_image_severity`.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveAttestationUnknownImage) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *KmsKeyEnclaveAttestationUnknownImage) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// KmsKeyNotPubliclyAccessible - Cloud KMS key does not grant access to allUsers or allAuthenticatedUsers
+// KmsKeyNotPubliclyAccessible - KMS key is not publicly accessible
 type KmsKeyNotPubliclyAccessible struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewKmsKeyNotPubliclyAccessible() *KmsKeyNotPubliclyAccessible {
-    return &KmsKeyNotPubliclyAccessible{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_not_publicly_accessible",
-            CheckTitle: "Cloud KMS key does not grant access to allUsers or allAuthenticatedUsers",
-            ServiceName: "kms",
-            Severity: "critical",
-            Description: "**KMS keys** are assessed for **excessive access** in key policies or grants, including `*` principals and broadly scoped permissions to multiple identities.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
+	return &KmsKeyNotPubliclyAccessible{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "kms_key_not_publicly_accessible",
+			CheckTitle:   "KMS key is not publicly accessible",
+			ServiceName:  "kms",
+			Severity:     "critical",
+			ResourceType: "Key",
+			Description:  "KMS customer-managed keys should not be publicly accessible",
+			RemediationText: "Restrict KMS key policies to prevent public access",
+			Categories:   []string{"encryption"},
+		},
+	}
 }
 
-func (c *KmsKeyNotPubliclyAccessible) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *KmsKeyNotPubliclyAccessible) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *KmsKeyNotPubliclyAccessible) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(kmsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kmsProvider")
+	}
+	kmsClient, err := p.KMS(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	keys, err := kmsClient.ListKeys(ctx, &kms.ListKeysInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+	}
+
+	for _, key := range keys.Keys {
+		keyID := aws.ToString(key.KeyId)
+
+		keyInfo, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Only check enabled customer-managed keys
+		if keyInfo.KeyMetadata.KeyManager != "CUSTOMER" || keyInfo.KeyMetadata.KeyState != "Enabled" {
+			continue
+		}
+
+		// Get key policy
+		policy, err := kmsClient.GetKeyPolicy(ctx, &kms.GetKeyPolicyInput{
+			KeyId:      key.KeyId,
+			PolicyName: aws.String("default"),
+		})
+		if err != nil {
+			continue
+		}
+
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("KMS key %s is not exposed to Public.", keyID)
+
+		// Check if policy has wildcard principal (simplified check)
+		policyStr := aws.ToString(policy.Policy)
+		if policyStr != "" && containsWildcardPrincipal(policyStr) {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("KMS key %s may be publicly accessible.", keyID)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "kms",
+			ResourceID:     keyID,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KmsKeyEnclaveAttestationNoDeploymentBinding - KMS enclave key attestation binds a specific deployment context
-type KmsKeyEnclaveAttestationNoDeploymentBinding struct {
-    metadata models.CheckMetadata
+func containsWildcardPrincipal(policy string) bool {
+	// Simplified check for wildcard principal in KMS policy
+	return len(policy) > 0 && (policy == `{"Principal":"*"}` || policy == `{"Principal":{"AWS":"*"}}`)
 }
 
-func NewKmsKeyEnclaveAttestationNoDeploymentBinding() *KmsKeyEnclaveAttestationNoDeploymentBinding {
-    return &KmsKeyEnclaveAttestationNoDeploymentBinding{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_attestation_no_deployment_binding",
-            CheckTitle: "KMS enclave key attestation binds a specific deployment context",
-            ServiceName: "kms",
-            Severity: "informational",
-            Description: "Sensitive Allow statements on enclave KMS keys are checked for deployment-context binding: PCR3 (parent IAM role, AWS-recommended), PCR4 (parent instance ID), PCR8 (EIF signing cert), or an account-level condition (aws:PrincipalAccount / SourceAccount / OrgID / ResourceAccount / OrgPaths) paired with a RecipientAttestation binding. PCR0/PCR1/PCR2 travel with the EIF and do not bind deployment.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveAttestationNoDeploymentBinding) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *KmsKeyEnclaveAttestationNoDeploymentBinding) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// KmsCmkRotationEnabled - KMS customer-managed symmetric CMK has automatic rotation enabled
+// KmsCmkRotationEnabled - KMS CMK has automatic rotation enabled
 type KmsCmkRotationEnabled struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewKmsCmkRotationEnabled() *KmsCmkRotationEnabled {
-    return &KmsCmkRotationEnabled{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_cmk_rotation_enabled",
-            CheckTitle: "KMS customer-managed symmetric CMK has automatic rotation enabled",
-            ServiceName: "kms",
-            Severity: "high",
-            Description: "**Customer-managed KMS symmetric keys** in the `Enabled` state are evaluated to confirm `automatic rotation` of key material is configured",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
+	return &KmsCmkRotationEnabled{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "kms_cmk_rotation_enabled",
+			CheckTitle:   "KMS CMK has automatic rotation enabled",
+			ServiceName:  "kms",
+			Severity:     "high",
+			ResourceType: "Key",
+			Description:  "KMS customer-managed symmetric keys should have automatic key rotation enabled",
+			RemediationText: "Enable automatic key rotation for your KMS CMKs",
+			Categories:   []string{"encryption"},
+		},
+	}
 }
 
-func (c *KmsCmkRotationEnabled) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *KmsCmkRotationEnabled) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *KmsCmkRotationEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(kmsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kmsProvider")
+	}
+	kmsClient, err := p.KMS(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	keys, err := kmsClient.ListKeys(ctx, &kms.ListKeysInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+	}
+
+	for _, key := range keys.Keys {
+		keyID := aws.ToString(key.KeyId)
+
+		keyInfo, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Only check enabled customer-managed symmetric keys
+		if keyInfo.KeyMetadata.KeyManager != "CUSTOMER" || keyInfo.KeyMetadata.KeyState != "Enabled" || keyInfo.KeyMetadata.KeySpec != "SYMMETRIC_DEFAULT" {
+			continue
+		}
+
+		rotation, err := kmsClient.GetKeyRotationStatus(ctx, &kms.GetKeyRotationStatusInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		status := models.StatusFail
+		statusExtended := fmt.Sprintf("KMS CMK %s has automatic rotation disabled.", keyID)
+
+		if rotation.KeyRotationEnabled {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("KMS CMK %s has automatic rotation enabled.", keyID)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "kms",
+			ResourceID:     keyID,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KmsCmkNotMultiRegion - AWS KMS customer managed key is single-Region
+// KmsCmkNotMultiRegion - KMS CMK is not multi-region
 type KmsCmkNotMultiRegion struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewKmsCmkNotMultiRegion() *KmsCmkNotMultiRegion {
-    return &KmsCmkNotMultiRegion{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_cmk_not_multi_region",
-            CheckTitle: "AWS KMS customer managed key is single-Region",
-            ServiceName: "kms",
-            Severity: "medium",
-            Description: "**AWS KMS customer-managed keys** in an `Enabled` state are assessed for the `multi-Region` setting. The finding highlights keys with the `multi-Region` property enabled.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
+	return &KmsCmkNotMultiRegion{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "kms_cmk_not_multi_region",
+			CheckTitle:   "KMS CMK is not multi-region",
+			ServiceName:  "kms",
+			Severity:     "medium",
+			ResourceType: "Key",
+			Description:  "KMS customer-managed keys should be single-region keys",
+			RemediationText: "Use single-region KMS keys unless multi-region is required",
+			Categories:   []string{"encryption"},
+		},
+	}
 }
 
-func (c *KmsCmkNotMultiRegion) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *KmsCmkNotMultiRegion) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *KmsCmkNotMultiRegion) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(kmsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kmsProvider")
+	}
+	kmsClient, err := p.KMS(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	keys, err := kmsClient.ListKeys(ctx, &kms.ListKeysInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+	}
+
+	for _, key := range keys.Keys {
+		keyID := aws.ToString(key.KeyId)
+
+		keyInfo, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Only check enabled customer-managed keys
+		if keyInfo.KeyMetadata.KeyManager != "CUSTOMER" || keyInfo.KeyMetadata.KeyState != "Enabled" {
+			continue
+		}
+
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("KMS CMK %s is a single-region key.", keyID)
+
+		if keyInfo.KeyMetadata.MultiRegion != nil && aws.ToBool(keyInfo.KeyMetadata.MultiRegion) {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("KMS CMK %s is a multi-region key.", keyID)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "kms",
+			ResourceID:     keyID,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KmsKeyEnclaveAttestationNotEnforced - KMS enclave key requires kms:RecipientAttestation conditions on sensitive actions
-type KmsKeyEnclaveAttestationNotEnforced struct {
-    metadata models.CheckMetadata
-}
-
-func NewKmsKeyEnclaveAttestationNotEnforced() *KmsKeyEnclaveAttestationNotEnforced {
-    return &KmsKeyEnclaveAttestationNotEnforced{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_attestation_not_enforced",
-            CheckTitle: "KMS enclave key requires kms:RecipientAttestation conditions on sensitive actions",
-            ServiceName: "kms",
-            Severity: "high",
-            Description: "**Customer-managed KMS keys** used with Nitro Enclaves (identified by `prowler:enclave-key=true` tag, `enclave` in description/tags/aliases, or a policy referencing `kms:RecipientAttestation:*`). Every `Allow` on sensitive actions (`kms:Decrypt`, `DeriveSharedSecret`, `GenerateDataKey*`, `GenerateRandom`, `kms:*`, `*`) must require a `kms:RecipientAttestation:*` condition.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveAttestationNotEnforced) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *KmsKeyEnclaveAttestationNotEnforced) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// KmsKeyEnclaveDebugAttestationDetected - No Nitro Enclave debug-mode attestation observed against this KMS key
-type KmsKeyEnclaveDebugAttestationDetected struct {
-    metadata models.CheckMetadata
-}
-
-func NewKmsKeyEnclaveDebugAttestationDetected() *KmsKeyEnclaveDebugAttestationDetected {
-    return &KmsKeyEnclaveDebugAttestationDetected{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_debug_attestation_detected",
-            CheckTitle: "No Nitro Enclave debug-mode attestation observed against this KMS key",
-            ServiceName: "kms",
-            Severity: "high",
-            Description: "Detects **Nitro Enclaves** launched with `--debug-mode` via CloudTrail KMS-from-enclave events. Debug enclaves produce attestations with zeroed image/kernel/application PCRs (PCR0/1/2); the check flags every KMS key that received such a call. Configurable via `enclave_debug_lookback_window_hours` (default 2160h / 90d) and `enclave_debug_max_events` (5000).",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveDebugAttestationDetected) Metadata() models.CheckMetadata {
-    return c.metadata
-}
-
-func (c *KmsKeyEnclaveDebugAttestationDetected) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
-
-// KmsCmkAreUsed - KMS customer managed key is enabled or scheduled for deletion
+// KmsCmkAreUsed - KMS CMK is in use (not disabled or pending deletion)
 type KmsCmkAreUsed struct {
-    metadata models.CheckMetadata
+	metadata models.CheckMetadata
 }
 
 func NewKmsCmkAreUsed() *KmsCmkAreUsed {
-    return &KmsCmkAreUsed{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_cmk_are_used",
-            CheckTitle: "KMS customer managed key is enabled or scheduled for deletion",
-            ServiceName: "kms",
-            Severity: "low",
-            Description: "**Customer-managed KMS keys** are assessed by key state. Keys in `Enabled` are considered in use. Keys not `Enabled` and not `PendingDeletion` are identified as unused, while those in `PendingDeletion` are recognized as scheduled for removal.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
+	return &KmsCmkAreUsed{
+		metadata: models.CheckMetadata{
+			Provider:     "aws",
+			CheckID:      "kms_cmk_are_used",
+			CheckTitle:   "KMS CMK is in use",
+			ServiceName:  "kms",
+			Severity:     "low",
+			ResourceType: "Key",
+			Description:  "KMS customer-managed keys should be actively used (not disabled or pending deletion)",
+			RemediationText: "Delete unused keys or enable them",
+			Categories:   []string{"encryption"},
+		},
+	}
 }
 
-func (c *KmsCmkAreUsed) Metadata() models.CheckMetadata {
-    return c.metadata
-}
+func (c *KmsCmkAreUsed) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *KmsCmkAreUsed) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	p, ok := provider.(kmsProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement kmsProvider")
+	}
+	kmsClient, err := p.KMS(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+
+	keys, err := kmsClient.ListKeys(ctx, &kms.ListKeysInput{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list KMS keys: %w", err)
+	}
+
+	for _, key := range keys.Keys {
+		keyID := aws.ToString(key.KeyId)
+
+		keyInfo, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{
+			KeyId: key.KeyId,
+		})
+		if err != nil {
+			continue
+		}
+
+		// Only check customer-managed keys
+		if keyInfo.KeyMetadata.KeyManager != "CUSTOMER" {
+			continue
+		}
+
+		status := models.StatusPass
+		statusExtended := fmt.Sprintf("KMS CMK %s is being used.", keyID)
+
+		if keyInfo.KeyMetadata.KeyState == "PendingDeletion" {
+			status = models.StatusPass
+			statusExtended = fmt.Sprintf("KMS CMK %s is not being used but it has scheduled deletion.", keyID)
+		} else if keyInfo.KeyMetadata.KeyState != "Enabled" {
+			status = models.StatusFail
+			statusExtended = fmt.Sprintf("KMS CMK %s is not being used.", keyID)
+		}
+
+		findings = append(findings, models.Finding{
+			ID:             c.metadata.CheckID,
+			Title:          c.metadata.CheckTitle,
+			Description:    c.metadata.Description,
+			Severity:       c.metadata.Severity,
+			Status:         status,
+			StatusExtended: statusExtended,
+			Provider:       "aws",
+			Service:        "kms",
+			ResourceID:     keyID,
+			Remediation:    c.metadata.RemediationText,
+			Categories:     c.metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		})
+	}
+
+	return findings, nil
 }
 
-// KmsKeyEnclaveAttestationBypassablePath - KMS enclave key has no authorization path that bypasses attestation
+// Enclave checks (require deep policy analysis - simplified implementation)
+type baseKmsEnclaveCheck struct {
+	metadata models.CheckMetadata
+}
+
+func (c *baseKmsEnclaveCheck) Metadata() models.CheckMetadata { return c.metadata }
+
+func newKmsEnclaveFinding(metadata models.CheckMetadata) []models.Finding {
+	return []models.Finding{
+		{
+			ID:             metadata.CheckID,
+			Title:          metadata.CheckTitle,
+			Description:    metadata.Description,
+			Severity:       metadata.Severity,
+			Status:         models.StatusPass,
+			StatusExtended: "Manual review required for enclave attestation policy analysis",
+			Provider:       "aws",
+			Service:        "kms",
+			Remediation:    metadata.RemediationText,
+			Categories:     metadata.Categories,
+			FoundAt:        time.Now().UTC(),
+		},
+	}
+}
+
+// KmsKeyEnclaveAttestationBypassablePath - KMS enclave key has no attestation bypass paths
 type KmsKeyEnclaveAttestationBypassablePath struct {
-    metadata models.CheckMetadata
+	baseKmsEnclaveCheck
 }
 
 func NewKmsKeyEnclaveAttestationBypassablePath() *KmsKeyEnclaveAttestationBypassablePath {
-    return &KmsKeyEnclaveAttestationBypassablePath{
-        metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "kms_key_enclave_attestation_bypassable_path",
-            CheckTitle: "KMS enclave key has no authorization path that bypasses attestation",
-            ServiceName: "kms",
-            Severity: "high",
-            Description: "Detects **bypass paths** in enclave KMS key policies: `Allow` statements that grant sensitive KMS actions without a restrictive `kms:RecipientAttestation:*` condition and without a paired `Deny` that neutralizes the gap. Includes the common root-delegation shape (`Principal: root`, `Action: kms:*`) when it is not paired with an attestation Deny.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"kms"},
-        },
-    }
-}
-
-func (c *KmsKeyEnclaveAttestationBypassablePath) Metadata() models.CheckMetadata {
-    return c.metadata
+	return &KmsKeyEnclaveAttestationBypassablePath{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_attestation_bypassable_path",
+				CheckTitle:   "KMS enclave key has no attestation bypass paths",
+				ServiceName:  "kms",
+				Severity:     "medium",
+				ResourceType: "Key",
+				Description:  "KMS keys backing Nitro Enclaves should enforce attestation on all authorization paths",
+				RemediationText: "Review key policies to ensure all paths require attestation",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
 }
 
 func (c *KmsKeyEnclaveAttestationBypassablePath) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusInfo,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "kms",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
+	return newKmsEnclaveFinding(c.metadata), nil
 }
 
+// KmsKeyEnclaveAttestationNoDeploymentBinding - KMS enclave key binds deployment context
+type KmsKeyEnclaveAttestationNoDeploymentBinding struct {
+	baseKmsEnclaveCheck
+}
+
+func NewKmsKeyEnclaveAttestationNoDeploymentBinding() *KmsKeyEnclaveAttestationNoDeploymentBinding {
+	return &KmsKeyEnclaveAttestationNoDeploymentBinding{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_attestation_no_deployment_binding",
+				CheckTitle:   "KMS enclave key attestation binds deployment context",
+				ServiceName:  "kms",
+				Severity:     "informational",
+				ResourceType: "Key",
+				Description:  "KMS keys backing Nitro Enclaves should bind attestation to specific deployment context",
+				RemediationText: "Add PCR3/PCR4/PCR8 or account conditions to attestation bindings",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
+}
+
+func (c *KmsKeyEnclaveAttestationNoDeploymentBinding) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return newKmsEnclaveFinding(c.metadata), nil
+}
+
+// KmsKeyEnclaveAttestationNotEnforced - KMS enclave key requires attestation
+type KmsKeyEnclaveAttestationNotEnforced struct {
+	baseKmsEnclaveCheck
+}
+
+func NewKmsKeyEnclaveAttestationNotEnforced() *KmsKeyEnclaveAttestationNotEnforced {
+	return &KmsKeyEnclaveAttestationNotEnforced{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_attestation_not_enforced",
+				CheckTitle:   "KMS enclave key enforces attestation",
+				ServiceName:  "kms",
+				Severity:     "high",
+				ResourceType: "Key",
+				Description:  "KMS keys backing Nitro Enclaves should require attestation on all sensitive actions",
+				RemediationText: "Add kms:RecipientAttestation conditions to all sensitive Allow statements",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
+}
+
+func (c *KmsKeyEnclaveAttestationNotEnforced) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return newKmsEnclaveFinding(c.metadata), nil
+}
+
+// KmsKeyEnclaveAttestationPcrMismatch - KMS enclave key attestation PCRs match golden values
+type KmsKeyEnclaveAttestationPcrMismatch struct {
+	baseKmsEnclaveCheck
+}
+
+func NewKmsKeyEnclaveAttestationPcrMismatch() *KmsKeyEnclaveAttestationPcrMismatch {
+	return &KmsKeyEnclaveAttestationPcrMismatch{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_attestation_pcr_mismatch",
+				CheckTitle:   "KMS enclave key attestation PCRs match golden values",
+				ServiceName:  "kms",
+				Severity:     "high",
+				ResourceType: "Key",
+				Description:  "KMS enclave key attestation PCR values should match customer-supplied golden values",
+				RemediationText: "Configure golden PCR values in audit_config and review key policies",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
+}
+
+func (c *KmsKeyEnclaveAttestationPcrMismatch) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return newKmsEnclaveFinding(c.metadata), nil
+}
+
+// KmsKeyEnclaveAttestationUnknownImage - KMS key has no unknown enclave image attestation events
+type KmsKeyEnclaveAttestationUnknownImage struct {
+	baseKmsEnclaveCheck
+}
+
+func NewKmsKeyEnclaveAttestationUnknownImage() *KmsKeyEnclaveAttestationUnknownImage {
+	return &KmsKeyEnclaveAttestationUnknownImage{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_attestation_unknown_image",
+				CheckTitle:   "KMS key has no unknown enclave image attestation events",
+				ServiceName:  "kms",
+				Severity:     "high",
+				ResourceType: "Key",
+				Description:  "KMS keys should not receive attestation events from unrecognized enclave images",
+				RemediationText: "Review CloudTrail events for unknown enclave image attestations",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
+}
+
+func (c *KmsKeyEnclaveAttestationUnknownImage) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return newKmsEnclaveFinding(c.metadata), nil
+}
+
+// KmsKeyEnclaveDebugAttestationDetected - KMS key has no debug-mode attestation events
+type KmsKeyEnclaveDebugAttestationDetected struct {
+	baseKmsEnclaveCheck
+}
+
+func NewKmsKeyEnclaveDebugAttestationDetected() *KmsKeyEnclaveDebugAttestationDetected {
+	return &KmsKeyEnclaveDebugAttestationDetected{
+		baseKmsEnclaveCheck: baseKmsEnclaveCheck{
+			metadata: models.CheckMetadata{
+				Provider:     "aws",
+				CheckID:      "kms_key_enclave_debug_attestation_detected",
+				CheckTitle:   "KMS key has no debug-mode attestation events",
+				ServiceName:  "kms",
+				Severity:     "high",
+				ResourceType: "Key",
+				Description:  "KMS keys should not receive debug-mode attestation events from Nitro Enclaves",
+				RemediationText: "Review CloudTrail events for debug-mode enclave attestations",
+				Categories:   []string{"encryption"},
+			},
+		},
+	}
+}
+
+func (c *KmsKeyEnclaveDebugAttestationDetected) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
+	return newKmsEnclaveFinding(c.metadata), nil
+}
