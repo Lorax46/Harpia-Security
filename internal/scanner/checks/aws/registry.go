@@ -162,6 +162,13 @@ var Registry = map[string][]executor.Check{
         autoscaling.NewAutoscalingGroupWithSuspendedProcesses(),
         autoscaling.NewAutoscalingLaunchConfigPublicIpDisabled(),
         autoscaling.NewAutoscalingLaunchConfigMetadataOptions(),
+        autoscaling.NewAutoscalingFindSecretsLaunchConfiguration(),
+        autoscaling.NewAutoscalingGroupCapacityRebalanceEnabled(),
+        autoscaling.NewAutoscalingGroupElbHealthCheckEnabled(),
+        autoscaling.NewAutoscalingGroupLaunchConfigurationNoPublicIp(),
+        autoscaling.NewAutoscalingGroupLaunchConfigurationRequiresImdsv2(),
+        autoscaling.NewAutoscalingGroupMultipleInstanceTypes(),
+        autoscaling.NewAutoscalingGroupUsingEc2LaunchTemplate(),
     },
     "awslambda": {
         awslambda.NewAwslambdaFunctionInsideVpc(),
