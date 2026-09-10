@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 	"github.com/aws/aws-sdk-go-v2/service/servicecatalog"
 )
 

@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // RolesanywhereTrustAnchorPqcPki - IAM Roles Anywhere trust anchors are backed by a post-quantum (ML-DSA) PKI

@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // TransferServerPqcSshKexEnabled - AWS Transfer Family server uses a post-quantum hybrid SSH key exchange security policy

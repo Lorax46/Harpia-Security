@@ -7,7 +7,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute/v4"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork/v4"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 type computeProvider interface {

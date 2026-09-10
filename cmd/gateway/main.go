@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/Lorax46/TOTVS-Horus/internal/database"
-	"github.com/Lorax46/TOTVS-Horus/internal/models"
-	"github.com/Lorax46/TOTVS-Horus/pkg/web"
+	"github.com/Lorax46/Harpia-Security/internal/database"
+	"github.com/Lorax46/Harpia-Security/internal/models"
+	"github.com/Lorax46/Harpia-Security/pkg/web"
 	"gorm.io/gorm"
 )
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("[gateway] Starting TOTVS Horus API Gateway...")
+	log.Println("[gateway] Starting Harpia Security API Gateway...")
 
 	// Connect to database
 	dbConfig := database.NewConfig()

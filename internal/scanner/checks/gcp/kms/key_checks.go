@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 	"google.golang.org/api/cloudkms/v1"
 )
 

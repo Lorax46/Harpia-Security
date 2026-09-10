@@ -1,16 +1,16 @@
 package oci
 
 import (
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/analytics"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/audit"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/blockstorage"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/cloudguard"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/compute"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/events"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/identity"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/network"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/oci/objectstorage"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/analytics"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/audit"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/blockstorage"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/cloudguard"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/compute"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/events"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/identity"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/network"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/objectstorage"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
 )
 
 // Registry contém todos os checks OCI implementados

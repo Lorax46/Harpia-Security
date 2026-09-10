@@ -1,4 +1,4 @@
-// Package web provides authentication for the TOTVS Horus dashboard.
+// Package web provides authentication for the Harpia Security dashboard.
 package web
 
 import (

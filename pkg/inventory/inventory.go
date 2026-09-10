@@ -5,11 +5,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/cache"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/aws"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/azure"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/gcp"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/oci"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/cache"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/aws"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/azure"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/gcp"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/oci"
 )
 
 // Resource is the base interface for all cloud resources.

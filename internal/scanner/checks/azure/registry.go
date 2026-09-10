@@ -1,14 +1,14 @@
 package azure
 
 import (
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/compute"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/keyvault"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/monitor"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/network"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/sql"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/storage"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/checks/azure/webapp"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/executor"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/compute"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/keyvault"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/monitor"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/network"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/sql"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/storage"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/webapp"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
 )
 
 // Registry contém todos os checks Azure implementados

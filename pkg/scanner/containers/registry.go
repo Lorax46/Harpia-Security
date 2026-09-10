@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // NewContainerChecks returns all container security checks.

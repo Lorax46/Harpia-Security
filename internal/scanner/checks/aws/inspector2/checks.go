@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // Inspector2IsEnabled - Inspector2 is enabled for Amazon EC2 instances, ECR container images, Lambda functions, and Lambda code

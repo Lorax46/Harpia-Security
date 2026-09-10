@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 type storageProvider interface {

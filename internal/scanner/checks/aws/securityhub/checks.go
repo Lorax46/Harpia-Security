@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // SecurityhubDelegatedAdminEnabledAllRegions - Security Hub has delegated admin configured and is enabled in all regions with organization auto-enable

@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	sfnTypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 type stepfunctionsProvider interface {

@@ -1,4 +1,4 @@
-module github.com/Lorax46/TOTVS-Horus
+module github.com/Lorax46/Harpia-Security
 
 go 1.26.0
 

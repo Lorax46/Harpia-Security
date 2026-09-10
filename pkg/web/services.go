@@ -5,9 +5,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
-	"github.com/Lorax46/TOTVS-Horus/pkg/compliance"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/pkg/compliance"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 )
 
 // ScannerService provides scan operations.

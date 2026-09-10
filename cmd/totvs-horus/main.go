@@ -1,4 +1,4 @@
-// Package main is the entry point for the TOTVS Horus server.
+// Package main is the entry point for the Harpia Security server.
 package main
 
 import (
@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/pkg/web"
+	"github.com/Lorax46/Harpia-Security/pkg/web"
 )
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Println("[main] Starting TOTVS Horus Beta...")
+	log.Println("[main] Starting Harpia Security Beta...")
 
 	// Create mock services for beta
 	scannerService := web.NewMockScannerService()
@@ -46,7 +46,7 @@ func main() {
 	}()
 
 	// Start server
-	log.Printf("[main] TOTVS Horus Beta listening on %s", server.Addr())
+	log.Printf("[main] Harpia Security Beta listening on %s", server.Addr())
 	if err := server.Run(); err != nil {
 		log.Fatalf("[main] Server error: %v", err)
 	}

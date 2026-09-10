@@ -7,11 +7,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/aws"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/azure"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/gcp"
-	"github.com/Lorax46/TOTVS-Horus/pkg/inventory/plugins/oci"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/aws"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/azure"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/gcp"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory/plugins/oci"
 )
 
 func main() {

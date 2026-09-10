@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // WorkspacesVpc2private1publicSubnetsNat - Workspace is in a private subnet and its VPC has at least 1 public subnet, 2 private subnets, and a NAT Gateway

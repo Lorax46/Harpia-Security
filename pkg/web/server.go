@@ -1,4 +1,4 @@
-// Package web provides the HTTP server and API handlers for the TOTVS Horus dashboard.
+// Package web provides the HTTP server and API handlers for the Harpia Security dashboard.
 package web
 
 import (

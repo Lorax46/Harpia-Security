@@ -1,8 +1,8 @@
-# Plano de Arquitetura CNAPP Completo — TOTVS Horus v2.0
+# Plano de Arquitetura CNAPP Completo — Harpia Security v2.0
 
 > **Para Hermes:** Use subagent-driven-development skill para implementar este plano task-by-task.
 
-**Goal:** Transformar o TOTVS Horus em um CNAPP completo de classe mundial, com arquitetura de microserviços, database dedicado, e integrações externas (LLM, Shodan, etc.)
+**Goal:** Transformar o Harpia Security em um CNAPP completo de classe mundial, com arquitetura de microserviços, database dedicado, e integrações externas (LLM, Shodan, etc.)
 
 **Architecture:** Arquitetura de microserviços com API Gateway, banco de dados PostgreSQL + Redis, message queue para processamento assíncrono, e frontend React. Cada módulo CNAPP (CSPM, CWPP, CIEM, etc.) roda como serviço independente.
 
@@ -729,7 +729,7 @@ networks:
 ## 7. Estrutura de Diretórios Final
 
 ```
-totvs-horus/
+harpia-security/
 ├── cmd/
 │   ├── gateway/          # API Gateway
 │   ├── cspm/             # CSPM Service

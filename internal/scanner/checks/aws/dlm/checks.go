@@ -4,7 +4,7 @@ import (
     "context"
     "time"
 
-    "github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
+    "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
 // DlmEbsSnapshotLifecyclePolicyExists - Region with EBS snapshots has at least one EBS snapshot lifecycle policy defined

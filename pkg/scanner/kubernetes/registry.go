@@ -4,11 +4,11 @@ package kubernetes
 import (
 	"context"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/scanner/models"
-	"github.com/Lorax46/TOTVS-Horus/pkg/scanner/kubernetes/aks"
-	"github.com/Lorax46/TOTVS-Horus/pkg/scanner/kubernetes/common"
-	"github.com/Lorax46/TOTVS-Horus/pkg/scanner/kubernetes/eks"
-	"github.com/Lorax46/TOTVS-Horus/pkg/scanner/kubernetes/gke"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/Lorax46/Harpia-Security/pkg/scanner/kubernetes/aks"
+	"github.com/Lorax46/Harpia-Security/pkg/scanner/kubernetes/common"
+	"github.com/Lorax46/Harpia-Security/pkg/scanner/kubernetes/eks"
+	"github.com/Lorax46/Harpia-Security/pkg/scanner/kubernetes/gke"
 )
 
 // NewKubernetesChecks returns all Kubernetes security checks.

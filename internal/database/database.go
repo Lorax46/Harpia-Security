@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/Lorax46/TOTVS-Horus/internal/models"
+	"github.com/Lorax46/Harpia-Security/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
