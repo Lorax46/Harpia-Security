@@ -2,6 +2,7 @@ package gcp
 
 import (
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/accesscontextmanager"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/apikeys"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/artifactregistry"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/bigquery"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/bigtable"
@@ -16,10 +17,13 @@ import (
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/dns"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/filestorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/gcr"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/gemini"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/gke"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/iam"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/kms"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/logging"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/resourcemanager"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/secretmanager"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/spanner"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/gcp/storage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
@@ -29,17 +33,19 @@ import (
 var Registry = map[string][]executor.Check{
 	"accesscontextmanager": {
 		accesscontextmanager.NewAccessLevelCheck(),
-		accesscontextmanager.NewAccessLevelCheck(),
-		accesscontextmanager.NewServicePerimeterCheck(),
 		accesscontextmanager.NewServicePerimeterCheck(),
 		accesscontextmanager.NewGcpUserAccessCheck(),
 	},
+	"apikeys": {
+		apikeys.NewApikeysKeyComplianceCheck(),
+		apikeys.NewApikeysKeyNotExists(),
+		apikeys.NewApikeysKeyRotation90Days(),
+		apikeys.NewApikeysKeyRotationOver90Days(),
+	},
 	"artifactregistry": {
-		artifactregistry.NewRepositoryCheck(),
-		artifactregistry.NewRepositoryIamCheck(),
-		artifactregistry.NewRepositoryEncryptionCheck(),
-		artifactregistry.NewRepositoryCheck(),
-		artifactregistry.NewRepositoryIamCheck(),
+		artifactregistry.NewCmekEncryptionCheck(),
+		artifactregistry.NewPublicAccessCheck(),
+		artifactregistry.NewUsesPrivateLinkCheck(),
 	},
 	"bigquery": {
 		bigquery.NewDatasetPublicAccessCheck(),
@@ -52,7 +58,6 @@ var Registry = map[string][]executor.Check{
 		bigtable.NewInstanceCheck(),
 		bigtable.NewInstanceIamCheck(),
 		bigtable.NewInstanceLoggingCheck(),
-		bigtable.NewInstanceCheck(),
 		bigtable.NewInstanceBackupCheck(),
 	},
 	"cloudbuild": {
@@ -70,11 +75,8 @@ var Registry = map[string][]executor.Check{
 		cloudfunctions.NewCloudFunctionServiceAccountCheck(),
 	},
 	"cloudscheduler": {
-		cloudscheduler.NewJobCheck(),
-		cloudscheduler.NewJobRetryCheck(),
-		cloudscheduler.NewJobLoggingCheck(),
-		cloudscheduler.NewJobRetryCheck(),
-		cloudscheduler.NewJobTargetCheck(),
+		cloudscheduler.NewPublicAccessCheck(),
+		cloudscheduler.NewLoggingEnabledCheck(),
 	},
 	"cloudsql": {
 		cloudsql.NewCloudSQLInstanceAutomatedBackupsCheck(),
@@ -107,7 +109,6 @@ var Registry = map[string][]executor.Check{
 		cloudstorage.NewBucketLoggingCheck(),
 		cloudstorage.NewBucketEncryptionCheck(),
 		cloudstorage.NewBucketVersioningCheck(),
-		cloudstorage.NewBucketEncryptionCheck(),
 	},
 	"compute": {
 		compute.NewFirewallRdpAccessFromTheInternetAllowedCheck(),
@@ -166,28 +167,23 @@ var Registry = map[string][]executor.Check{
 		filestorage.NewInstanceNetworkCheck(),
 		filestorage.NewInstanceEncryptedCheck(),
 		filestorage.NewInstanceLoggingCheck(),
-		filestorage.NewInstanceNetworkCheck(),
 		filestorage.NewInstanceBackupCheck(),
 	},
 	"gcr": {
-		gcr.NewRegistryLoggingCheck(),
-		gcr.NewRegistryEncryptionCheck(),
-		gcr.NewImageVulnerabilityScanCheck(),
-		gcr.NewImageBuildCheck(),
-		gcr.NewRegistryIamCheck(),
+		gcr.NewCmekEncryptionCheck(),
+		gcr.NewPublicAccessCheck(),
+		gcr.NewVulnerabilityScanningCheck(),
+		gcr.NewWorkerPoolCheck(),
+	},
+	"gemini": {
+		gemini.NewGeminiModelPublicAccessDisabled(),
+	},
+	"gke": {
+		gke.NewGkeClusterBinaryAuthorizationEnabled(),
 	},
 	"iam": {
 		iam.NewServiceAccountKeyRotationCheck(),
-		iam.NewServiceAccountKeyRotationCheck(),
 		iam.NewServiceAccountManagedKeyCheck(),
-		iam.NewServiceAccountKeyRotationCheck(),
-		iam.NewServiceAccountManagedKeyCheck(),
-		iam.NewServiceAccountKeyRotationCheck(),
-		iam.NewServiceAccountManagedKeyCheck(),
-		iam.NewWorkloadIdentityCheck(),
-		iam.NewServiceAccountKeyRotationCheck(),
-		iam.NewServiceAccountManagedKeyCheck(),
-		iam.NewWorkloadIdentityCheck(),
 		iam.NewWorkloadIdentityCheck(),
 	},
 	"kms": {
@@ -211,8 +207,10 @@ var Registry = map[string][]executor.Check{
 		resourcemanager.NewProjectIamCheck(),
 		resourcemanager.NewProjectLoggingCheck(),
 		resourcemanager.NewProjectMonitoringCheck(),
-		resourcemanager.NewProjectIamCheck(),
-		resourcemanager.NewProjectLoggingCheck(),
+	},
+	"secretmanager": {
+		secretmanager.NewSecretmanagerSecretNoDefaultLabel(),
+		secretmanager.NewSecretmanagerSecretRotationEnabled(),
 	},
 	"spanner": {
 		spanner.NewSpannerInstanceEncryptionCheck(),

@@ -1,4 +1,4 @@
-package cloudfunction
+package cloudfunctions
 
 import (
 	"context"
@@ -35,11 +35,21 @@ func newCloudfunctionCheck(id, title, desc, sev string) cloudfunctionCheck {
 type cloudfunctionFunctionNoVpcConnector struct{ cloudfunctionCheck }
 
 func NewCloudfunctionFunctionNoVpcConnector() *cloudfunctionFunctionNoVpcConnector {
-	return &cloudfunctionFunctionNoVpcConnector{newCloudfunctionCheck("cloudfunction_function_no_vpc_connector", "Ensure cloud function has no VPC connector", "Cloud function should have no VPC connector", "medium")}
+	return &cloudfunctionFunctionNoVpcConnector{newCloudfunctionCheck(
+		"cloudfunction_function_no_vpc_connector",
+		"Ensure cloud function has no VPC connector",
+		"Cloud function should have no VPC connector",
+		"medium",
+	)}
 }
 
 type cloudfunctionFunctionVpcConnectorInUse struct{ cloudfunctionCheck }
 
 func NewCloudfunctionFunctionVpcConnectorInUse() *cloudfunctionFunctionVpcConnectorInUse {
-	return &cloudfunctionFunctionVpcConnectorInUse{newCloudfunctionCheck("cloudfunction_function_vpc_connector_in_use", "Ensure cloud function VPC connector is in use", "Cloud function VPC connector should be in use", "low")}
+	return &cloudfunctionFunctionVpcConnectorInUse{newCloudfunctionCheck(
+		"cloudfunction_function_vpc_connector_in_use",
+		"Ensure cloud function VPC connector is in use",
+		"Cloud function VPC connector should be in use",
+		"low",
+	)}
 }
