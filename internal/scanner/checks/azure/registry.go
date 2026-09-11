@@ -5,7 +5,6 @@ import (
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/app"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/appinsights"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/apim"
-	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/aisearch"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/compute"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/containerregistry"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/azure/cosmosdb"
@@ -114,6 +113,14 @@ var Registry = map[string][]executor.Check{
 		keyvault.NewKeyvaultKeyRotationEnabled(),
 		keyvault.NewKeyvaultSecretExpirationDate(),
 		keyvault.NewKeyvaultKeyExpirationDate(),
+		keyvault.NewKeyvaultAccessOnlyThroughPrivateEndpoints(),
+		keyvault.NewKeyvaultKeyExpirationSetInNonRbac(),
+		keyvault.NewKeyvaultNonRbacSecretExpirationSet(),
+		keyvault.NewKeyvaultPrivateEndpoints(),
+		keyvault.NewKeyvaultRbacEnabled(),
+		keyvault.NewKeyvaultRbacKeyExpirationSet(),
+		keyvault.NewKeyvaultRbacSecretExpirationSet(),
+		keyvault.NewKeyvaultRecoverable(),
 	},
 	"monitor": {
 		monitor.NewMonitorDiagnosticSettings(),
@@ -160,6 +167,27 @@ var Registry = map[string][]executor.Check{
 		defender.NewDefenderMonitorSystemUpdates(),
 		defender.NewDefenderSecurityConfigurationMonitoringEnabled(),
 		defender.NewDefenderVulnerabilityAssessmentEnabled(),
+		defender.NewDefenderContainerImagesResolvedVulnerabilities(),
+		defender.NewDefenderContainerImagesScanEnabled(),
+		defender.NewDefenderEnsureDefenderCspmIsOn(),
+		defender.NewDefenderEnsureDefenderForAppServicesIsOn(),
+		defender.NewDefenderEnsureDefenderForArmIsOn(),
+		defender.NewDefenderEnsureDefenderForAzureSqlDatabasesIsOn(),
+		defender.NewDefenderEnsureDefenderForContainersIsOn(),
+		defender.NewDefenderEnsureDefenderForCosmosdbIsOn(),
+		defender.NewDefenderEnsureDefenderForDatabasesIsOn(),
+		defender.NewDefenderEnsureDefenderForDnsIsOn(),
+		defender.NewDefenderEnsureDefenderForKeyvaultIsOn(),
+		defender.NewDefenderEnsureDefenderForOsRelationalDatabasesIsOn(),
+		defender.NewDefenderEnsureDefenderForServerIsOn(),
+		defender.NewDefenderEnsureDefenderForSqlServersIsOn(),
+		defender.NewDefenderEnsureDefenderForStorageIsOn(),
+		defender.NewDefenderEnsureIotHubDefenderIsOn(),
+		defender.NewDefenderEnsureMcasIsEnabled(),
+		defender.NewDefenderEnsureNotifyAlertsSeverityIsHigh(),
+		defender.NewDefenderEnsureNotifyEmailsToOwners(),
+		defender.NewDefenderEnsureSystemUpdatesAreApplied(),
+		defender.NewDefenderEnsureWdatpIsEnabled(),
 	},
 	"app": {
 		app.NewAppClientCertificatesOn(),
@@ -203,6 +231,25 @@ var Registry = map[string][]executor.Check{
 		entra.NewEntraConditionalAccessMfa(),
 		entra.NewEntraConditionalAccessPolicy(),
 		entra.NewEntraDefaultUserRolePermissions(),
+		entra.NewEntraAppRegistrationCredentialNotExpired(),
+		entra.NewEntraAuthenticationMethodsPolicyStrongAuthEnforced(),
+		entra.NewEntraConditionalAccessPolicyRequireMfaForAdminPortals(),
+		entra.NewEntraConditionalAccessPolicyRequireMfaForManagementApi(),
+		entra.NewEntraGlobalAdminInLessThanFiveUsers(),
+		entra.NewEntraNonPrivilegedUserHasMfa(),
+		entra.NewEntraPolicyDefaultUsersCannotCreateSecurityGroups(),
+		entra.NewEntraPolicyEnsureDefaultUserCannotCreateApps(),
+		entra.NewEntraPolicyEnsureDefaultUserCannotCreateTenants(),
+		entra.NewEntraPolicyGuestInviteOnlyForAdminRoles(),
+		entra.NewEntraPolicyGuestUsersAccessRestrictions(),
+		entra.NewEntraPolicyRestrictsUserConsentForApps(),
+		entra.NewEntraPolicyUserConsentForVerifiedApps(),
+		entra.NewEntraPrivilegedUserHasMfa(),
+		entra.NewEntraSecurityDefaultsEnabled(),
+		entra.NewEntraTrustedNamedLocationsExists(),
+		entra.NewEntraUserWithRecentSignIn(),
+		entra.NewEntraUserWithVmAccessHasMfa(),
+		entra.NewEntraUsersCannotCreateMicrosoft365Groups(),
 	},
 	"aks": {
 		aks.NewAksClusterAutoUpgradeEnabled(),
@@ -230,6 +277,12 @@ var Registry = map[string][]executor.Check{
 		mysql.NewMysqlServerConnectionThrottlingEnabled(),
 		mysql.NewMysqlServerLogCheckpointsEnabled(),
 		mysql.NewMysqlServerLogConnectionsEnabled(),
+		mysql.NewMysqlFlexibleServerAuditLogConnectionActivated(),
+		mysql.NewMysqlFlexibleServerAuditLogEnabled(),
+		mysql.NewMysqlFlexibleServerGeoRedundantBackupEnabled(),
+		mysql.NewMysqlFlexibleServerHighAvailabilityEnabled(),
+		mysql.NewMysqlFlexibleServerMinimumTlsVersion12(),
+		mysql.NewMysqlFlexibleServerSslConnectionEnabled(),
 	},
 	"databricks": {
 		databricks.NewDatabricksWorkspaceCmkEncryptionEnabled(),
@@ -259,8 +312,5 @@ var Registry = map[string][]executor.Check{
 	},
 	"apim": {
 		apim.NewApimThreatDetectionLlmJacking(),
-	},
-	"aisearch": {
-		aisearch.NewAisearchServiceNotPubliclyAccessible(),
 	},
 }
