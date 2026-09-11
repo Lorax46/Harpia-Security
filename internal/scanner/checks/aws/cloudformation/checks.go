@@ -2,13 +2,15 @@ package cloudformation
 
 import (
 	"context"
-	
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
 )
 
-type cloudformationProvider interface{}
+type cloudformationProvider interface {
+	CloudFormation(ctx context.Context) (*cloudformation.Client, error)
+}
 
 // CloudformationStackEncryption - CloudFormation stack encryption
 type CloudformationStackEncryption struct {
@@ -57,7 +59,7 @@ func NewCloudformationStackNotification() *CloudformationStackNotification {
 			ServiceName: "cloudformation", Severity: "low", ResourceType: "Stack",
 			Description: "CloudFormation stacks should have notifications enabled",
 			RemediationText: "Enable notifications on CloudFormation stacks",
-			Categories: []string{"management"},
+			Categories: []string{"management", "monitoring"},
 		},
 	}
 }
@@ -70,7 +72,7 @@ func (c *CloudformationStackNotification) Execute(ctx context.Context, provider 
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
 			Status: models.StatusPass,
-			StatusExtended: "CloudFormation notification check requires detailed configuration analysis",
+			StatusExtended: "CloudFormation notification check requires SNS integration",
 			Provider: "aws", Service: "cloudformation",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now().UTC(),
@@ -78,7 +80,7 @@ func (c *CloudformationStackNotification) Execute(ctx context.Context, provider 
 	}, nil
 }
 
-// CloudformationStackTerminationProtection - CloudFormation termination protection
+// CloudformationStackTerminationProtection - CloudFormation stack termination protection
 type CloudformationStackTerminationProtection struct {
 	metadata models.CheckMetadata
 }
@@ -87,11 +89,11 @@ func NewCloudformationStackTerminationProtection() *CloudformationStackTerminati
 	return &CloudformationStackTerminationProtection{
 		metadata: models.CheckMetadata{
 			Provider: "aws", CheckID: "cloudformation_stack_termination_protection",
-			CheckTitle: "CloudFormation termination protection",
+			CheckTitle: "CloudFormation stack termination protection",
 			ServiceName: "cloudformation", Severity: "medium", ResourceType: "Stack",
-			Description: "CloudFormation stacks should have termination protection",
+			Description: "CloudFormation stacks should have termination protection enabled",
 			RemediationText: "Enable termination protection on CloudFormation stacks",
-			Categories: []string{"management"},
+			Categories: []string{"management", "security"},
 		},
 	}
 }

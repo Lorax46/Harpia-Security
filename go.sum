@@ -62,6 +62,8 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3 h1:MUaM4f+kj1ZIBPZfUS8
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3/go.mod h1:6YmVmEVRI5ZZzRjCSsb9SryKH0hAlMRdgA7kG9aDvBU=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1 h1:yhw5KD1phVyP9vijxOUzDfEtJx+bt+L63k+VfuiYFAA=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.1/go.mod h1:ZW2e0d7DYlRxlS9hEiMXE47gTdX5KRN4byUiNbUpG+Q=
+github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.3 h1:fuSCw4Z2qfRCztMPO3GXJNSiEp6Wee+WOLwrHHUMy9c=
+github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.3/go.mod h1:6SxcHheD1pPR5+kWm1wGvjlL/YqUsh267sAfEmN4K7A=
 github.com/aws/aws-sdk-go-v2/service/acm v1.50.0 h1:rdTVn2eXD8DM7BCzKlPUgYQtzAbjBjBe/H67P1ovmgQ=
 github.com/aws/aws-sdk-go-v2/service/acm v1.50.0/go.mod h1:T/Y6CzJBYpYOGoRDxQxdZcxSNbQ8+ZR+Qlx0U7yGOy0=
 github.com/aws/aws-sdk-go-v2/service/acmpca v1.55.0 h1:2QjuKZabhJj69MViG1CKNmL//CapatQ5AR74vyOGz1E=
@@ -94,6 +96,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.86.0 h1:yNLrmQvtLjjhSgQ70
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.86.0/go.mod h1:DE1u38p6ehmEEELWR94qEN+N2aAH0ZmBKsYcYb7yBo0=
 github.com/aws/aws-sdk-go-v2/service/codebuild v1.77.0 h1:XfO4VY0h2gji8TzMe50I64Ob8lXDbEh0r3pruIKStII=
 github.com/aws/aws-sdk-go-v2/service/codebuild v1.77.0/go.mod h1:/zSdjnvcm+7zRq+9oZmxiORZNM/bUZjVvC/Qa0BWk84=
+github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.42.0 h1:D+jShPna9Yrnl0YWWn/a9rxBRgtQuuWCTy2iin3fX+Y=
+github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.42.0/go.mod h1:sEbzXdiU7L2BMChwSbCTZsv+iH9CKpJaZImjQS92vyw=
 github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.73.0 h1:SDFluFBXQwf+GHMP5G3EOY4O2XK8oChvq1ZZUdT+TIk=
 github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.73.0/go.mod h1:ANiQyuELTubQoM3StpRMjGqhYTM7jdmtd1ad7NcO+eo=
 github.com/aws/aws-sdk-go-v2/service/configservice v1.72.0 h1:B0lIlVQoUY2OuhLjOdimxneH5uW/YIx7rTZeas856O0=
@@ -126,6 +130,8 @@ github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.62.0 h1:+hXAYBA8D
 github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.62.0/go.mod h1:y0rev3Q6/wzO7ksCXFOgMvblMWv2/A8dXnrAT+xxgwA=
 github.com/aws/aws-sdk-go-v2/service/emr v1.61.0 h1:UnZwbKfznBFckwdAnNam32u962E+1ZQispL3HjXOJl8=
 github.com/aws/aws-sdk-go-v2/service/emr v1.61.0/go.mod h1:1S1eAF900ZKnbWSSt1hLeAQm44f6fHrQtIjwzRdISiM=
+github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0 h1:aSMmkgdgDL7vr8VNAAPU4Ak8r3+mdomp0pfnmC1U91A=
+github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0/go.mod h1:ORQiOBGYQL5PgFE6xtviANm2mYO0NPMPgDXTItKYiSg=
 github.com/aws/aws-sdk-go-v2/service/fsx v1.74.0 h1:Gjt5Z+DAHJzSgH72Gv782C5tQ35r3shiHQnRkxyaJjA=
 github.com/aws/aws-sdk-go-v2/service/fsx v1.74.0/go.mod h1:76QizgEl4w4lkKNceVh0GmcpM66HbYcUinT6GhurvnQ=
 github.com/aws/aws-sdk-go-v2/service/glacier v1.40.0 h1:AjKUHPyOrGCZCSvUA2iNlpTdkboE8GU608tEnTUG50w=

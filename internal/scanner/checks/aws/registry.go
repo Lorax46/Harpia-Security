@@ -542,9 +542,8 @@ var Registry = map[string][]executor.Check{
     },
     "eventbridge": {
         eventbridge.NewEventbridgeBusEncrypted(),
-        eventbridge.NewEventbridgeBusPublicAccess(),
-        eventbridge.NewEventbridgeRuleEncrypted(),
-        eventbridge.NewEventbridgeSchemaRegistryEncrypted(),
+        eventbridge.NewEventbridgeBusCrossAccountAccess(),
+        eventbridge.NewEventbridgeBusExposed(),
     },
     "firehose": {
         firehose.NewFirehoseStreamEncryptedAtRest(),

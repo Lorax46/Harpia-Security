@@ -2,13 +2,15 @@ package eventbridge
 
 import (
 	"context"
-	
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 )
 
-type eventbridgeProvider interface{}
+type eventbridgeProvider interface {
+	EventBridge(ctx context.Context) (*eventbridge.Client, error)
+}
 
 // EventbridgeBusEncrypted - EventBridge bus encrypted
 type EventbridgeBusEncrypted struct {
@@ -105,40 +107,6 @@ func (c *EventbridgeRuleEncrypted) Execute(ctx context.Context, provider interfa
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
 			Status: models.StatusPass,
 			StatusExtended: "EventBridge rule encryption check requires detailed configuration analysis",
-			Provider: "aws", Service: "eventbridge",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-			FoundAt: time.Now().UTC(),
-		},
-	}, nil
-}
-
-// EventbridgeSchemaRegistryEncrypted - EventBridge schema registry encrypted
-type EventbridgeSchemaRegistryEncrypted struct {
-	metadata models.CheckMetadata
-}
-
-func NewEventbridgeSchemaRegistryEncrypted() *EventbridgeSchemaRegistryEncrypted {
-	return &EventbridgeSchemaRegistryEncrypted{
-		metadata: models.CheckMetadata{
-			Provider: "aws", CheckID: "eventbridge_schema_registry_encrypted",
-			CheckTitle: "EventBridge schema registry encrypted",
-			ServiceName: "eventbridge", Severity: "low", ResourceType: "SchemaRegistry",
-			Description: "EventBridge schema registries should be encrypted",
-			RemediationText: "Enable encryption on EventBridge schema registries",
-			Categories: []string{"analytics", "encryption"},
-		},
-	}
-}
-
-func (c *EventbridgeSchemaRegistryEncrypted) Metadata() models.CheckMetadata { return c.metadata }
-
-func (c *EventbridgeSchemaRegistryEncrypted) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "EventBridge schema registry check requires detailed configuration analysis",
 			Provider: "aws", Service: "eventbridge",
 			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
 			FoundAt: time.Now().UTC(),

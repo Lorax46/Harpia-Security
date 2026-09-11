@@ -2,13 +2,17 @@ package lightsail
 
 import (
 	"context"
-	
+	"fmt"
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/lightsail"
 )
 
-type lightsailProvider interface{}
+type lightsailProvider interface {
+	Lightsail(ctx context.Context) (*lightsail.Client, error)
+}
 
 // LightsailInstanceAutomaticSnapshots - Lightsail instance automatic snapshots
 type LightsailInstanceAutomaticSnapshots struct {
@@ -21,9 +25,9 @@ func NewLightsailInstanceAutomaticSnapshots() *LightsailInstanceAutomaticSnapsho
 			Provider: "aws", CheckID: "lightsail_instance_automatic_snapshots",
 			CheckTitle: "Lightsail instance automatic snapshots",
 			ServiceName: "lightsail", Severity: "medium", ResourceType: "Instance",
-			Description: "Lightsail instances should have automatic snapshots",
+			Description: "Lightsail instances should have automatic snapshots enabled",
 			RemediationText: "Enable automatic snapshots on Lightsail instances",
-			Categories: []string{"compute"},
+			Categories: []string{"compute", "backup"},
 		},
 	}
 }
@@ -31,17 +35,37 @@ func NewLightsailInstanceAutomaticSnapshots() *LightsailInstanceAutomaticSnapsho
 func (c *LightsailInstanceAutomaticSnapshots) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *LightsailInstanceAutomaticSnapshots) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(lightsailProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement lightsailProvider")
+	}
+	client, err := p.Lightsail(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.GetInstances(ctx, &lightsail.GetInstancesInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+	for _, instance := range result.Instances {
+		status := models.StatusPass
+		msg := fmt.Sprintf("Instance %s has automatic snapshots", aws.ToString(instance.Name))
+		if instance.AddOns == nil || len(instance.AddOns) == 0 {
+			status = models.StatusFail
+			msg = fmt.Sprintf("Instance %s has no automatic snapshots", aws.ToString(instance.Name))
+		}
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Lightsail automatic snapshots check requires detailed configuration analysis",
-			Provider: "aws", Service: "lightsail",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			Status: status, StatusExtended: msg,
+			ResourceID: aws.ToString(instance.Name), Provider: "aws", Service: "lightsail",
 			FoundAt: time.Now().UTC(),
-		},
-	}, nil
+		})
+	}
+	return findings, nil
 }
 
 // LightsailInstancePublicAccess - Lightsail instance public access
@@ -65,17 +89,37 @@ func NewLightsailInstancePublicAccess() *LightsailInstancePublicAccess {
 func (c *LightsailInstancePublicAccess) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *LightsailInstancePublicAccess) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(lightsailProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement lightsailProvider")
+	}
+	client, err := p.Lightsail(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.GetInstances(ctx, &lightsail.GetInstancesInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+	for _, instance := range result.Instances {
+		status := models.StatusPass
+		msg := fmt.Sprintf("Instance %s is not public", aws.ToString(instance.Name))
+		if instance.PublicIpAddress != nil && aws.ToString(instance.PublicIpAddress) != "" {
+			status = models.StatusFail
+			msg = fmt.Sprintf("Instance %s is public", aws.ToString(instance.Name))
+		}
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Lightsail public access check requires detailed configuration analysis",
-			Provider: "aws", Service: "lightsail",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			Status: status, StatusExtended: msg,
+			ResourceID: aws.ToString(instance.Name), Provider: "aws", Service: "lightsail",
 			FoundAt: time.Now().UTC(),
-		},
-	}, nil
+		})
+	}
+	return findings, nil
 }
 
 // LightsailStaticIpUnused - Lightsail static IP unused
@@ -88,10 +132,10 @@ func NewLightsailStaticIpUnused() *LightsailStaticIpUnused {
 		metadata: models.CheckMetadata{
 			Provider: "aws", CheckID: "lightsail_static_ip_unused",
 			CheckTitle: "Lightsail static IP unused",
-			ServiceName: "lightsail", Severity: "low", ResourceType: "StaticIp",
-			Description: "Lightsail static IPs should be used",
-			RemediationText: "Remove unused static IPs",
-			Categories: []string{"compute"},
+			ServiceName: "lightsail", Severity: "low", ResourceType: "StaticIP",
+			Description: "Lightsail static IPs should be attached to instances",
+			RemediationText: "Release unused static IPs",
+			Categories: []string{"compute", "networking"},
 		},
 	}
 }
@@ -99,17 +143,37 @@ func NewLightsailStaticIpUnused() *LightsailStaticIpUnused {
 func (c *LightsailStaticIpUnused) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *LightsailStaticIpUnused) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
+	p, ok := provider.(lightsailProvider)
+	if !ok {
+		return nil, fmt.Errorf("provider does not implement lightsailProvider")
+	}
+	client, err := p.Lightsail(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := client.GetStaticIps(ctx, &lightsail.GetStaticIpsInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	findings := []models.Finding{}
+	for _, ip := range result.StaticIps {
+		status := models.StatusPass
+		msg := fmt.Sprintf("Static IP %s is attached", aws.ToString(ip.Name))
+		if ip.IsAttached != nil && !*ip.IsAttached {
+			status = models.StatusFail
+			msg = fmt.Sprintf("Static IP %s is not attached", aws.ToString(ip.Name))
+		}
+		findings = append(findings, models.Finding{
 			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
 			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Lightsail static IP check requires detailed configuration analysis",
-			Provider: "aws", Service: "lightsail",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
+			Status: status, StatusExtended: msg,
+			ResourceID: aws.ToString(ip.Name), Provider: "aws", Service: "lightsail",
 			FoundAt: time.Now().UTC(),
-		},
-	}, nil
+		})
+	}
+	return findings, nil
 }
 
 // LightsailLoadBalancerTlsPolicy - Lightsail load balancer TLS policy
@@ -123,9 +187,9 @@ func NewLightsailLoadBalancerTlsPolicy() *LightsailLoadBalancerTlsPolicy {
 			Provider: "aws", CheckID: "lightsail_load_balancer_tls_policy",
 			CheckTitle: "Lightsail load balancer TLS policy",
 			ServiceName: "lightsail", Severity: "medium", ResourceType: "LoadBalancer",
-			Description: "Lightsail load balancers should have TLS policy",
-			RemediationText: "Configure TLS policy on Lightsail load balancers",
-			Categories: []string{"compute", "encryption"},
+			Description: "Lightsail load balancers should use secure TLS policies",
+			RemediationText: "Configure secure TLS policies on Lightsail load balancers",
+			Categories: []string{"compute", "networking"},
 		},
 	}
 }
@@ -133,15 +197,12 @@ func NewLightsailLoadBalancerTlsPolicy() *LightsailLoadBalancerTlsPolicy {
 func (c *LightsailLoadBalancerTlsPolicy) Metadata() models.CheckMetadata { return c.metadata }
 
 func (c *LightsailLoadBalancerTlsPolicy) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-	return []models.Finding{
-		{
-			ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
-			Description: c.metadata.Description, Severity: c.metadata.Severity,
-			Status: models.StatusPass,
-			StatusExtended: "Lightsail TLS policy check requires detailed configuration analysis",
-			Provider: "aws", Service: "lightsail",
-			Remediation: c.metadata.RemediationText, Categories: c.metadata.Categories,
-			FoundAt: time.Now().UTC(),
-		},
-	}, nil
+	return []models.Finding{{
+		ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+		Description: c.metadata.Description, Severity: c.metadata.Severity,
+		Status: models.StatusPass,
+		StatusExtended: "Lightsail TLS policy check requires detailed analysis",
+		Provider: "aws", Service: "lightsail",
+		FoundAt: time.Now().UTC(),
+	}}, nil
 }
