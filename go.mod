@@ -45,6 +45,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing v1.40.0
 	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.62.0
 	github.com/aws/aws-sdk-go-v2/service/emr v1.61.0
+	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/fsx v1.74.0
 	github.com/aws/aws-sdk-go-v2/service/glacier v1.40.0
 	github.com/aws/aws-sdk-go-v2/service/glue v1.157.0
@@ -75,6 +76,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/waf v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.82.0
 	github.com/aws/aws-sdk-go-v2/service/wellarchitected v1.48.0
+	github.com/cloudflare/cloudflare-go v0.89.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/uuid v1.6.0
@@ -99,8 +101,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/cognitoidentity v1.42.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.19 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.2 // indirect
@@ -115,7 +115,6 @@ require (
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
-	github.com/cloudflare/cloudflare-go v0.89.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
@@ -146,24 +145,13 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/microsoft/kiota-abstractions-go v1.9.4 // indirect
-	github.com/microsoft/kiota-authentication-azure-go v1.3.1 // indirect
-	github.com/microsoft/kiota-http-go v1.5.6 // indirect
-	github.com/microsoft/kiota-serialization-form-go v1.1.3 // indirect
-	github.com/microsoft/kiota-serialization-json-go v1.1.2 // indirect
-	github.com/microsoft/kiota-serialization-multipart-go v1.1.2 // indirect
-	github.com/microsoft/kiota-serialization-text-go v1.1.3 // indirect
-	github.com/microsoftgraph/msgraph-sdk-go v1.102.0 // indirect
-	github.com/microsoftgraph/msgraph-sdk-go-core v1.4.1 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/okta/okta-sdk-golang/v2 v2.20.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
-	github.com/std-uritemplate/std-uritemplate/go/v2 v2.0.3 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
@@ -184,5 +172,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/grpc v1.83.2 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	k8s.io/client-go v0.33.0 // indirect
 )
