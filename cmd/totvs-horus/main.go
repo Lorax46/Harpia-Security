@@ -17,7 +17,8 @@ import (
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	port := flag.Int("port", 8080, "Port to listen on")
+	port := flag.Int("port", 9090, "Port to listen on")
+	host := flag.String("host", "0.0.0.0", "Host to bind to")
 	flag.Parse()
 
 	log.Println("[main] Starting Harpia Security...")
@@ -28,7 +29,7 @@ func main() {
 	inventoryService := web.NewMockInventoryService()
 	complianceService := web.NewMockComplianceService()
 
-	addr := ":" + strconv.Itoa(*port)
+	addr := *host + ":" + strconv.Itoa(*port)
 
 	// Create HTTP server
 	server := web.NewServer(web.Config{
