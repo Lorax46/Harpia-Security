@@ -6,8 +6,12 @@ import (
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/blockstorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/cloudguard"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/compute"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/database"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/events"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/filestorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/identity"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/integration"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/kms"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/network"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/oci/objectstorage"
 	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
@@ -52,6 +56,20 @@ var Registry = map[string][]executor.Check{
 		identity.NewUserAPIKeysRotated90Days(),
 		identity.NewTenancyAdminUsersNoApiKeys(),
 		identity.NewNoResourcesInRootCompartment(),
+		identity.NewComputeInstanceLegacyMetadataEndpointDisabled(),
+		identity.NewComputeInstanceSecureBootEnabled(),
+		identity.NewIdentityIamAdminsCannotUpdateTenancyAdmins(),
+		identity.NewIdentityInstancePrincipalUsed(),
+		identity.NewIdentityNonRootCompartmentExists(),
+		identity.NewIdentityPasswordPolicyExpiresWithin365Days(),
+		identity.NewIdentityPasswordPolicyPreventsReuse(),
+		identity.NewIdentityServiceLevelAdminsExist(),
+		identity.NewIdentityStorageServiceLevelAdminsScoped(),
+		identity.NewIdentityTenancyAdminPermissionsLimited(),
+		identity.NewIdentityUserAuthTokensRotated90Days(),
+		identity.NewIdentityUserCustomerSecretKeysRotated90Days(),
+		identity.NewIdentityUserDbPasswordsRotated90Days(),
+		identity.NewIdentityUserValidEmailAddress(),
 	},
 	"network": {
 		network.NewDefaultSecurityListRestrictsTrafficCheck(),
@@ -66,5 +84,17 @@ var Registry = map[string][]executor.Check{
 		objectstorage.NewBucketLoggingEnabledCheck(),
 		objectstorage.NewBucketNotPubliclyAccessibleCheck(),
 		objectstorage.NewBucketVersioningEnabledCheck(),
+	},
+	"database": {
+		database.NewDatabaseAutonomousDatabaseAccessRestricted(),
+	},
+	"filestorage": {
+		filestorage.NewFilestorageFileSystemEncryptedWithCmk(),
+	},
+	"integration": {
+		integration.NewIntegrationInstanceAccessRestricted(),
+	},
+	"kms": {
+		kms.NewKmsKeyRotationEnabled(),
 	},
 }
