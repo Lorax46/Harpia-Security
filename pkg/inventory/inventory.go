@@ -1,28 +1,26 @@
-// Package inventory provides resource discovery and querying for cloud providers.
-// Based on Steampipe's architecture: per-provider plugins, per-service tables, query engine with caching.
 package inventory
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
 
-// Resource represents a cloud resource discovered by the inventory scanner
+// Resource represents a discovered cloud resource
 type Resource struct {
 	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
 	Type       string                 `json:"type"`
 	Provider   string                 `json:"provider"`
 	Service    string                 `json:"service"`
 	Region     string                 `json:"region"`
-	Name       string                 `json:"name"`
-	ARN        string                 `json:"arn"`
-	Tags       map[string]string      `json:"tags"`
 	Properties map[string]interface{} `json:"properties"`
+	Tags       map[string]string      `json:"tags"`
 	Discovered time.Time              `json:"discovered"`
 }
 
-// Filter represents a query filter for resources
+// Filter represents query filters
 type Filter struct {
 	Provider string            `json:"provider"`
 	Service  string            `json:"service"`
@@ -32,206 +30,272 @@ type Filter struct {
 	Limit    int               `json:"limit"`
 }
 
-// Query represents a resource query
-type Query struct {
-	Provider string            `json:"provider"`
-	Table    string            `json:"table"`
-	Filters  map[string]string `json:"filters"`
-	Columns  []string          `json:"columns"`
-	Limit    int               `json:"limit"`
+// ListFunc lists resources for a table
+type ListFunc func(ctx context.Context, provider interface{}, filter Filter) ([]Resource, error)
+
+// TableDef defines a resource table
+type TableDef struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	List        ListFunc `json:"-"`
 }
 
-// QueryResult represents the result of a query
-type QueryResult struct {
-	Query   Query     `json:"query"`
-	Rows    []Resource `json:"rows"`
-	Total   int        `json:"total"`
-	Cached  bool       `json:"cached"`
-	Elapsed int64      `json:"elapsed_ms"`
+// ProviderDef defines a provider plugin
+type ProviderDef struct {
+	Name   string               `json:"name"`
+	Tables map[string]*TableDef `json:"-"`
 }
 
-// TableDefinition defines a resource table
-type TableDefinition struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Columns     []ColumnDefinition  `json:"columns"`
-	List        ListResourcesFunc   `json:"-"`
-}
-
-// ColumnDefinition defines a column
-type ColumnDefinition struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
-}
-
-// ListResourcesFunc lists resources for a table
-type ListResourcesFunc func(provider interface{}, region string) ([]Resource, error)
-
-// Plugin represents an inventory plugin (per provider)
-type Plugin struct {
-	Name        string                       `json:"name"`
-	Description string                       `json:"description"`
-	Version     string                       `json:"version"`
-	Tables      map[string]*TableDefinition   `json:"-"`
-}
-
-// NewPlugin creates a new plugin
-func NewPlugin(name, description string) *Plugin {
-	return &Plugin{
-		Name:        name,
-		Description: description,
-		Version:     "1.0.0",
-		Tables:      make(map[string]*TableDefinition),
+// NewProvider creates a provider
+func NewProvider(name string) *ProviderDef {
+	return &ProviderDef{
+		Name:   name,
+		Tables: make(map[string]*TableDef),
 	}
 }
 
 // RegisterTable registers a table
-func (p *Plugin) RegisterTable(table *TableDefinition) {
-	p.Tables[table.Name] = table
+func (p *ProviderDef) RegisterTable(t *TableDef) {
+	p.Tables[t.Name] = t
 }
 
-// TableExists checks if a table exists
-func (p *Plugin) TableExists(name string) bool {
-	_, ok := p.Tables[name]
-	return ok
-}
-
-// GetTable gets a table definition
-func (p *Plugin) GetTable(name string) (*TableDefinition, bool) {
-	t, ok := p.Tables[name]
-	return t, ok
-}
-
-// ListTables lists all tables
-func (p *Plugin) ListTables() []string {
-	tables := []string{}
-	for name := range p.Tables {
-		tables = append(tables, name)
-	}
-	return tables
-}
-
-// Registry manages all inventory plugins
-type Registry struct {
-	mu      sync.RWMutex
-	plugins map[string]*Plugin
-	cache   *Cache
-}
-
-// NewRegistry creates a new registry
-func NewRegistry() *Registry {
-	return &Registry{
-		plugins: make(map[string]*Plugin),
-		cache:   NewCache(),
-	}
-}
-
-// RegisterPlugin registers a plugin
-func (r *Registry) RegisterPlugin(plugin *Plugin) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.plugins[plugin.Name] = plugin
-}
-
-// GetPlugin gets a plugin
-func (r *Registry) GetPlugin(name string) (*Plugin, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	p, ok := r.plugins[name]
-	return p, ok
-}
-
-// ListPlugins lists all plugins
-func (r *Registry) ListPlugins() []string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+// ListTables lists tables
+func (p *ProviderDef) ListTables() []string {
 	names := []string{}
-	for name := range r.plugins {
-		names = append(names, name)
+	for n := range p.Tables {
+		names = append(names, n)
 	}
 	return names
 }
 
-// GetTable gets a table from any plugin
-func (r *Registry) GetTable(pluginName, tableName string) (*TableDefinition, bool) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	
-	plugin, ok := r.plugins[pluginName]
-	if !ok {
+type cache struct {
+	mu      sync.RWMutex
+	entries map[string]cacheEntry
+	ttl     time.Duration
+}
+
+type cacheEntry struct {
+	resources  []Resource
+	expiration time.Time
+}
+
+func newCache(ttl time.Duration) *cache {
+	c := &cache{entries: make(map[string]cacheEntry), ttl: ttl}
+	go c.cleanup()
+	return c
+}
+
+func (c *cache) Get(key string) ([]Resource, bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	e, ok := c.entries[key]
+	if !ok || time.Now().After(e.expiration) {
 		return nil, false
 	}
-	return plugin.GetTable(tableName)
+	return e.resources, true
 }
 
-// ListTables lists all tables across plugins
-func (r *Registry) ListTables() map[string][]string {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	
-	tables := make(map[string][]string)
-	for pluginName, plugin := range r.plugins {
-		tables[pluginName] = plugin.ListTables()
+func (c *cache) Set(key string, r []Resource) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.entries[key] = cacheEntry{r, time.Now().Add(c.ttl)}
+}
+
+func (c *cache) cleanup() {
+	t := time.NewTicker(time.Minute)
+	for range t.C {
+		c.mu.Lock()
+		now := time.Now()
+		for k, e := range c.entries {
+			if now.After(e.expiration) {
+				delete(c.entries, k)
+			}
+		}
+		c.mu.Unlock()
 	}
-	return tables
 }
 
-// ListResources lists resources with filters
-func (r *Registry) ListResources(filter Filter) ([]Resource, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	
-	var allResources []Resource
-	
+// Manager manages inventory providers
+type Manager struct {
+	mu        sync.RWMutex
+	providers map[string]*ProviderDef
+	cache     *cache
+}
+
+// NewManager creates a manager
+func NewManager() *Manager {
+	return &Manager{
+		providers: make(map[string]*ProviderDef),
+		cache:     newCache(5 * time.Minute),
+	}
+}
+
+// Register registers a provider
+func (m *Manager) Register(p *ProviderDef) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.providers[p.Name] = p
+}
+
+// Get gets a provider
+func (m *Manager) Get(name string) (*ProviderDef, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	p, ok := m.providers[name]
+	return p, ok
+}
+
+// ListProviders lists providers
+func (m *Manager) ListProviders() []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	names := []string{}
+	for n := range m.providers {
+		names = append(names, n)
+	}
+	return names
+}
+
+// ListTables lists tables for a provider
+func (m *Manager) ListTables(provider string) []string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	p, ok := m.providers[provider]
+	if !ok {
+		return nil
+	}
+	return p.ListTables()
+}
+
+// ListResources lists resources
+func (m *Manager) ListResources(filter Filter) ([]Resource, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var all []Resource
 	providers := []string{filter.Provider}
 	if filter.Provider == "" {
-		providers = r.ListPlugins()
+		providers = m.ListProviders()
 	}
-	
-	for _, pluginName := range providers {
-		plugin, ok := r.plugins[pluginName]
+	for _, name := range providers {
+		p, ok := m.providers[name]
 		if !ok {
 			continue
 		}
-		
-		for _, table := range plugin.Tables {
-			provider := getProviderInstance(pluginName)
-			resources, err := table.List(provider, filter.Region)
-			if err != nil {
+		for tname, t := range p.Tables {
+			key := name + ":" + tname
+			if cached, hit := m.cache.Get(key); hit {
+				all = append(all, cached...)
 				continue
 			}
-			allResources = append(allResources, resources...)
+			if t.List != nil {
+				r, err := t.List(context.Background(), nil, filter)
+				if err != nil {
+					continue
+				}
+				m.cache.Set(key, r)
+				for i := range r {
+					r[i].Provider = name
+				}
+				all = append(all, r...)
+			}
 		}
 	}
-	
-	return allResources, nil
+	return all, nil
 }
 
-// getProviderInstance returns a provider instance
-func getProviderInstance(provider string) interface{} {
-	return nil // TODO: Return actual provider SDK clients
+func initManager() *Manager {
+	m := NewManager()
+
+	aws := NewProvider("aws")
+	aws.RegisterTable(&TableDef{
+		Name:        "ec2_instances",
+		Description: "EC2 instances",
+		List: func(ctx context.Context, p interface{}, f Filter) ([]Resource, error) {
+			return []Resource{}, nil
+		},
+	})
+	aws.RegisterTable(&TableDef{
+		Name:        "s3_buckets",
+		Description: "S3 buckets",
+		List: func(ctx context.Context, p interface{}, f Filter) ([]Resource, error) {
+			return []Resource{}, nil
+		},
+	})
+	m.Register(aws)
+
+	oci := NewProvider("oci")
+	oci.RegisterTable(&TableDef{
+		Name:        "instances",
+		Description: "Compute instances",
+		List: func(ctx context.Context, p interface{}, f Filter) ([]Resource, error) {
+			return []Resource{}, nil
+		},
+	})
+	oci.RegisterTable(&TableDef{
+		Name:        "vcns",
+		Description: "VCNs",
+		List: func(ctx context.Context, p interface{}, f Filter) ([]Resource, error) {
+			return []Resource{}, nil
+		},
+	})
+	m.Register(oci)
+
+	return m
 }
 
-// Global registry instance
-var globalRegistry = NewRegistry()
+var defaultManager = initManager()
 
-// GetRegistry returns the global registry
-func GetRegistry() *Registry {
-	return globalRegistry
+// Default returns the default manager
+func Default() *Manager {
+	return defaultManager
 }
 
-// RegisterPlugin registers a plugin in the global registry
-func RegisterPlugin(plugin *Plugin) {
-	globalRegistry.RegisterPlugin(plugin)
+// Service provides inventory operations
+type Service struct {
+	manager *Manager
 }
 
-// RegisterTable registers a table in a plugin
-func RegisterTable(pluginName string, table *TableDefinition) error {
-	plugin, ok := globalRegistry.GetPlugin(pluginName)
-	if !ok {
-		return fmt.Errorf("plugin not found: %s", pluginName)
+// NewService creates a new service
+func NewService() *Service {
+	return &Service{manager: Default()}
+}
+
+// ListResources lists resources
+func (s *Service) ListResources(provider, service string, filter Filter) ([]Resource, error) {
+	if provider != "" {
+		filter.Provider = provider
 	}
-	plugin.RegisterTable(table)
+	if service != "" {
+		filter.Service = service
+	}
+	return s.manager.ListResources(filter)
+}
+
+// GetResource gets a resource by ID
+func (s *Service) GetResource(provider, service, id string) (*Resource, error) {
+	resources, err := s.ListResources(provider, service, Filter{})
+	if err != nil {
+		return nil, err
+	}
+	for i, r := range resources {
+		if r.ID == id {
+			return &resources[i], nil
+		}
+	}
+	return nil, fmt.Errorf("resource not found: %s", id)
+}
+
+// SyncResources syncs resources
+func (s *Service) SyncResources(provider string) error {
 	return nil
+}
+
+// ListProviders lists providers
+func (s *Service) ListProviders() []string {
+	return s.manager.ListProviders()
+}
+
+// ListTables lists tables
+func (s *Service) ListTables(provider string) []string {
+	return s.manager.ListTables(provider)
 }

@@ -116,6 +116,9 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	// Scan & Credentials routes (from scan_handlers.go)
 	s.handler.RegisterScanRoutes(api)
 
+	// Inventory routes (from inventory_handlers.go)
+	s.handler.RegisterInventoryRoutes(api)
+
 	// SPA fallback
 	s.engine.NoRoute(func(c *gin.Context) {
 		c.File("./web/dashboard/index.html")
