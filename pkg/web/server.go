@@ -55,7 +55,7 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	s.engine.Static("/static", "./web/dashboard/assets")
 	s.engine.StaticFile("/", "./web/dashboard/index.html")
 
-	// Auth
+	// Auth (NO middleware)
 	authGroup := s.engine.Group("/api/auth")
 	{
 		authGroup.POST("/login", s.handler.Login)
@@ -64,9 +64,9 @@ func (s *Server) setupRoutes(auth *AuthService) {
 		authGroup.POST("/logout", s.handler.Logout)
 	}
 
-	// Protected API routes
+	// Protected API routes - use Handler's AuthMiddleware (accepts beta-admin-token)
 	api := s.engine.Group("/api")
-	api.Use(auth.AuthMiddleware())
+	api.Use(s.handler.AuthMiddleware())
 	{
 		// Dashboard
 		api.GET("/dashboard", s.handler.GetDashboard)
@@ -113,6 +113,9 @@ func (s *Server) setupRoutes(auth *AuthService) {
 		api.DELETE("/users/:id", s.handler.DeleteUser)
 	}
 
+	// Scan & Credentials routes (from scan_handlers.go)
+	s.handler.RegisterScanRoutes(api)
+
 	// SPA fallback
 	s.engine.NoRoute(func(c *gin.Context) {
 		c.File("./web/dashboard/index.html")
@@ -128,6 +131,11 @@ func (s *Server) Run() error {
 // Shutdown gracefully shuts down the server.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return nil
+}
+
+// ServeHTTP implements http.Handler for testing
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.engine.ServeHTTP(w, r)
 }
 
 // Addr returns the server address.
