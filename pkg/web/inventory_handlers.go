@@ -1,6 +1,9 @@
+// Package web provides HTTP handlers for the Harpia Security dashboard.
 package web
 
 import (
+	"net/http"
+
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
 )
@@ -95,5 +98,36 @@ func (h *Handler) SyncInventoryV2(c *gin.Context) {
 	
 	c.JSON(200, gin.H{
 		"message": "Sync completed for " + provider,
+	})
+}
+
+// UnlockVault unlocks the credential vault with a passphrase
+func (h *Handler) UnlockVault(c *gin.Context) {
+	var req struct {
+		Passphrase string `json:"passphrase" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	if err := h.vault.Unlock(req.Passphrase); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid passphrase"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Vault unlocked"})
+}
+
+// LockVault locks the credential vault
+func (h *Handler) LockVault(c *gin.Context) {
+	h.vault.Lock()
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Vault locked"})
+}
+
+// GetVaultStatus returns the vault status
+func (h *Handler) GetVaultStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"unlocked": h.vault.IsUnlocked(),
 	})
 }

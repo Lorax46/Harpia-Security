@@ -113,6 +113,11 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	// Inventory routes
 	s.handler.RegisterInventoryRoutes(api)
 
+	// Vault routes
+	api.POST("/vault/unlock", s.handler.UnlockVault)
+	api.POST("/vault/lock", s.handler.LockVault)
+	api.GET("/vault/status", s.handler.GetVaultStatus)
+
 	// Page routes (SPA)
 	pageRoutes := []string{"/", "/dashboard", "/findings", "/inventory", "/automation", "/configuration"}
 	for _, route := range pageRoutes {

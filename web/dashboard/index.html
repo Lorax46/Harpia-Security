@@ -465,7 +465,74 @@
         function saveApiKey() { hideAddKeyModal(); showToast('API Key salva!', 'success'); }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => { showPage(window.location.pathname.replace('/', '') || 'dashboard'); if (window.lucide) lucide.createIcons(); });
+        
+        // === Vault Functions ===
+        function showVaultModal() {
+            document.getElementById('vault-modal').classList.add('active');
+        }
+
+        function hideVaultModal() {
+            document.getElementById('vault-modal').classList.remove('active');
+        }
+
+        function unlockVault() {
+            const passphrase = document.getElementById('vault-passphrase').value;
+            if (!passphrase) { showToast('Digite a senha mestra', 'error'); return; }
+            
+            // Enhar senha para o servidor
+            api('POST', '/api/vault/unlock', { passphrase }).then(res => {
+                if (res.success) {
+                    showToast('Cofre desbloqueado!', 'success');
+                    hideVaultModal();
+                    loadConfiguration();
+                } else {
+                    showToast('Senha incorreta', 'error');
+                }
+            }).catch(() => {
+                showToast('Erro ao desbloquear cofre', 'error');
+            });
+        }
+
+        // Show vault modal on first access to configuration
+        function loadConfiguration() {
+            renderProvidersList();
+            renderCredentialsList();
+        }
+
+document.addEventListener('DOMContentLoaded', () => { showPage(window.location.pathname.replace('/', '') || 'dashboard'); if (window.lucide) lucide.createIcons(); });
     </script>
+
+    <!-- Vault Unlock Modal -->
+    <div class="modal-overlay" id="vault-modal">
+        <div class="modal">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-[16px] font-bold">Desproteger Cofre de Credenciais</h3>
+            </div>
+            <div class="space-y-4">
+                <div class="rounded-xl bg-[#f0f5ff] p-4">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="shield-check" class="size-5 text-[#4c7df0]"></i>
+                        <div>
+                            <p class="text-[12px] font-medium">Cofre criptografado</p>
+                            <p class="text-[11px] text-[#8b97a8]">Suas credenciais são protegidas com AES-256-GCM</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Senha Mestra</label>
+                    <input type="password" class="form-input" id="vault-passphrase" placeholder="Digite a senha mestra">
+                </div>
+                <div>
+                    <label class="form-label">Ou use a variável de ambiente</label>
+                    <p class="text-[11px] text-[#8b97a8]">Defina HARPA_VAULT_PASS no servidor</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="hideVaultModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
+                <button onclick="unlockVault()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Desbloquear</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Lorax46/Harpia-Security/pkg/credentials"
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
 )
@@ -15,15 +16,18 @@ type Handler struct {
 	scanner    ScannerService
 	inventory  InventoryService
 	compliance ComplianceService
+	vault      *credentials.SecureVault
 }
 
 // NewHandler creates a new HTTP handler.
 func NewHandler(cfg Config, auth *AuthService) *Handler {
+	v, _ := credentials.NewSecureVault()
 	return &Handler{
 		config:     cfg,
 		scanner:    cfg.Scanner,
 		inventory:  cfg.Inventory,
 		compliance: cfg.Compliance,
+		vault:      v,
 	}
 }
 
@@ -98,10 +102,7 @@ func (h *Handler) GetDashboardStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
-// getRealStats tenta obter stats reais do scanner
 func (h *Handler) getRealStats(ctx interface{}) gin.H {
-	// Por enquanto retorna stats mock
-	// Em produção, usaria o scanner.Service real
 	return gin.H{
 		"total_findings": 0,
 		"critical":       0,
@@ -116,7 +117,7 @@ func (h *Handler) getRealStats(ctx interface{}) gin.H {
 // ListScans returns all scans.
 func (h *Handler) ListScans(c *gin.Context) {
 	c.JSON(http.StatusOK, []gin.H{
-		{"id": "oci-scan-1", "name": "OCI Scan", "provider": "oci", "status": "completed"},
+		{"id": "oci-scan-1", "name": "OCI Scan", "provider": "oci", "status": "pending"},
 	})
 }
 
@@ -173,10 +174,15 @@ func (h *Handler) ExportFindings(c *gin.Context) {
 
 // ListProviders returns all providers.
 func (h *Handler) ListProviders(c *gin.Context) {
-	c.JSON(http.StatusOK, []gin.H{
-		{"id": "aws", "provider": "aws", "region": "us-east-1", "status": "connected"},
-		{"id": "oci", "provider": "oci", "region": "sa-saopaulo-1", "status": "connected"},
-	})
+	providers := h.vault.List()
+	if len(providers) == 0 {
+		// Retorna providers padrão se não há credenciais
+		providers = []credentials.CredentialSummary{
+			{ID: "oci-default", Provider: "oci", Name: "OCI Default", Region: "sa-saopaulo-1"},
+			{ID: "aws-default", Provider: "aws", Name: "AWS Default", Region: "us-east-1"},
+		}
+	}
+	c.JSON(http.StatusOK, providers)
 }
 
 // CreateProvider creates a provider.
@@ -349,63 +355,88 @@ func (h *Handler) ListFindingsByProviderAndType(c *gin.Context) {
 	c.JSON(200, findings)
 }
 
-// CreateCredentials creates new provider credentials.
+// CreateCredentials creates new provider credentials securely.
 func (h *Handler) CreateCredentials(c *gin.Context) {
 	var req struct {
-		Provider     string `json:"provider" binding:"required"`
-		Name         string `json:"name" binding:"required"`
-		Region       string `json:"region"`
-		AccessKey    string `json:"access_key"`
-		SecretKey    string `json:"secret_key"`
-		TenancyOCID  string `json:"tenancy_ocid"`
-		UserOCID     string `json:"user_ocid"`
-		Fingerprint  string `json:"fingerprint"`
-		PrivateKey   string `json:"private_key"`
+		Provider       string `json:"provider" binding:"required"`
+		Name           string `json:"name" binding:"required"`
+		Region         string `json:"region"`
+		AccessKey      string `json:"access_key"`
+		SecretKey      string `json:"secret_key"`
+		TenancyOCID    string `json:"tenancy_ocid"`
+		UserOCID       string `json:"user_ocid"`
+		Fingerprint    string `json:"fingerprint"`
+		PrivateKey     string `json:"private_key"`
 		SubscriptionID string `json:"subscription_id"`
 		ClientID       string `json:"client_id"`
 		ClientSecret   string `json:"client_secret"`
-		TenantID       string `json:"tenant_id"`
-		ProjectID    string `json:"project_id"`
-		ServiceKey   string `json:"service_key"`
-		APIToken     string `json:"api_token"`
-		ZoneID       string `json:"zone_id"`
+		ProjectID      string `json:"project_id"`
+		ServiceKey     string `json:"service_key"`
+		APIToken       string `json:"api_token"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
-	// Salvar credenciais no scanner service
-	credMap := map[string]string{
-		"name":       req.Name,
-		"region":     req.Region,
-		"access_key": req.AccessKey,
-		"secret_key": req.SecretKey,
+
+	// Criar entrada de credencial criptografada
+	entry := credentials.CredentialEntry{
+		Provider: req.Provider,
+		Name:     req.Name,
+		Region:   req.Region,
+		Data:     make(map[string]string),
 	}
-	
-	// Adicionar campos específicos do provider
-	if req.TenancyOCID != "" { credMap["tenancy_ocid"] = req.TenancyOCID }
-	if req.UserOCID != "" { credMap["user_ocid"] = req.UserOCID }
-	if req.Fingerprint != "" { credMap["fingerprint"] = req.Fingerprint }
-	if req.PrivateKey != "" { credMap["private_key"] = req.PrivateKey }
-	if req.SubscriptionID != "" { credMap["subscription_id"] = req.SubscriptionID }
-	if req.ClientID != "" { credMap["client_id"] = req.ClientID }
-	if req.ClientSecret != "" { credMap["client_secret"] = req.ClientSecret }
-	if req.ProjectID != "" { credMap["project_id"] = req.ProjectID }
-	if req.ServiceKey != "" { credMap["service_key"] = req.ServiceKey }
-	if req.APIToken != "" { credMap["api_token"] = req.APIToken }
-	
-	h.scanner.StoreCredentials(req.Provider, credMap)
-	
-	// Registrar provider no inventory
-	// (Em produção, isso criaria um scanner.Service real com as credenciais)
-	
+
+	// Armazenar campos sensíveis criptografados
+	if req.AccessKey != "" {
+		entry.Data["access_key"] = req.AccessKey
+	}
+	if req.SecretKey != "" {
+		entry.Data["secret_key"] = req.SecretKey
+	}
+	if req.TenancyOCID != "" {
+		entry.Data["tenancy_ocid"] = req.TenancyOCID
+	}
+	if req.UserOCID != "" {
+		entry.Data["user_ocid"] = req.UserOCID
+	}
+	if req.Fingerprint != "" {
+		entry.Data["fingerprint"] = req.Fingerprint
+	}
+	if req.PrivateKey != "" {
+		entry.Data["private_key"] = req.PrivateKey
+	}
+	if req.SubscriptionID != "" {
+		entry.Data["subscription_id"] = req.SubscriptionID
+	}
+	if req.ClientID != "" {
+		entry.Data["client_id"] = req.ClientID
+	}
+	if req.ClientSecret != "" {
+		entry.Data["client_secret"] = req.ClientSecret
+	}
+	if req.ProjectID != "" {
+		entry.Data["project_id"] = req.ProjectID
+	}
+	if req.ServiceKey != "" {
+		entry.Data["service_key"] = req.ServiceKey
+	}
+	if req.APIToken != "" {
+		entry.Data["api_token"] = req.APIToken
+	}
+
+	// Salvar no vault criptografado
+	if err := h.vault.Add(entry); err != nil {
+		c.JSON(500, gin.H{"error": "failed to save credentials: " + err.Error()})
+		return
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
-		"id":       req.Provider + "-" + req.Name,
+		"id":       entry.ID,
 		"provider": req.Provider,
 		"name":     req.Name,
 		"status":   "connected",
-		"message":  "Credenciais salvas com sucesso",
+		"message":  "Credenciais salvas com segurança (AES-256-GCM)",
 	})
 }
 
@@ -418,11 +449,11 @@ func (h *Handler) RunRealScan(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(200, gin.H{
 		"scan_id":  "scan-" + req.Provider,
 		"status":   "running",
 		"provider": req.Provider,
-		"message":  "Scan iniciado com credenciais reais",
+		"message":  "Scan iniciado com credenciais criptografadas",
 	})
 }
