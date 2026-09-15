@@ -46,6 +46,20 @@
         .toast-error { background: #ef4444; }
         .toast-info { background: #3b82f6; }
         .toast-warning { background: #f59e0b; }
+        .category-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .resource-row { transition: background 0.15s; }
+        .resource-row:hover { background: #f5f8ff; }
+        .inventory-section { margin-bottom: 24px; }
+        .inventory-section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+        .inventory-section-header:hover { background: #f1f5f9; }
+        .resource-count { background: #e8efff; color: #4c7df0; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .category-compute { background: #fef3c7; color: #d97706; }
+        .category-network { background: #dbeafe; color: #2563eb; }
+        .category-storage { background: #dcfce7; color: #16a34a; }
+        .category-iam { background: #f3e8ff; color: #9333ea; }
+        .category-database { background: #fee2e2; color: #dc2626; }
+        .category-security { background: #fff7ed; color: #ea580c; }
+        .category-other { background: #f1f5f9; color: #64748b; }
     </style>
 </head>
 <body class="min-h-screen bg-[#f6f8fb] text-[#142033]">
@@ -78,9 +92,7 @@
                 <h1 class="text-[16px] lg:text-[18px] font-bold" id="page-title">Dashboard</h1>
             </div>
             <div class="flex items-center gap-2">
-                <button onclick="showScanModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]">
-                    <i data-lucide="scan-line" class="size-3.5"></i> Novo Scan
-                </button>
+                <button onclick="showScanModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="scan-line" class="size-3.5"></i> Novo Scan</button>
                 <div class="flex size-8 items-center justify-center rounded-lg bg-[#e8efff] text-[11px] font-bold text-[#4c7df0]">AC</div>
             </div>
         </header>
@@ -110,56 +122,32 @@
                         <p class="text-[20px] lg:text-[24px] font-bold">1.139</p>
                     </div>
                 </div>
-
-                <!-- Scans Ativos -->
                 <div class="rounded-2xl border border-[#e3e9f1] bg-white mb-6">
                     <div class="flex items-center justify-between border-b border-[#edf1f5] px-4 lg:px-5 py-4">
-                        <div>
-                            <h2 class="text-[14px] font-semibold">Scans em Andamento</h2>
-                            <p class="text-[11px] text-[#8b97a8] mt-0.5">Acompanhe o progresso dos scans</p>
-                        </div>
-                        <button onclick="showScanModal()" class="flex items-center gap-2 rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]">
-                            <i data-lucide="plus" class="size-3.5"></i> Iniciar Scan
-                        </button>
+                        <div><h2 class="text-[14px] font-semibold">Scans em Andamento</h2></div>
+                        <button onclick="showScanModal()" class="flex items-center gap-2 rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]"><i data-lucide="plus" class="size-3.5"></i> Iniciar Scan</button>
                     </div>
-                    <div class="p-4" id="active-scans-list">
-                        <p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum scan em andamento</p>
-                    </div>
+                    <div class="p-4" id="active-scans-list"><p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum scan em andamento</p></div>
                 </div>
-
-                <!-- Últimos Scans -->
                 <div class="rounded-2xl border border-[#e3e9f1] bg-white">
-                    <div class="border-b border-[#edf1f5] px-4 lg:px-5 py-4">
-                        <h2 class="text-[14px] font-semibold">Últimos Scans</h2>
-                        <p class="text-[11px] text-[#8b97a8] mt-0.5">Histórico de scans realizados</p>
-                    </div>
-                    <div class="divide-y divide-[#edf1f5]" id="scans-list">
-                        <div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</div>
-                    </div>
+                    <div class="border-b border-[#edf1f5] px-4 lg:px-5 py-4"><h2 class="text-[14px] font-semibold">Últimos Scans</h2></div>
+                    <div class="divide-y divide-[#edf1f5]" id="scans-list"><div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</div></div>
                 </div>
             </div>
 
             <!-- Findings Page -->
             <div id="page-findings" class="page-section">
-                <div class="mb-6">
-                    <h2 class="text-[14px] font-semibold mb-3">Filtrar por Provider</h2>
-                    <div class="flex gap-2 pb-2 overflow-x-auto" id="provider-tabs"></div>
-                </div>
+                <div class="mb-6"><h2 class="text-[14px] font-semibold mb-3">Filtrar por Provider</h2><div class="flex gap-2 pb-2 overflow-x-auto" id="provider-tabs"></div></div>
                 <div class="rounded-2xl border border-[#e3e9f1] bg-white">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#edf1f5] px-4 lg:px-5 py-4">
-                        <div>
-                            <h2 class="text-[14px] font-semibold" id="findings-title">Todos os Providers</h2>
-                            <p class="text-[11px] text-[#8b97a8] mt-0.5" id="findings-subtitle">Selecione um provider para filtrar</p>
-                        </div>
+                        <div><h2 class="text-[14px] font-semibold" id="findings-title">Todos os Providers</h2></div>
                         <div class="flex items-center gap-2">
                             <select id="severity-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Severidade</option><option value="critical">Crítico</option><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option></select>
                             <select id="status-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Status</option><option value="fail">Falha</option><option value="pass">Passou</option></select>
                         </div>
                     </div>
-                    <table class="w-full">
-                        <thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th></tr></thead>
-                        <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody>
-                    </table>
+                    <table class="w-full"><thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th></tr></thead>
+                    <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody></table>
                 </div>
             </div>
 
@@ -169,29 +157,39 @@
                     <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
                         <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#eff6ff] text-[#3b82f6]"><i data-lucide="database" class="size-5"></i></div>
                         <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Total Resources</p>
-                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="inv-total">—</p>
                     </div>
                     <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444]"><i data-lucide="x-circle" class="size-5"></i></div>
-                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Risco Alto</p>
-                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444]"><i data-lucide="server" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Compute</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="inv-compute">—</p>
                     </div>
                     <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#22c55e]"><i data-lucide="check-circle" class="size-5"></i></div>
-                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Monitorados</p>
-                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fff7ed] text-[#f97316]"><i data-lucide="network" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Network</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="inv-network">—</p>
                     </div>
                     <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fff7ed] text-[#f97316]"><i data-lucide="refresh-cw" class="size-5"></i></div>
-                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Último Sync</p>
-                        <p class="text-[14px] lg:text-[16px] font-bold">—</p>
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#22c55e]"><i data-lucide="hard-drive" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Storage</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="inv-storage">—</p>
                     </div>
                 </div>
+
+                <!-- Provider Tabs -->
+                <div class="mb-6">
+                    <div class="flex gap-2 pb-2 overflow-x-auto" id="inv-provider-tabs"></div>
+                </div>
+
+                <!-- Resources by Category -->
                 <div class="rounded-2xl border border-[#e3e9f1] bg-white">
-                    <div class="flex items-center justify-between border-b border-[#edf1f5] px-4 lg:px-5 py-4">
-                        <h2 class="text-[14px] font-semibold">Resources por Provider</h2>
+                    <div class="border-b border-[#edf1f5] px-4 lg:px-5 py-4">
+                        <h2 class="text-[14px] font-semibold">Recursos por Categoria</h2>
+                        <p class="text-[11px] text-[#8b97a8] mt-0.5">Compute, Network, Storage, IAM, Database, Security</p>
                     </div>
-                    <div class="divide-y divide-[#edf1f5]" id="inventory-list">Carregando...</div>
+                    <div class="p-4" id="inventory-categories">
+                        <p class="text-[13px] text-[#8b97a8] text-center py-8">Selecione um provider para ver os recursos</p>
+                    </div>
                 </div>
             </div>
 
@@ -210,31 +208,21 @@
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
                     <div class="rounded-2xl border border-[#e3e9f1] bg-white">
                         <div class="flex items-center justify-between border-b border-[#edf1f5] px-5 py-4">
-                            <div>
-                                <h2 class="text-[14px] font-semibold">Providers Configurados</h2>
-                                <p class="text-[11px] text-[#8b97a8] mt-0.5">Gerencie suas contas de cloud</p>
-                            </div>
+                            <div><h2 class="text-[14px] font-semibold">Providers Configurados</h2></div>
                             <button onclick="showAddProviderModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="plus" class="size-3.5"></i> Adicionar</button>
                         </div>
                         <div class="p-4 space-y-3" id="providers-list"></div>
                     </div>
                     <div class="rounded-2xl border border-[#e3e9f1] bg-white">
                         <div class="flex items-center justify-between border-b border-[#edf1f5] px-5 py-4">
-                            <div>
-                                <h2 class="text-[14px] font-semibold">API Keys</h2>
-                                <p class="text-[11px] text-[#8b97a8] mt-0.5">Gerencie chaves de acesso</p>
-                            </div>
+                            <div><h2 class="text-[14px] font-semibold">API Keys</h2></div>
                             <button onclick="showAddKeyModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="plus" class="size-3.5"></i> Nova Key</button>
                         </div>
-                        <div class="p-4 space-y-3" id="api-keys-list">
-                            <p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhuma API key configurada</p>
-                        </div>
+                        <div class="p-4 space-y-3" id="api-keys-list"><p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhuma API key configurada</p></div>
                     </div>
                 </div>
                 <div class="mt-4 lg:mt-6 rounded-2xl border border-[#e3e9f1] bg-white">
-                    <div class="border-b border-[#edf1f5] px-5 py-4">
-                        <h2 class="text-[14px] font-semibold">Configurações de Scan</h2>
-                    </div>
+                    <div class="border-b border-[#edf1f5] px-5 py-4"><h2 class="text-[14px] font-semibold">Configurações de Scan</h2></div>
                     <div class="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div><label class="form-label">Intervalo</label><select class="form-input"><option>24 horas</option><option>12 horas</option><option>6 horas</option><option>Manual</option></select></div>
                         <div><label class="form-label">Severidade Mínima</label><select class="form-input"><option>Medium</option><option>High</option><option>Critical</option></select></div>
@@ -253,44 +241,13 @@
                 <button onclick="hideScanModal()" class="rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]"><i data-lucide="x" class="size-5"></i></button>
             </div>
             <div class="space-y-4">
-                <div>
-                    <label class="form-label">Provider</label>
-                    <select class="form-input" id="scan-provider" onchange="updateScanServices()">
-                        <option value="">Selecione um provider</option>
-                        <option value="oci">Oracle Cloud Infrastructure (OCI)</option>
-                        <option value="aws">Amazon Web Services (AWS)</option>
-                        <option value="azure">Microsoft Azure</option>
-                        <option value="gcp">Google Cloud Platform (GCP)</option>
-                        <option value="cloudflare">Cloudflare</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label">Escopo do Scan</label>
-                    <select class="form-input" id="scan-scope">
-                        <option value="full">Completo (todos os serviços)</option>
-                        <option value="security">Apenas segurança</option>
-                        <option value="compliance">Apenas compliance</option>
-                        <option value="custom">Personalizado</option>
-                    </select>
-                </div>
-                <div id="scan-services">
-                    <label class="form-label">Serviços (opcional)</label>
-                    <p class="text-[12px] text-[#8b97a8]">Selecione os serviços específicos ou deixe vazio para todos</p>
-                    <div class="mt-2 grid grid-cols-2 gap-2" id="services-checklist"></div>
-                </div>
-                <div class="rounded-xl bg-[#f0f5ff] p-4">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="info" class="size-5 text-[#4c7df0]"></i>
-                        <div>
-                            <p class="text-[12px] font-medium">Tempo estimado</p>
-                            <p class="text-[11px] text-[#8b97a8]">2-5 minutos para scan completo</p>
-                        </div>
-                    </div>
-                </div>
+                <div><label class="form-label">Provider</label><select class="form-input" id="scan-provider" onchange="updateScanServices()"><option value="">Selecione</option><option value="oci">OCI</option><option value="aws">AWS</option><option value="azure">Azure</option><option value="gcp">GCP</option><option value="cloudflare">Cloudflare</option></select></div>
+                <div><label class="form-label">Escopo</label><select class="form-input" id="scan-scope"><option value="full">Completo</option><option value="security">Segurança</option><option value="compliance">Compliance</option></select></div>
+                <div id="scan-services"><label class="form-label">Serviços</label><div class="grid grid-cols-2 gap-2" id="services-checklist"></div></div>
             </div>
             <div class="mt-6 flex justify-end gap-3">
-                <button onclick="hideScanModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]">Cancelar</button>
-                <button onclick="startScan()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Iniciar Scan</button>
+                <button onclick="hideScanModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
+                <button onclick="startScan()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Iniciar</button>
             </div>
         </div>
     </div>
@@ -304,7 +261,7 @@
             </div>
             <div class="space-y-4">
                 <div><label class="form-label">Provider</label><select class="form-input" id="new-provider-type" onchange="renderProviderFields()"><option value="aws">AWS</option><option value="oci">OCI</option><option value="azure">Azure</option><option value="gcp">GCP</option><option value="cloudflare">Cloudflare</option></select></div>
-                <div><label class="form-label">Nome da Conta</label><input type="text" class="form-input" id="new-provider-name" placeholder="Ex: Conta Produção"></div>
+                <div><label class="form-label">Nome</label><input type="text" class="form-input" id="new-provider-name" placeholder="Ex: Conta Produção"></div>
                 <div><label class="form-label">Região</label><input type="text" class="form-input" id="new-provider-region" placeholder="Ex: sa-saopaulo-1"></div>
                 <div id="provider-fields"></div>
             </div>
@@ -324,9 +281,9 @@
             </div>
             <div class="space-y-4">
                 <div><label class="form-label">Provider</label><select class="form-input" id="new-key-provider"><option value="aws">AWS</option><option value="oci">OCI</option><option value="azure">Azure</option><option value="gcp">GCP</option><option value="cloudflare">Cloudflare</option></select></div>
-                <div><label class="form-label">Nome</label><input type="text" class="form-input" id="new-key-name" placeholder="Ex: chave-producao"></div>
-                <div><label class="form-label">Access Key</label><input type="text" class="form-input" id="new-key-access" placeholder="AKIA..."></div>
-                <div><label class="form-label">Secret Key</label><input type="password" class="form-input" id="new-key-secret" placeholder="••••••"></div>
+                <div><label class="form-label">Nome</label><input type="text" class="form-input" id="new-key-name"></div>
+                <div><label class="form-label">Access Key</label><input type="text" class="form-input" id="new-key-access"></div>
+                <div><label class="form-label">Secret</label><input type="password" class="form-input" id="new-key-secret"></div>
             </div>
             <div class="mt-6 flex justify-end gap-3">
                 <button onclick="hideAddKeyModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
@@ -347,33 +304,18 @@
         let activeScans = [];
 
         async function api(method, path, body) {
-            const res = await fetch(API_BASE + path, {
-                method, headers: { 'Content-Type': 'application/json', ...(TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}) },
-                body: body ? JSON.stringify(body) : null
-            });
+            const res = await fetch(API_BASE + path, { method, headers: { 'Content-Type': 'application/json', ...(TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}) }, body: body ? JSON.stringify(body) : null });
             return res.json();
         }
 
-        function showToast(msg, type) {
-            const t = document.createElement('div');
-            t.className = 'toast toast-' + type;
-            t.textContent = msg;
-            document.body.appendChild(t);
-            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000);
-        }
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.getElementById('sidebar-overlay').classList.toggle('hidden');
-        }
+        function showToast(msg, type) { const t = document.createElement('div'); t.className = 'toast toast-' + type; t.textContent = msg; document.body.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000); }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
 
         function showPage(route) {
             document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-            const page = document.getElementById('page-' + route);
-            if (page) page.classList.add('active');
+            const page = document.getElementById('page-' + route); if (page) page.classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const nav = document.querySelector(`.nav-item[data-route="${route}"]`);
-            if (nav) nav.classList.add('active');
+            const nav = document.querySelector(`.nav-item[data-route="${route}"]`); if (nav) nav.classList.add('active');
             const titles = { dashboard: 'Dashboard', findings: 'Findings', inventory: 'Cloud Inventory', automation: 'Automation', configuration: 'Configuration' };
             document.getElementById('page-title').textContent = titles[route] || 'Dashboard';
             if (route === 'findings') loadFindings();
@@ -382,101 +324,25 @@
             if (window.innerWidth < 1024) { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.add('hidden'); }
         }
 
-        // === Scan Functions ===
-        function showScanModal() {
-            document.getElementById('scan-modal').classList.add('active');
-            updateScanServices();
-        }
-
-        function hideScanModal() {
-            document.getElementById('scan-modal').classList.remove('active');
-        }
-
+        // === Scan ===
+        function showScanModal() { document.getElementById('scan-modal').classList.add('active'); updateScanServices(); }
+        function hideScanModal() { document.getElementById('scan-modal').classList.remove('active'); }
         function updateScanServices() {
-            const provider = document.getElementById('scan-provider').value;
-            const services = {
-                oci: ['Compute', 'Network', 'Storage', 'Identity', 'Cloud Guard', 'Events', 'KMS'],
-                aws: ['EC2', 'S3', 'IAM', 'RDS', 'CloudTrail', 'VPC', 'Lambda', 'ECS'],
-                azure: ['Compute', 'Storage', 'Network', 'Key Vault', 'Monitor'],
-                gcp: ['Compute', 'Storage', 'IAM', 'VPC', 'KMS', 'Cloud SQL'],
-                cloudflare: ['WAF', 'DNS', 'SSL/TLS', 'Bot Management'],
-            };
-            const list = services[provider] || [];
-            document.getElementById('services-checklist').innerHTML = list.map(s => `
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked class="size-4 rounded border-[#e8edf4] text-[#4c7df0]">
-                    <span class="text-[12px]">${s}</span>
-                </label>
-            `).join('');
+            const services = { oci: ['Compute', 'Network', 'Storage', 'Identity', 'Cloud Guard'], aws: ['EC2', 'S3', 'IAM', 'RDS', 'CloudTrail'], azure: ['Compute', 'Storage', 'Network', 'Key Vault'], gcp: ['Compute', 'Storage', 'IAM', 'VPC'], cloudflare: ['WAF', 'DNS', 'SSL'] };
+            const list = services[document.getElementById('scan-provider').value] || [];
+            document.getElementById('services-checklist').innerHTML = list.map(s => `<label class="flex items-center gap-2"><input type="checkbox" checked class="size-4 rounded"><span class="text-[12px]">${s}</span></label>`).join('');
         }
-
         async function startScan() {
-            const provider = document.getElementById('scan-provider').value;
-            const scope = document.getElementById('scan-scope').value;
-            if (!provider) { showToast('Selecione um provider', 'error'); return; }
-
+            const provider = document.getElementById('scan-provider').value; if (!provider) { showToast('Selecione um provider', 'error'); return; }
             try {
-                // Criar scan
-                const scan = await api('POST', '/api/scans', { provider, scope, name: `Scan ${provider.toUpperCase()} - ${scope}` });
-                
-                if (scan.id) {
-                    showToast(`Scan ${scan.id} iniciado!`, 'success');
-                    hideScanModal();
-                    
-                    // Adicionar à lista de scans ativos
-                    activeScans.push({ id: scan.id, provider, scope, status: 'running', progress: 0, startedAt: new Date() });
-                    renderActiveScans();
-                    
-                    // Iniciar scan
-                    await api('POST', `/api/scans/${scan.id}/run`);
-                    
-                    // Simular progresso
-                    simulateScanProgress(scan.id);
-                }
-            } catch (e) {
-                showToast('Erro ao iniciar scan: ' + e.message, 'error');
-            }
+                const scan = await api('POST', '/api/scans', { provider, name: `Scan ${provider.toUpperCase()}` });
+                if (scan.id) { showToast(`Scan iniciado!`, 'success'); hideScanModal(); activeScans.push({ id: scan.id, provider, progress: 0, status: 'running' }); renderActiveScans(); simulateScanProgress(scan.id); await api('POST', `/api/scans/${scan.id}/run`); }
+            } catch (e) { showToast('Erro: ' + e.message, 'error'); }
         }
-
-        function simulateScanProgress(scanId) {
-            const scan = activeScans.find(s => s.id === scanId);
-            if (!scan) return;
-            
-            const interval = setInterval(() => {
-                scan.progress += Math.random() * 15;
-                if (scan.progress >= 100) {
-                    scan.progress = 100;
-                    scan.status = 'completed';
-                    showToast(`Scan ${scanId} concluído!`, 'success');
-                    clearInterval(interval);
-                }
-                renderActiveScans();
-            }, 1000);
-        }
-
+        function simulateScanProgress(id) { const s = activeScans.find(x => x.id === id); if (!s) return; const i = setInterval(() => { s.progress += Math.random() * 15; if (s.progress >= 100) { s.progress = 100; s.status = 'completed'; showToast('Scan concluído!', 'success'); clearInterval(i); } renderActiveScans(); }, 1000); }
         function renderActiveScans() {
-            const list = document.getElementById('active-scans-list');
-            if (!activeScans.length) {
-                list.innerHTML = '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum scan em andamento</p>';
-                return;
-            }
-            list.innerHTML = activeScans.map(s => `
-                <div class="flex items-center gap-4 py-3 border-b border-[#edf1f5] last:border-0">
-                    <div class="flex size-10 items-center justify-center rounded-lg bg-[#eff6ff] text-[#3b82f6] ${s.status === 'running' ? 'scan-progress' : ''}">
-                        <i data-lucide="${s.status === 'completed' ? 'check-circle' : 'scan-line'}" class="size-5"></i>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-[12px] font-medium">${s.provider.toUpperCase()} - ${s.scope}</p>
-                        <div class="mt-1 flex items-center gap-2">
-                            <div class="h-1.5 flex-1 rounded-full bg-[#edf1f5]">
-                                <div class="h-1.5 rounded-full bg-[#4c7df0] transition-all" style="width: ${s.progress}%"></div>
-                            </div>
-                            <span class="text-[10px] font-medium text-[#4c7df0]">${Math.round(s.progress)}%</span>
-                        </div>
-                    </div>
-                    <span class="rounded-full px-2 py-0.5 text-[10px] font-bold ${s.status === 'completed' ? 'bg-[#dcfce7] text-[#22c55e]' : 'bg-[#eff6ff] text-[#4c7df0]'}">${s.status === 'completed' ? 'Concluído' : 'Executando'}</span>
-                </div>
-            `).join('');
+            const l = document.getElementById('active-scans-list');
+            l.innerHTML = activeScans.length ? activeScans.map(s => `<div class="flex items-center gap-4 py-3 border-b border-[#edf1f5]"><div class="flex size-10 items-center justify-center rounded-lg bg-[#eff6ff] ${s.status === 'running' ? 'scan-progress' : ''}"><i data-lucide="${s.status === 'completed' ? 'check' : 'scan-line'}" class="size-5"></i></div><div class="flex-1"><p class="text-[12px] font-medium">${s.provider.toUpperCase()}</p><div class="mt-1 h-1.5 rounded-full bg-[#edf1f5]"><div class="h-1.5 rounded-full bg-[#4c7df0" style="width:${s.progress}%"></div></div></div><span class="text-[10px] ${s.status === 'completed' ? 'text-green-600' : 'text-blue-600'}">${Math.round(s.progress)}%</span></div>`).join('') : '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum scan em andamento</p>';
             if (window.lucide) lucide.createIcons();
         }
 
@@ -486,136 +352,112 @@
             document.getElementById('stat-findings').textContent = stats.total || 0;
             document.getElementById('stat-critical').textContent = stats.critical || 0;
             document.getElementById('stat-high').textContent = stats.high || 0;
-
-            const providerTypes = [
-                { id: 'all', name: 'Todos', icon: '🌐' },
-                { id: 'oci', name: 'OCI', icon: '🔶' },
-                { id: 'aws', name: 'AWS', icon: '☁️' },
-                { id: 'azure', name: 'Azure', icon: '🔷' },
-                { id: 'gcp', name: 'GCP', icon: '🌍' },
-                { id: 'cloudflare', name: 'Cloudflare', icon: '🛡️' },
-            ];
-            document.getElementById('provider-tabs').innerHTML = providerTypes.map(p => `
-                <button onclick="selectProvider('${p.id}')" class="provider-tab ${currentProvider === p.id ? 'active' : ''}">
-                    <span>${p.icon}</span><span>${p.name}</span>
-                    ${stats.providers && stats.providers[p.id] ? `<span class="ml-1 rounded-full bg-[#e8efff] px-1.5 py-0.5 text-[10px] font-bold text-[#4c7df0]">${stats.providers[p.id].total}</span>` : ''}
-                </button>
-            `).join('');
-            
-            allFindings = await api('GET', '/api/findings-by-provider');
-            renderFindings();
+            const pts = [{id:'all',name:'Todos',icon:'🌐'},{id:'oci',name:'OCI',icon:'🔶'},{id:'aws',name:'AWS',icon:'☁️'},{id:'azure',name:'Azure',icon:'🔷'},{id:'gcp',name:'GCP',icon:'🌍'},{id:'cloudflare',name:'Cloudflare',icon:'🛡️'}];
+            document.getElementById('provider-tabs').innerHTML = pts.map(p => `<button onclick="selectProvider('${p.id}')" class="provider-tab ${currentProvider === p.id ? 'active' : ''}"><span>${p.icon}</span><span>${p.name}</span></button>`).join('');
+            allFindings = await api('GET', '/api/findings-by-provider'); renderFindings();
         }
-
         function selectProvider(p) { currentProvider = p; loadFindings(); }
-
         function renderFindings() {
-            let all = [];
-            if (currentProvider === 'all') { for (const [p, f] of Object.entries(allFindings)) all.push(...f); }
-            else if (allFindings[currentProvider]) all = allFindings[currentProvider];
-            
-            const sev = document.getElementById('severity-filter').value;
-            const stat = document.getElementById('status-filter').value;
-            if (sev !== 'all') all = all.filter(f => f.severity === sev);
-            if (stat !== 'all') all = all.filter(f => f.status === stat);
-            
-            const list = document.getElementById('findings-list');
-            if (!all.length) { list.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum finding</td></tr>`; return; }
-            list.innerHTML = all.map(f => `
-                <tr class="finding-row border-b border-[#edf1f5] transition-colors">
-                    <td class="px-4 lg:px-5 py-3"><span class="flex size-6 items-center justify-center rounded-full ${f.status === 'pass' ? 'bg-[#dcfce7] text-[#22c55e]' : 'bg-[#fee2e2] text-[#ef4444]'}"><i data-lucide="${f.status === 'pass' ? 'check' : 'x'}" class="size-3"></i></span></td>
-                    <td class="px-4 lg:px-5 py-3"><p class="text-[12px] font-medium truncate max-w-[250px]">${f.title}</p></td>
-                    <td class="hidden sm:table-cell px-4 lg:px-5 py-3"><span class="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-medium text-[#475569]">${f.provider}</span></td>
-                    <td class="hidden md:table-cell px-4 lg:px-5 py-3"><span class="text-[11px] text-[#4b5563]">${f.service}</span></td>
-                    <td class="px-4 lg:px-5 py-3"><div class="flex items-center gap-2"><span class="severity-dot ${f.severity}"></span><span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold badge-${f.severity}">${f.severity}</span></div></td>
-                </tr>
-            `).join('');
+            let all = []; if (currentProvider === 'all') { for (const [p, f] of Object.entries(allFindings)) all.push(...f); } else if (allFindings[currentProvider]) all = allFindings[currentProvider];
+            const sev = document.getElementById('severity-filter').value; const stat = document.getElementById('status-filter').value;
+            if (sev !== 'all') all = all.filter(f => f.severity === sev); if (stat !== 'all') all = all.filter(f => f.status === stat);
+            const l = document.getElementById('findings-list'); if (!all.length) { l.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-[#8b97a8]">Nenhum finding</td></tr>`; return; }
+            l.innerHTML = all.map(f => `<tr class="finding-row border-b border-[#edf1f5]"><td class="px-4 py-3"><span class="flex size-6 items-center justify-center rounded-full ${f.status === 'pass' ? 'bg-[#dcfce7] text-[#22c55e]' : 'bg-[#fee2e2] text-[#ef4444]'}"><i data-lucide="${f.status === 'pass' ? 'check' : 'x'}" class="size-3"></i></span></td><td class="px-4 py-3"><p class="text-[12px] font-medium truncate max-w-[250px]">${f.title}</p></td><td class="hidden sm:table-cell px-4 py-3"><span class="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px]">${f.provider}</span></td><td class="hidden md:table-cell px-4 py-3"><span class="text-[11px]">${f.service}</span></td><td class="px-4 py-3"><span class="severity-dot ${f.severity}"></span> <span class="text-[10px] font-bold badge-${f.severity}">${f.severity}</span></td></tr>`).join('');
             if (window.lucide) lucide.createIcons();
         }
-
         function filterFindings() { renderFindings(); }
 
         // === Inventory ===
         async function loadInventory() {
-            const providers = await api('GET', '/api/inventory-v2/providers');
-            const list = document.getElementById('inventory-list');
-            if (!providers || !providers.length) { list.innerHTML = '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum provider</div>'; return; }
+            const prvs = await api('GET', '/api/inventory-v2/providers');
+            const invTabs = document.getElementById('inv-provider-tabs');
+            invTabs.innerHTML = [{id:'all',name:'Todos',icon:'🌐'}, ...prvs.map(p => ({id:p.id, name:p.id.toUpperCase(), icon: {aws:'☁️',oci:'🔶',azure:'🔷',gcp:'🌍',cloudflare:'🛡️'}[p.id] || '☁️'}))].map(p => `<button onclick="selectInvProvider('${p.id}')" class="provider-tab ${currentInvProvider === p.id ? 'active' : ''}"><span>${p.icon}</span><span>${p.name}</span></button>`).join('');
+            renderInventory(prvs);
+        }
+
+        function renderInventory(invProviders) {
+            const container = document.getElementById('inventory-categories');
+            const categories = { compute: [], network: [], storage: [], iam: [], database: [], security: [] };
+            
+            // Group resources by category
+            invProviders.forEach(p => {
+                (p.tables || []).forEach(t => {
+                    const cat = categorizeTable(t);
+                    categories[cat].push({ provider: p.id, table: t });
+                });
+            });
+
             let html = '';
-            for (const p of providers) {
-                if (p.tables) for (const t of p.tables) {
-                    html += `<div class="flex items-center justify-between px-4 py-3"><div class="flex items-center gap-3"><div class="flex size-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#3b82f6]"><i data-lucide="database" class="size-4"></i></div><div><p class="text-[12px] font-medium">${p.id}.${t}</p></div></div><button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="syncInv('${p.id}')">Sync</button></div>`;
-                }
+            const catIcons = { compute: 'server', network: 'network', storage: 'hard-drive', iam: 'users', database: 'database', security: 'shield' };
+            const catLabels = { compute: 'Compute', network: 'Network', storage: 'Storage', iam: 'IAM / Users', database: 'Database', security: 'Security' };
+            const catColors = { compute: 'category-compute', network: 'category-network', storage: 'category-storage', iam: 'category-iam', database: 'category-database', security: 'category-security' };
+
+            for (const [cat, items] of Object.entries(categories)) {
+                if (items.length === 0) continue;
+                html += `
+                    <div class="inventory-section">
+                        <div class="inventory-section-header">
+                            <div class="flex items-center gap-3">
+                                <i data-lucide="${catIcons[cat]}" class="size-5 text-[#64748b]"></i>
+                                <span class="text-[13px] font-semibold">${catLabels[cat]}</span>
+                                <span class="resource-count">${items.length}</span>
+                            </div>
+                            <i data-lucide="chevron-down" class="size-4 text-[#94a3b8]"></i>
+                        </div>
+                        <div class="px-2 py-2">
+                            ${items.map(i => `
+                                <div class="resource-row flex items-center justify-between px-3 py-2 rounded-lg">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex size-8 items-center justify-center rounded-lg bg-[#f1f5f9]"><i data-lucide="database" class="size-4 text-[#64748b]"></i></div>
+                                        <div><p class="text-[12px] font-medium">${i.table}</p><p class="text-[10px] text-[#8b97a8]">${i.provider.toUpperCase()}</p></div>
+                                    </div>
+                                    <button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="syncInv('${i.provider}')">Sync</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
             }
-            list.innerHTML = html || '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum resource</div>';
+
+            container.innerHTML = html || '<p class="text-[13px] text-[#8b97a8] text-center py-8">Nenhum resource encontrado</p>';
             if (window.lucide) lucide.createIcons();
+        }
+
+        function categorizeTable(tableName) {
+            const t = tableName.toLowerCase();
+            if (t.includes('instance') || t.includes('compute') || t.includes('vm') || t.includes('function') || t.includes('lambda')) return 'compute';
+            if (t.includes('vpc') || t.includes('network') || t.includes('vcn') || t.includes('subnet') || t.includes('security_list') || t.includes('security_group') || t.includes('firewall') || t.includes('waf') || t.includes('dns') || t.includes('route')) return 'network';
+            if (t.includes('bucket') || t.includes('s3') || t.includes('storage') || t.includes('disk') || t.includes('volume') || t.includes('blob') || t.includes('filestore')) return 'storage';
+            if (t.includes('iam') || t.includes('user') || t.includes('group') || t.includes('role') || t.includes('policy') || t.includes('identity') || t.includes('service_account')) return 'iam';
+            if (t.includes('rds') || t.includes('sql') || t.includes('database') || t.includes('dynamo') || t.includes('redis') || t.includes('cache') || t.includes('mongo') || t.includes('mysql') || t.includes('postgres')) return 'database';
+            if (t.includes('guard') || t.includes('cloudguard') || t.includes('waf') || t.includes('shield') || t.includes('kms') || t.includes('key') || t.includes('secret') || t.includes('ssl') || t.includes('tls') || t.includes('certificate') || t.includes('event') || t.includes('trail') || t.includes('log') || t.includes('alarm')) return 'security';
+            return 'other';
         }
 
         function syncInv(p) { api('POST', '/api/inventory-v2/' + p + '/sync').then(() => loadInventory()); }
 
         // === Configuration ===
         function loadConfiguration() { renderProvidersList(); }
-
         function renderProvidersList() {
             const list = document.getElementById('providers-list');
             const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
-            list.innerHTML = providers.map(p => `
-                <div class="provider-card flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] text-[18px]">${icons[p.type] || '☁️'}</div>
-                        <div><p class="text-[13px] font-medium">${p.name}</p><p class="text-[11px] text-[#8b97a8]">${p.type.toUpperCase()} · ${p.region}</p></div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="flex items-center gap-1.5 text-[11px] font-medium ${p.status === 'connected' ? 'text-[#22c55e]' : 'text-[#9ca3af]'}">
-                            <span class="flex size-2 rounded-full ${p.status === 'connected' ? 'bg-[#22c55e]' : 'bg-[#9ca3af]'}"></span>
-                            ${p.status === 'connected' ? 'Ativo' : 'Offline'}
-                        </span>
-                        <button onclick="deleteProvider('${p.id}')" class="rounded-lg p-1.5 text-[#ef4444] hover:bg-[#fef2f2]"><i data-lucide="trash-2" class="size-3.5"></i></button>
-                    </div>
-                </div>
-            `).join('');
+            list.innerHTML = providers.map(p => `<div class="provider-card flex items-center justify-between"><div class="flex items-center gap-3"><div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] text-[18px]">${icons[p.type] || '☁️'}</div><div><p class="text-[13px] font-medium">${p.name}</p><p class="text-[11px] text-[#8b97a8]">${p.type.toUpperCase()} · ${p.region}</p></div></div><div class="flex items-center gap-2"><span class="flex items-center gap-1.5 text-[11px] ${p.status === 'connected' ? 'text-[#22c55e]' : 'text-[#9ca3af]'}"><span class="flex size-2 rounded-full ${p.status === 'connected' ? 'bg-[#22c55e]' : 'bg-[#9ca3af]'}"></span>${p.status === 'connected' ? 'Ativo' : 'Offline'}</span><button onclick="deleteProvider('${p.id}')" class="rounded-lg p-1.5 text-[#ef4444] hover:bg-[#fef2f2]"><i data-lucide="trash-2" class="size-3.5"></i></button></div></div>`).join('') || '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum provider</p>';
             if (window.lucide) lucide.createIcons();
         }
-
         function showAddProviderModal() { document.getElementById('add-provider-modal').classList.add('active'); renderProviderFields(); }
         function hideAddProviderModal() { document.getElementById('add-provider-modal').classList.remove('active'); }
         function showAddKeyModal() { document.getElementById('add-key-modal').classList.add('active'); }
         function hideAddKeyModal() { document.getElementById('add-key-modal').classList.remove('active'); }
-
         function renderProviderFields() {
             const type = document.getElementById('new-provider-type').value;
-            const container = document.getElementById('provider-fields');
-            const fields = {
-                aws: [{ id: 'aws-key', label: 'Access Key ID' }, { id: 'aws-secret', label: 'Secret Key', t: 'password' }],
-                oci: [{ id: 'oci-tenancy', label: 'Tenancy OCID' }, { id: 'oci-user', label: 'User OCID' }],
-                azure: [{ id: 'azure-sub', label: 'Subscription ID' }, { id: 'azure-client', label: 'Client ID' }],
-                gcp: [{ id: 'gcp-project', label: 'Project ID' }],
-                cloudflare: [{ id: 'cf-token', label: 'API Token' }],
-            };
-            container.innerHTML = (fields[type] || []).map(f => `<div><label class="form-label">${f.label}</label><input type="${f.t || 'text'}" class="form-input" id="field-${f.id}"></div>`).join('');
+            const fields = { aws: [{id:'aws-key',label:'Access Key'},{id:'aws-secret',label:'Secret Key',t:'password'}], oci: [{id:'oci-tenancy',label:'Tenancy OCID'},{id:'oci-user',label:'User OCID'}], azure: [{id:'azure-sub',label:'Subscription ID'}], gcp: [{id:'gcp-project',label:'Project ID'}], cloudflare: [{id:'cf-token',label:'API Token'}] };
+            document.getElementById('provider-fields').innerHTML = (fields[type] || []).map(f => `<div><label class="form-label">${f.label}</label><input type="${f.t||'text'}" class="form-input" id="field-${f.id}"></div>`).join('');
         }
-
-        function saveProvider() {
-            const type = document.getElementById('new-provider-type').value;
-            const name = document.getElementById('new-provider-name').value;
-            const region = document.getElementById('new-provider-region').value;
-            if (!name) { showToast('Preencha o nome', 'error'); return; }
-            providers.push({ id: name.toLowerCase().replace(/\s+/g, '-'), name, type, region, status: 'disconnected' });
-            hideAddProviderModal(); renderProvidersList();
-            showToast('Provider adicionado!', 'success');
-        }
-
-        function deleteProvider(id) {
-            if (!confirm('Remover provider?')) return;
-            providers = providers.filter(p => p.id !== id); renderProvidersList();
-        }
-
+        function saveProvider() { const type = document.getElementById('new-provider-type').value; const name = document.getElementById('new-provider-name').value; const region = document.getElementById('new-provider-region').value; if (!name) { showToast('Preencha o nome', 'error'); return; } providers.push({ id: name.toLowerCase().replace(/\s+/g, '-'), name, type, region, status: 'disconnected' }); hideAddProviderModal(); renderProvidersList(); showToast('Provider adicionado!', 'success'); }
+        function deleteProvider(id) { if (!confirm('Remover?')) return; providers = providers.filter(p => p.id !== id); renderProvidersList(); }
         function saveApiKey() { hideAddKeyModal(); showToast('API Key salva!', 'success'); }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            const route = window.location.pathname.replace('/', '') || 'dashboard';
-            showPage(route);
-            if (window.lucide) lucide.createIcons();
-        });
+        document.addEventListener('DOMContentLoaded', () => { showPage(window.location.pathname.replace('/', '') || 'dashboard'); if (window.lucide) lucide.createIcons(); });
     </script>
 </body>
 </html>
