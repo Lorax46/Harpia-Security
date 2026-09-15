@@ -141,10 +141,10 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 			Description:    c.metadata.Description,
 			Severity:       "informational",
 			Status:         models.StatusPass,
-			StatusExtended: "No object storage buckets found in any compartment",
+			StatusExtended: fmt.Sprintf("No object storage buckets found in %d compartments scanned", len(complResp.Items)),
 			Provider:       "oci",
 			Service:        "objectstorage",
-			Remediation:    "No action needed - no buckets exist",
+			Remediation:    "No action needed - no buckets exist in your tenancy",
 			Categories:     c.metadata.Categories,
 			FoundAt:        time.Now(),
 		})

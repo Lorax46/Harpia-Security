@@ -75,7 +75,7 @@ func NewIdentityIamAdminsCannotUpdateTenancyAdmins() *IdentityIamAdminsCannotUpd
 		"identity_iam_admins_cannot_update_tenancy_admins",
 		"Ensure IAM admins cannot update tenancy admins",
 		"IAM admins should not be able to update tenancy admins",
-		"high",
+		"critical",
 	)}}
 }
 
@@ -159,7 +159,7 @@ func NewIdentityTenancyAdminPermissionsLimited() *IdentityTenancyAdminPermission
 		"identity_tenancy_admin_permissions_limited",
 		"Ensure tenancy admin permissions are limited",
 		"Tenancy admin permissions should be limited",
-		"high",
+		"critical",
 	)}}
 }
 
