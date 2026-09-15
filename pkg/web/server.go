@@ -50,9 +50,8 @@ func NewServer(cfg Config) *Server {
 
 // setupRoutes registers all routes.
 func (s *Server) setupRoutes(auth *AuthService) {
-	// Static files (new UI)
+	// Static files
 	s.engine.Static("/static", "./web/dashboard/static")
-	s.engine.StaticFile("/", "./web/dashboard/index.html")
 
 	// Auth (NO middleware)
 	authGroup := s.engine.Group("/api/auth")
@@ -114,10 +113,13 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	// Inventory routes
 	s.handler.RegisterInventoryRoutes(api)
 
-	// Findings page route
-	s.engine.GET("/findings-page", s.handler.FindingsPage)
+	// Page routes (SPA - all routes serve index.html)
+	pageRoutes := []string{"/", "/dashboard", "/findings", "/inventory", "/automation", "/configuration"}
+	for _, route := range pageRoutes {
+		s.engine.GET(route, s.handler.Page)
+	}
 
-	// SPA fallback - serve index.html
+	// SPA fallback
 	s.engine.NoRoute(func(c *gin.Context) {
 		c.File("./web/dashboard/index.html")
 	})

@@ -2,613 +2,293 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#162d55">
-    <title>Harpa Security — Cloud Security</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harpa Security — Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* Mobile sidebar overlay */
-        .sidebar-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 40;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s;
-        }
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        /* Sidebar transitions */
-        .sidebar {
-            transition: transform 0.3s ease;
-        }
-        
-        /* Table responsive */
-        .table-responsive {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        /* Card hover effect */
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px -5px rgba(0,0,0,0.1);
-        }
-        
-        /* Severity badges */
+        .sidebar { transition: transform 0.3s ease; }
+        .nav-item.active { background: #eff6ff; color: #4c7df0; font-weight: 600; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.1); }
         .badge-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
         .badge-high { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
         .badge-medium { background: #fefce8; color: #ca8a04; border: 1px solid #fde047; }
         .badge-low { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
-        
-        /* Nav item active state */
-        .nav-item.active {
-            background: #eff6ff;
-            color: #4c7df0;
-            font-weight: 600;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-            .main-content {
-                margin-left: 0 !important;
-            }
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr) !important;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr !important;
-            }
-        }
-        
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-        
-        /* Toast notifications */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            z-index: 100;
-            animation: fadeIn 0.3s;
-        }
-        .toast-success { background: #10b981; }
-        .toast-error { background: #ef4444; }
-        .toast-info { background: #3b82f6; }
+        .severity-dot.critical { background: #ef4444; }
+        .severity-dot.high { background: #f97316; }
+        .severity-dot.medium { background: #eab308; }
+        .severity-dot.low { background: #22c55e; }
+        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0 !important; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .provider-tab { padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid #e8edf4; display: flex; align-items: center; gap: 8px; background: white; white-space: nowrap; }
+        .provider-tab:hover { border-color: #4c7df0; background: #f5f8ff; }
+        .provider-tab.active { background: #eff6ff; border-color: #4c7df0; color: #4c7df0; font-weight: 600; }
+        .finding-row:hover { background: #f5f8ff; }
+        .page-section { display: none; }
+        .page-section.active { display: block; }
     </style>
 </head>
 <body class="min-h-screen bg-[#f6f8fb] text-[#142033]">
-    <!-- Mobile Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="fixed inset-0 z-40 bg-black/50 hidden lg:hidden" id="sidebar-overlay" onclick="toggleSidebar()"></div>
     
-    <!-- Sidebar -->
     <aside class="sidebar fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-[#e3e9f1] bg-white" id="sidebar">
-        <!-- Sidebar Header -->
         <div class="flex h-[68px] items-center justify-between border-b border-[#edf1f5] px-5">
             <div class="flex items-center gap-3">
-                <div class="flex size-9 items-center justify-center rounded-xl bg-[#162d55] text-white">
-                    <i data-lucide="shield-check" class="size-5"></i>
-                </div>
-                <div>
-                    <p class="text-[16px] font-bold leading-tight">Harpa<span class="text-[#4c7df0]">.</span></p>
-                    <p class="text-[9px] font-medium uppercase tracking-[0.16em] text-[#8a96a8]">Cloud Security</p>
-                </div>
+                <div class="flex size-9 items-center justify-center rounded-xl bg-[#162d55] text-white"><i data-lucide="shield-check" class="size-5"></i></div>
+                <div><p class="text-[16px] font-bold">Harpa<span class="text-[#4c7df0]">.</span></p><p class="text-[9px] uppercase tracking-[0.16em] text-[#8a96a8]">Cloud Security</p></div>
             </div>
-            <button class="lg:hidden rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="toggleSidebar()">
-                <i data-lucide="x" class="size-5"></i>
-            </button>
+            <button class="lg:hidden rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="toggleSidebar()"><i data-lucide="x" class="size-5"></i></button>
         </div>
-        
-        <!-- Workspace Selector -->
-        <div class="border-b border-[#edf1f5] p-3">
-            <button class="flex w-full items-center gap-3 rounded-xl border border-[#e8edf4] bg-[#fafbfd] px-3 py-2.5 text-left hover:bg-[#f0f5ff]">
-                <div class="flex size-8 items-center justify-center rounded-lg bg-[#e8efff] text-[11px] font-bold text-[#4c7df0]">AC</div>
-                <div class="min-w-0 flex-1">
-                    <p class="truncate text-[12px] font-semibold">Acme Corporation</p>
-                    <p class="text-[10px] text-[#8b97a8]">Enterprise workspace</p>
-                </div>
-                <i data-lucide="chevron-down" class="size-4 text-[#9aa5b5]"></i>
-            </button>
-        </div>
-        
-        <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-3 py-4">
-            <p class="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0aaba]">Visão geral</p>
-            <div class="flex flex-col gap-0.5" id="main-nav"></div>
-            
-            <p class="px-3 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0aaba]">Gerenciar</p>
-            <div class="flex flex-col gap-0.5" id="secondary-nav"></div>
-        </nav>
-        
-        <!-- Sidebar Footer -->
-        <div class="border-t border-[#edf1f5] p-4">
-            <div class="flex items-center gap-3 rounded-xl bg-[#f0f5ff] p-3">
-                <div class="flex size-8 items-center justify-center rounded-lg bg-white text-[#4c7df0]">
-                    <i data-lucide="sparkles" class="size-4"></i>
-                </div>
-                <div class="min-w-0 flex-1">
-                    <p class="text-[12px] font-semibold text-[#243b67]">Upgrade para Pro</p>
-                    <p class="text-[10px] text-[#6b7280]">Desbloqueie todos os recursos</p>
-                </div>
+            <p class="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[#a0aaba]">Principal</p>
+            <div class="flex flex-col gap-0.5">
+                <a href="/dashboard" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="dashboard"><i data-lucide="layout-dashboard" class="size-4"></i> Dashboard</a>
+                <a href="/findings" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="findings"><i data-lucide="alert-triangle" class="size-4"></i> Findings</a>
+                <a href="/inventory" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="inventory"><i data-lucide="archive" class="size-4"></i> Inventory</a>
+                <a href="/automation" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="automation"><i data-lucide="zap" class="size-4"></i> Automation</a>
+                <a href="/configuration" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="configuration"><i data-lucide="settings" class="size-4"></i> Configuration</a>
             </div>
-        </div>
+        </nav>
     </aside>
-    
-    <!-- Main Content -->
+
     <main class="main-content min-h-screen lg:ml-[260px]">
-        <!-- Header -->
         <header class="sticky top-0 z-30 flex h-[68px] items-center justify-between border-b border-[#e3e9f1] bg-white px-4 lg:px-6">
             <div class="flex items-center gap-3">
-                <button class="lg:hidden rounded-lg p-2 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="toggleSidebar()">
-                    <i data-lucide="menu" class="size-5"></i>
-                </button>
+                <button class="lg:hidden rounded-lg p-2 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="toggleSidebar()"><i data-lucide="menu" class="size-5"></i></button>
                 <h1 class="text-[16px] lg:text-[18px] font-bold" id="page-title">Dashboard</h1>
             </div>
-            <div class="flex items-center gap-2">
-                <button class="hidden sm:flex rounded-lg p-2 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="showSearch()">
-                    <i data-lucide="search" class="size-4"></i>
-                </button>
-                <button class="relative rounded-lg p-2 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="showNotifications()">
-                    <i data-lucide="bell" class="size-4"></i>
-                    <span class="absolute right-1 top-1 flex size-2 rounded-full bg-red-500"></span>
-                </button>
-                <div class="flex size-8 items-center justify-center rounded-lg bg-[#e8efff] text-[11px] font-bold text-[#4c7df0] cursor-pointer" onclick="showProfile()">AC</div>
-            </div>
+            <div class="flex size-8 items-center justify-center rounded-lg bg-[#e8efff] text-[11px] font-bold text-[#4c7df0]">AC</div>
         </header>
-        
-        <!-- Page Content -->
+
         <div class="p-4 lg:p-6">
-            <!-- Stats Cards -->
-            <div class="stats-grid mb-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                    <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#eff6ff] text-[#3b82f6]">
-                        <i data-lucide="alert-triangle" class="size-5"></i>
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page-section active">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#eff6ff] text-[#3b82f6]"><i data-lucide="alert-triangle" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Total Findings</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="stat-findings">—</p>
                     </div>
-                    <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Total Findings</p>
-                    <p class="text-[20px] lg:text-[24px] font-bold" id="stat-findings">—</p>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444]"><i data-lucide="alert-octagon" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Críticos</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="stat-critical">—</p>
+                    </div>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fff7ed] text-[#f97316]"><i data-lucide="shield-alert" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Altos</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold" id="stat-high">—</p>
+                    </div>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#22c55e]"><i data-lucide="check-circle-2" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Checks Totais</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold">1.139</p>
+                    </div>
                 </div>
-                <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                    <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444]">
-                        <i data-lucide="alert-octagon" class="size-5"></i>
-                    </div>
-                    <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Críticos</p>
-                    <p class="text-[20px] lg:text-[24px] font-bold" id="stat-critical">—</p>
-                </div>
-                <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                    <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fff7ed] text-[#f97316]">
-                        <i data-lucide="shield-alert" class="size-5"></i>
-                    </div>
-                    <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Altos</p>
-                    <p class="text-[20px] lg:text-[24px] font-bold" id="stat-high">—</p>
-                </div>
-                <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
-                    <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#22c55e]">
-                        <i data-lucide="check-circle-2" class="size-5"></i>
-                    </div>
-                    <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Checks Totais</p>
-                    <p class="text-[20px] lg:text-[24px] font-bold">1.139</p>
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white p-5">
+                    <h2 class="text-[14px] font-semibold mb-4">Últimos Scans</h2>
+                    <p class="text-[13px] text-[#8b97a8]">Carregando...</p>
                 </div>
             </div>
-            
-            <!-- Main Grid -->
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
-                <!-- Findings Table (2 cols) -->
-                <div class="xl:col-span-2 rounded-2xl border border-[#e3e9f1] bg-white">
+
+            <!-- Findings Page -->
+            <div id="page-findings" class="page-section">
+                <div class="mb-6">
+                    <div class="flex gap-2 pb-2 overflow-x-auto" id="provider-tabs"></div>
+                </div>
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#edf1f5] px-4 lg:px-5 py-4">
                         <div>
-                            <h2 class="text-[14px] font-semibold">Findings Recentes</h2>
-                            <p class="text-[11px] text-[#8b97a8] mt-0.5">Últimas 24 horas</p>
+                            <h2 class="text-[14px] font-semibold" id="findings-title">Todos os Providers</h2>
+                            <p class="text-[11px] text-[#8b97a8] mt-0.5" id="findings-subtitle">Selecione um provider para filtrar</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <select id="findings-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] text-[#4b5563] bg-white" onchange="filterFindings()">
-                                <option value="all">Todos</option>
-                                <option value="critical">Críticos</option>
-                                <option value="high">Altos</option>
-                                <option value="medium">Médios</option>
-                                <option value="low">Baixos</option>
-                            </select>
-                            <button class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]" onclick="loadFindings()">
-                                <i data-lucide="refresh-cw" class="size-3.5"></i>
-                            </button>
+                            <select id="severity-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Severidade</option><option value="critical">Crítico</option><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option></select>
+                            <select id="status-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Status</option><option value="fail">Falha</option><option value="pass">Passou</option></select>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="w-full">
-                            <thead>
-                                <tr class="border-b border-[#edf1f5] text-left">
-                                    <th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th>
-                                    <th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th>
-                                    <th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th>
-                                    <th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th>
-                                    <th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="findings-list">
-                                <tr>
-                                    <td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <table class="w-full">
+                        <thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th></tr></thead>
+                        <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Inventory Page -->
+            <div id="page-inventory" class="page-section">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#eff6ff] text-[#3b82f6]"><i data-lucide="database" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Total Resources</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                    </div>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fef2f2] text-[#ef4444]"><i data-lucide="x-circle" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Risco Alto</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                    </div>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#f0fdf4] text-[#22c55e]"><i data-lucide="check-circle" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Monitorados</p>
+                        <p class="text-[20px] lg:text-[24px] font-bold">—</p>
+                    </div>
+                    <div class="card-hover rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5 transition-all">
+                        <div class="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#fff7ed] text-[#f97316]"><i data-lucide="refresh-cw" class="size-5"></i></div>
+                        <p class="text-[11px] lg:text-[12px] font-medium text-[#8b97a8]">Último Sync</p>
+                        <p class="text-[14px] lg:text-[16px] font-bold">—</p>
                     </div>
                 </div>
-                
-                <!-- Side Panel -->
-                <div class="space-y-4 lg:space-y-6">
-                    <!-- Quick Actions -->
-                    <div class="rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5">
-                        <h2 class="text-[14px] font-semibold mb-4">Ações Rápidas</h2>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="startNewScan()" class="flex flex-col items-center gap-2 rounded-xl border border-[#e8edf4] p-3 hover:bg-[#f5f8ff] hover:border-[#4c7df0] transition-all">
-                                <div class="flex size-10 items-center justify-center rounded-lg bg-[#eff6ff] text-[#3b82f6]">
-                                    <i data-lucide="scan-line" class="size-5"></i>
-                                </div>
-                                <span class="text-[11px] font-medium text-[#4b5563]">Novo Scan</span>
-                            </button>
-                            <button onclick="loadInventory()" class="flex flex-col items-center gap-2 rounded-xl border border-[#e8edf4] p-3 hover:bg-[#f5f8ff] hover:border-[#4c7df0] transition-all">
-                                <div class="flex size-10 items-center justify-center rounded-lg bg-[#f0fdf4] text-[#22c55e]">
-                                    <i data-lucide="database" class="size-5"></i>
-                                </div>
-                                <span class="text-[11px] font-medium text-[#4b5563]">Sync Inventory</span>
-                            </button>
-                            <button onclick="exportReport()" class="flex flex-col items-center gap-2 rounded-xl border border-[#e8edf4] p-3 hover:bg-[#f5f8ff] hover:border-[#4c7df0] transition-all">
-                                <div class="flex size-10 items-center justify-center rounded-lg bg-[#fef3c7] text-[#f59e0b]">
-                                    <i data-lucide="download" class="size-5"></i>
-                                </div>
-                                <span class="text-[11px] font-medium text-[#4b5563]">Exportar</span>
-                            </button>
-                            <button onclick="showSettings()" class="flex flex-col items-center gap-2 rounded-xl border border-[#e8edf4] p-3 hover:bg-[#f5f8ff] hover:border-[#4c7df0] transition-all">
-                                <div class="flex size-10 items-center justify-center rounded-lg bg-[#f3e8ff] text-[#a855f7]">
-                                    <i data-lucide="settings" class="size-5"></i>
-                                </div>
-                                <span class="text-[11px] font-medium text-[#4b5563]">Config</span>
-                            </button>
-                        </div>
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white">
+                    <div class="flex items-center justify-between border-b border-[#edf1f5] px-4 lg:px-5 py-4">
+                        <h2 class="text-[14px] font-semibold">Resources por Provider</h2>
                     </div>
-                    
-                    <!-- Cloud Inventory -->
-                    <div class="rounded-2xl border border-[#e3e9f1] bg-white">
-                        <div class="flex items-center justify-between border-b border-[#edf1f5] px-4 lg:px-5 py-4">
-                            <div>
-                                <h2 class="text-[14px] font-semibold">Cloud Inventory</h2>
-                                <p class="text-[11px] text-[#8b97a8] mt-0.5">Resources por provider</p>
-                            </div>
-                            <button class="rounded-lg border border-[#e8edf4] p-1.5 text-[#4b5563] hover:bg-[#f5f8ff]" onclick="loadInventory()">
-                                <i data-lucide="refresh-cw" class="size-3.5"></i>
-                            </button>
-                        </div>
-                        <div class="divide-y divide-[#edf1f5]" id="inventory-list">
-                            <div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Providers Status -->
-                    <div class="rounded-2xl border border-[#e3e9f1] bg-white p-4 lg:p-5">
-                        <h2 class="text-[14px] font-semibold mb-4">Providers Conectados</h2>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex size-9 items-center justify-center rounded-lg bg-[#fff7ed]">
-                                        <span class="text-[14px]">🔶</span>
-                                    </div>
-                                    <div>
-                                        <p class="text-[12px] font-medium">OCI</p>
-                                        <p class="text-[10px] text-[#8b97a8]">sa-saopaulo-1</p>
-                                    </div>
-                                </div>
-                                <span class="flex items-center gap-1.5 text-[11px] font-medium text-[#22c55e]">
-                                    <span class="flex size-2 rounded-full bg-[#22c55e]"></span>
-                                    Ativo
-                                </span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-3">
-                                    <div class="flex size-9 items-center justify-center rounded-lg bg-[#fff7ed]">
-                                        <span class="text-[14px]">☁️</span>
-                                    </div>
-                                    <div>
-                                        <p class="text-[12px] font-medium">AWS</p>
-                                        <p class="text-[10px] text-[#8b97a8]">us-east-1</p>
-                                    </div>
-                                </div>
-                                <span class="flex items-center gap-1.5 text-[11px] font-medium text-[#9ca3af]">
-                                    <span class="flex size-2 rounded-full bg-[#9ca3af]"></span>
-                                    Offline
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="divide-y divide-[#edf1f5]" id="inventory-list">Carregando...</div>
+                </div>
+            </div>
+
+            <!-- Automation Page -->
+            <div id="page-automation" class="page-section">
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white p-6 lg:p-8 text-center">
+                    <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[#f0fdf4] text-[#22c55e]"><i data-lucide="zap" class="size-8"></i></div>
+                    <h2 class="text-[18px] font-bold mb-2">Automation</h2>
+                    <p class="text-[14px] text-[#8b97a8] mb-6">Automatize scans e remediações de segurança</p>
+                    <button class="rounded-xl bg-[#162d55] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#1e3a6f]">Em breve</button>
+                </div>
+            </div>
+
+            <!-- Configuration Page -->
+            <div id="page-configuration" class="page-section">
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white p-6 lg:p-8 text-center">
+                    <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-[#fff7ed] text-[#f97316]"><i data-lucide="settings" class="size-8"></i></div>
+                    <h2 class="text-[18px] font-bold mb-2">Configuration</h2>
+                    <p class="text-[14px] text-[#8b97a8] mb-6">Configure providers, políticas e integrações</p>
+                    <button class="rounded-xl bg-[#162d55] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#1e3a6f]">Em breve</button>
                 </div>
             </div>
         </div>
     </main>
-    
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
 
     <script>
-        // === API Configuration ===
         const API_BASE = window.location.origin;
-        let TOKEN = localStorage.getItem('harpia_token') || 'beta-admin-token';
-        
-        async function apiCall(method, path, body = null) {
-            const headers = { 'Content-Type': 'application/json' };
-            if (TOKEN) headers['Authorization'] = `Bearer ${TOKEN}`;
-            
-            const res = await fetch(`${API_BASE}${path}`, {
+        const TOKEN = localStorage.getItem('harpia_token') || 'beta-admin-token';
+        let currentProvider = 'all';
+        let allFindings = [];
+
+        async function api(method, path, body) {
+            const res = await fetch(API_BASE + path, {
                 method,
-                headers,
+                headers: { 'Content-Type': 'application/json', ...(TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}) },
                 body: body ? JSON.stringify(body) : null
             });
             return res.json();
         }
-        
-        // === Navigation ===
-        const navItems = [
-            { label: 'Dashboard', icon: 'layout-dashboard', section: 'dashboard' },
-            { label: 'Cloud Scanners', icon: 'cloud', section: 'scanners', badge: '3' },
-            { label: 'Findings', icon: 'alert-triangle', section: 'findings', badge: '24', href: '/findings-page' },
-            { label: 'Cloud Inventory', icon: 'archive', section: 'inventory' },
-            { label: 'Kubernetes', icon: 'container', section: 'kubernetes' },
-            { label: 'Attack Paths', icon: 'network', section: 'attack-paths', badge: '5' },
-        ];
-        const secondaryItems = [
-            { label: 'Políticas', icon: 'shield-check', section: 'policies' },
-            { label: 'Integrações', icon: 'zap', section: 'integrations' },
-            { label: 'Configurações', icon: 'settings', section: 'settings' },
-        ];
-        
-        // === Sidebar Toggle ===
+
         function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
+            document.getElementById('sidebar').classList.toggle('open');
             const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
+            overlay.classList.toggle('hidden');
         }
-        
-        // === Render ===
-        function render() {
-            // Render navigation
-            const mainNav = document.getElementById('main-nav');
-            mainNav.innerHTML = navItems.map((item, index) => `
-                <button onclick="showSection('${item.section}', this)" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-[#4b5563] hover:bg-[#f5f8ff] ${index === 0 ? 'active' : ''}">
-                    <i data-lucide="${item.icon}" class="size-4"></i> 
-                    <span class="flex-1">${item.label}</span>
-                    ${item.badge ? `<span class="rounded-full bg-[#e8efff] px-2 py-0.5 text-[10px] font-bold text-[#4c7df0]">${item.badge}</span>` : ''}
-                </button>
-            `).join('');
+
+        function showPage(route) {
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            const page = document.getElementById('page-' + route);
+            if (page) page.classList.add('active');
             
-            const secondaryNav = document.getElementById('secondary-nav');
-            secondaryNav.innerHTML = secondaryItems.map(item => `
-                <button onclick="showSection('${item.section}', this)" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]">
-                    <i data-lucide="${item.icon}" class="size-4"></i> ${item.label}
-                </button>
-            `).join('');
-            
-            if (window.lucide) lucide.createIcons();
-            loadData();
-        }
-        
-        function showSection(section, el) {
-            // Update active state
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            if (el) el.classList.add('active');
-            else {
-                // Find first matching nav item
-                const items = [...navItems, ...secondaryItems];
-                const match = items.find(i => i.section === section);
-                if (match) {
-                    const index = navItems.indexOf(match);
-                    if (index >= 0) {
-                        const navBtn = document.querySelectorAll('#main-nav .nav-item')[index];
-                        if (navBtn) navBtn.classList.add('active');
-                    }
-                }
-            }
+            const nav = document.querySelector(`.nav-item[data-route="${route}"]`);
+            if (nav) nav.classList.add('active');
             
-            document.getElementById('page-title').textContent = section.charAt(0).toUpperCase() + section.slice(1).replace(/-/g, ' ');
+            const titles = { dashboard: 'Dashboard', findings: 'Findings', inventory: 'Cloud Inventory', automation: 'Automation', configuration: 'Configuration' };
+            document.getElementById('page-title').textContent = titles[route] || 'Dashboard';
             
-            // Close sidebar on mobile
+            if (route === 'findings') loadFindings();
+            if (route === 'inventory') loadInventory();
+            
             if (window.innerWidth < 1024) {
-                toggleSidebar();
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebar-overlay').classList.add('hidden');
             }
         }
-        
-        // === Data Loading ===
-        async function loadData() {
-            loadStats();
-            loadFindings();
-            loadInventory();
-        }
-        
-        async function loadStats() {
-            try {
-                const stats = await apiCall('GET', '/api/dashboard/stats');
-                if (stats.stats) {
-                    document.getElementById('stat-findings').textContent = stats.stats.total_findings || 0;
-                    document.getElementById('stat-critical').textContent = stats.stats.critical || 0;
-                    document.getElementById('stat-high').textContent = stats.stats.high || 0;
-                }
-            } catch (e) {
-                console.error('Failed to load stats:', e);
-            }
-        }
-        
+
         async function loadFindings() {
+            const stats = await api('GET', '/api/findings-stats');
+            document.getElementById('stat-findings').textContent = stats.total || 0;
+            document.getElementById('stat-critical').textContent = stats.critical || 0;
+            document.getElementById('stat-high').textContent = stats.high || 0;
+
+            const providers = [
+                { id: 'all', name: 'Todos', icon: '🌐' },
+                { id: 'oci', name: 'OCI', icon: '🔶' },
+                { id: 'aws', name: 'AWS', icon: '☁️' },
+                { id: 'azure', name: 'Azure', icon: '🔷' },
+                { id: 'gcp', name: 'GCP', icon: '🌍' },
+                { id: 'cloudflare', name: 'Cloudflare', icon: '🛡️' },
+            ];
+            document.getElementById('provider-tabs').innerHTML = providers.map(p => `
+                <button onclick="selectProvider('${p.id}')" class="provider-tab ${currentProvider === p.id ? 'active' : ''}">
+                    <span>${p.icon}</span><span>${p.name}</span>
+                    ${stats.providers && stats.providers[p.id] ? `<span class="ml-1 rounded-full bg-[#e8efff] px-1.5 py-0.5 text-[10px] font-bold text-[#4c7df0]">${stats.providers[p.id].total}</span>` : ''}
+                </button>
+            `).join('');
+            
+            allFindings = await api('GET', '/api/findings-by-provider');
+            renderFindings();
+        }
+
+        function selectProvider(p) { currentProvider = p; loadFindings(); }
+
+        function renderFindings() {
+            let all = [];
+            if (currentProvider === 'all') { for (const [p, f] of Object.entries(allFindings)) all.push(...f); }
+            else if (allFindings[currentProvider]) all = allFindings[currentProvider];
+            
+            const sev = document.getElementById('severity-filter').value;
+            const stat = document.getElementById('status-filter').value;
+            if (sev !== 'all') all = all.filter(f => f.severity === sev);
+            if (stat !== 'all') all = all.filter(f => f.status === stat);
+            
             const list = document.getElementById('findings-list');
-            list.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr>';
-            
-            try {
-                const findings = await apiCall('GET', '/api/findings');
-                const filter = document.getElementById('findings-filter').value;
-                
-                let filtered = findings || [];
-                if (filter !== 'all') {
-                    filtered = filtered.filter(f => f.severity === filter);
-                }
-                
-                if (filtered.length > 0) {
-                    list.innerHTML = filtered.slice(0, 10).map(f => `
-                        <tr class="border-b border-[#edf1f5] hover:bg-[#f5f8ff] transition-colors">
-                            <td class="px-4 lg:px-5 py-3">
-                                <span class="flex size-6 items-center justify-center rounded-full ${f.status === 'fail' ? 'bg-[#fee2e2] text-[#ef4444]' : 'bg-[#dcfce7] text-[#22c55e]'}">
-                                    <i data-lucide="${f.status === 'fail' ? 'x' : 'check'}" class="size-3"></i>
-                                </span>
-                            </td>
-                            <td class="px-4 lg:px-5 py-3">
-                                <p class="text-[12px] font-medium text-[#142033] truncate max-w-[200px]" title="${f.title || f.id || 'Unknown'}">${f.title || f.id || 'Unknown'}</p>
-                                <p class="text-[10px] text-[#8b97a8]">${f.service || 'unknown'}</p>
-                            </td>
-                            <td class="hidden sm:table-cell px-4 lg:px-5 py-3">
-                                <span class="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-medium text-[#475569]">${f.provider || 'aws'}</span>
-                            </td>
-                            <td class="hidden md:table-cell px-4 lg:px-5 py-3">
-                                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${(f.severity === 'critical' || f.severity === 'high') ? 'badge-critical' : f.severity === 'medium' ? 'badge-medium' : 'badge-low'}">
-                                    ${f.severity || 'medium'}
-                                </span>
-                            </td>
-                            <td class="px-4 lg:px-5 py-3">
-                                <button class="rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]" onclick="viewFinding('${f.id}')">
-                                    <i data-lucide="eye" class="size-3.5"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
-                    if (window.lucide) lucide.createIcons();
-                } else {
-                    list.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum finding encontrado</td></tr>';
-                }
-            } catch (e) {
-                list.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#ef4444]">Erro ao carregar</td></tr>`;
-            }
+            if (!all.length) { list.innerHTML = `<tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum finding</td></tr>`; return; }
+            list.innerHTML = all.map(f => `
+                <tr class="finding-row border-b border-[#edf1f5] transition-colors">
+                    <td class="px-4 lg:px-5 py-3"><span class="flex size-6 items-center justify-center rounded-full ${f.status === 'pass' ? 'bg-[#dcfce7] text-[#22c55e]' : 'bg-[#fee2e2] text-[#ef4444]'}"><i data-lucide="${f.status === 'pass' ? 'check' : 'x'}" class="size-3"></i></span></td>
+                    <td class="px-4 lg:px-5 py-3"><p class="text-[12px] font-medium truncate max-w-[250px]">${f.title}</p><p class="text-[10px] text-[#8b97a8]">${f.description || ''}</p></td>
+                    <td class="hidden sm:table-cell px-4 lg:px-5 py-3"><span class="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-medium text-[#475569]">${f.provider}</span></td>
+                    <td class="hidden md:table-cell px-4 lg:px-5 py-3"><span class="text-[11px] text-[#4b5563]">${f.service}</span></td>
+                    <td class="px-4 lg:px-5 py-3"><div class="flex items-center gap-2"><span class="severity-dot ${f.severity}"></span><span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold badge-${f.severity}">${f.severity}</span></div></td>
+                </tr>
+            `).join('');
+            if (window.lucide) lucide.createIcons();
         }
-        
-        function filterFindings() {
-            loadFindings();
-        }
-        
+
+        function filterFindings() { renderFindings(); }
+
         async function loadInventory() {
+            const providers = await api('GET', '/api/inventory-v2/providers');
             const list = document.getElementById('inventory-list');
-            list.innerHTML = '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</div>';
-            
-            try {
-                const providers = await apiCall('GET', '/api/inventory-v2/providers');
-                if (providers && providers.length > 0) {
-                    let html = '';
-                    providers.forEach(p => {
-                        if (p.tables && p.tables.length > 0) {
-                            p.tables.forEach(t => {
-                                html += `
-                                    <div class="flex items-center justify-between px-4 lg:px-5 py-3 hover:bg-[#f5f8ff] transition-colors">
-                                        <div class="flex items-center gap-3">
-                                            <div class="flex size-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#3b82f6]">
-                                                <i data-lucide="database" class="size-4"></i>
-                                            </div>
-                                            <div>
-                                                <p class="text-[12px] font-medium">${p.id}.${t}</p>
-                                                <p class="text-[10px] text-[#8b97a8]">${p.id.toUpperCase()}</p>
-                                            </div>
-                                        </div>
-                                        <button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]" onclick="syncInventory('${p.id}')">Sync</button>
-                                    </div>
-                                `;
-                            });
-                        }
-                    });
-                    list.innerHTML = html || '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum inventário configurado</div>';
-                    if (window.lucide) lucide.createIcons();
-                } else {
-                    list.innerHTML = '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum provider configurado</div>';
+            if (!providers || !providers.length) { list.innerHTML = '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum provider</div>'; return; }
+            let html = '';
+            for (const p of providers) {
+                if (p.tables) for (const t of p.tables) {
+                    html += `<div class="flex items-center justify-between px-4 py-3"><div class="flex items-center gap-3"><div class="flex size-8 items-center justify-center rounded-lg bg-[#eff6ff] text-[#3b82f6]"><i data-lucide="database" class="size-4"></i></div><div><p class="text-[12px] font-medium">${p.id}.${t}</p><p class="text-[10px] text-[#8b97a8]">${p.id.toUpperCase()}</p></div></div><button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="syncInv('${p.id}')">Sync</button></div>`;
                 }
-            } catch (e) {
-                list.innerHTML = `<div class="px-5 py-8 text-center text-[13px] text-[#ef4444]">Erro ao carregar</div>`;
             }
+            list.innerHTML = html || '<div class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Nenhum resource</div>';
+            if (window.lucide) lucide.createIcons();
         }
-        
-        // === Actions ===
-        function syncInventory(provider) {
-            showToast(`Sync iniciado para ${provider}`, 'success');
-            loadInventory();
-        }
-        
-        function startNewScan() {
-            showToast('Iniciando novo scan...', 'info');
-        }
-        
-        function exportReport() {
-            showToast('Exportando relatório...', 'info');
-        }
-        
-        function showSettings() {
-            showToast('Configurações em desenvolvimento', 'info');
-        }
-        
-        function showSearch() {
-            showToast('Busca em desenvolvimento', 'info');
-        }
-        
-        function showNotifications() {
-            showToast('Nenhuma notificação', 'info');
-        }
-        
-        function showProfile() {
-            showToast('Perfil em desenvolvimento', 'info');
-        }
-        
-        function viewFinding(id) {
-            showToast(`Ver finding: ${id}`, 'info');
-        }
-        
-        // === Toast ===
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-        
-        // === Initialize ===
-        document.addEventListener('DOMContentLoaded', render);
+
+        function syncInv(p) { api('POST', '/api/inventory-v2/' + p + '/sync').then(() => loadInventory()); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const route = window.location.pathname.replace('/', '') || 'dashboard';
+            showPage(route);
+            if (window.lucide) lucide.createIcons();
+        });
     </script>
 </body>
 </html>
