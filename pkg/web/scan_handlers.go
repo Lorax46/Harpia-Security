@@ -135,7 +135,7 @@ func (h *Handler) GetScanStatus(c *gin.Context) {
 func (h *Handler) SaveCredentials(c *gin.Context) {
 	var req struct {
 		Provider string `json:"provider" binding:"required"`
-		Name     string `json:"name" binding="required"`
+		Name     string `json:"name" binding:"required"`
 		Region   string `json:"region"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {

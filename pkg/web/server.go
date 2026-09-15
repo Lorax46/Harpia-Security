@@ -129,6 +129,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// ServeHTTP implements http.Handler for testing
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.engine.ServeHTTP(w, r)
+}
+
 // Addr returns the server address.
 func (s *Server) Addr() string {
 	return s.addr
