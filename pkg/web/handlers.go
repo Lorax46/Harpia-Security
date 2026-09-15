@@ -375,11 +375,37 @@ func (h *Handler) CreateCredentials(c *gin.Context) {
 		return
 	}
 	
+	// Salvar credenciais no scanner service
+	credMap := map[string]string{
+		"name":       req.Name,
+		"region":     req.Region,
+		"access_key": req.AccessKey,
+		"secret_key": req.SecretKey,
+	}
+	
+	// Adicionar campos específicos do provider
+	if req.TenancyOCID != "" { credMap["tenancy_ocid"] = req.TenancyOCID }
+	if req.UserOCID != "" { credMap["user_ocid"] = req.UserOCID }
+	if req.Fingerprint != "" { credMap["fingerprint"] = req.Fingerprint }
+	if req.PrivateKey != "" { credMap["private_key"] = req.PrivateKey }
+	if req.SubscriptionID != "" { credMap["subscription_id"] = req.SubscriptionID }
+	if req.ClientID != "" { credMap["client_id"] = req.ClientID }
+	if req.ClientSecret != "" { credMap["client_secret"] = req.ClientSecret }
+	if req.ProjectID != "" { credMap["project_id"] = req.ProjectID }
+	if req.ServiceKey != "" { credMap["service_key"] = req.ServiceKey }
+	if req.APIToken != "" { credMap["api_token"] = req.APIToken }
+	
+	h.scanner.StoreCredentials(req.Provider, credMap)
+	
+	// Registrar provider no inventory
+	// (Em produção, isso criaria um scanner.Service real com as credenciais)
+	
 	c.JSON(http.StatusCreated, gin.H{
-		"id":       "cred-" + req.Provider,
+		"id":       req.Provider + "-" + req.Name,
 		"provider": req.Provider,
 		"name":     req.Name,
 		"status":   "connected",
+		"message":  "Credenciais salvas com sucesso",
 	})
 }
 
