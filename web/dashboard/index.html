@@ -146,10 +146,10 @@
                         <div><h2 class="text-[14px] font-semibold" id="findings-title">Todos os Providers</h2></div>
                         <div class="flex items-center gap-2">
                             <select id="severity-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Severidade</option><option value="critical">Crítico</option><option value="high">Alto</option><option value="medium">Médio</option><option value="low">Baixo</option></select>
-                            <select id="status-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Status</option><option value="fail">Falha</option><option value="pass">Passou</option></select>
+                            <select id="status-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Status</option><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="INFORMATIONAL">Info</option><option value="MANUAL">Manual</option></select>
                         </div>
                     </div>
-                    <table class="w-full"><thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Data/Hora</th></tr></thead>
+                    <table class="w-full"><thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Data/Hora</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Detalhes</th></tr></thead>
                     <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody></table>
                 </div>
             </div>
@@ -486,17 +486,25 @@
             let all = []; if (currentProvider === 'all') { for (const [p, f] of Object.entries(allFindings)) all.push(...f); } else if (allFindings[currentProvider]) all = allFindings[currentProvider];
             const sev = document.getElementById('severity-filter').value; const stat = document.getElementById('status-filter').value;
             if (sev !== 'all') all = all.filter(f => f.severity === sev); if (stat !== 'all') all = all.filter(f => f.status === stat);
-            const l = document.getElementById('findings-list'); if (!all.length) { l.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-[#8b97a8]">Nenhum finding</td></tr>`; return; }
+            const l = document.getElementById('findings-list'); if (!all.length) { l.innerHTML = `<tr><td colspan="7" class="px-5 py-8 text-center text-[#8b97a8]">Nenhum finding</td></tr>`; return; }
             l.innerHTML = all.map(f => {
                 const ts = f.found_at ? new Date(f.found_at).toLocaleString('pt-BR') : '-';
-                const statusLabel = f.status === 'PASS' ? 'PASS' : (f.status === 'FAIL' ? 'FAIL' : f.status);
+                const status = (f.status || 'UNKNOWN').toUpperCase();
+                const statusConfig = {
+                    'PASS': { bg: 'bg-[#dcfce7]', text: 'text-[#22c55e]', icon: 'check', label: 'PASS' },
+                    'FAIL': { bg: 'bg-[#fee2e2]', text: 'text-[#ef4444]', icon: 'x', label: 'FAIL' },
+                    'INFORMATIONAL': { bg: 'bg-[#dbeafe]', text: 'text-[#3b82f6]', icon: 'info', label: 'INFO' },
+                    'MANUAL': { bg: 'bg-[#fef3c7]', text: 'text-[#d97706]', icon: 'hand', label: 'MANUAL' }
+                };
+                const sc = statusConfig[status] || statusConfig['FAIL'];
                 return `<tr class="finding-row border-b border-[#edf1f5]">
-                    <td class="px-4 py-3"><span class="flex size-6 items-center justify-center rounded-full ${f.status === 'PASS' ? 'bg-[#dcfce7] text-[#22c55e]' : 'bg-[#fee2e2] text-[#ef4444]'}"><i data-lucide="${f.status === 'PASS' ? 'check' : 'x'}" class="size-3"></i></span></td>
+                    <td class="px-4 py-3"><span class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${sc.bg} ${sc.text}"><i data-lucide="${sc.icon}" class="size-3"></i>${sc.label}</span></td>
                     <td class="px-4 py-3"><p class="text-[12px] font-medium truncate max-w-[250px]">${f.title}</p></td>
                     <td class="hidden sm:table-cell px-4 py-3"><span class="rounded-full bg-[#f1f5f9] px-2 py-0.5 text-[10px] font-medium">${f.provider}</span></td>
                     <td class="hidden md:table-cell px-4 py-3"><span class="text-[11px]">${f.service}</span></td>
                     <td class="px-4 py-3"><span class="severity-dot ${f.severity}"></span> <span class="text-[10px] font-bold badge-${f.severity}">${f.severity}</span></td>
-                    <td class="px-4 py-3"><span class="text-[10px] text-[#8b97a8]">${ts}</span></td>
+                    <td class="hidden lg:table-cell px-4 py-3"><span class="text-[10px] text-[#8b97a8] font-mono">${ts}</span></td>
+                    <td class="px-4 py-3"><span class="text-[10px] text-[#8b97a8] truncate max-w-[150px]" title="${f.status_extended || ''}">${f.status_extended ? f.status_extended.substring(0, 40) + '...' : '-'}</span></td>
                 </tr>`;
             }).join('');
             if (window.lucide) lucide.createIcons();
