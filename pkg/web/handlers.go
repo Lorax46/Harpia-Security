@@ -382,3 +382,45 @@ func (h *Handler) DeleteUser(c *gin.Context) {
 	id := c.Param("id")
 	c.JSON(http.StatusOK, gin.H{"id": id, "status": "deleted"})
 }
+
+// ListFindingsByProvider returns findings grouped by provider
+func (h *Handler) ListFindingsByProvider(c *gin.Context) {
+	ctx := c.Request.Context()
+	result, err := h.scanner.GetFindingsByProvider(ctx)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, result)
+}
+
+// ListFindingsStats returns statistics for findings
+func (h *Handler) ListFindingsStats(c *gin.Context) {
+	ctx := c.Request.Context()
+	stats, err := h.scanner.GetFindingsStats(ctx)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, stats)
+}
+
+// ListFindingsByProviderAndType returns findings for a specific provider and type
+func (h *Handler) ListFindingsByProviderAndType(c *gin.Context) {
+	ctx := c.Request.Context()
+	provider := c.Param("provider")
+	findingType := c.Param("type")
+	
+	findings, err := h.scanner.GetFindingsByProviderAndType(ctx, provider, findingType)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, findings)
+}
+
+// FindingsPage serves the findings page
+func (h *Handler) FindingsPage(c *gin.Context) {
+	c.File("./web/dashboard/findings.html")
+}
+

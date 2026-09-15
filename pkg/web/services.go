@@ -21,6 +21,9 @@ type ScannerService interface {
 	GetFinding(ctx context.Context, id string) (*models.Finding, error)
 	UpdateFinding(ctx context.Context, id string, req UpdateFindingRequest) (*models.Finding, error)
 	ExportFindings(ctx context.Context, format string) ([]byte, error)
+	GetFindingsByProvider(ctx context.Context) (map[string][]models.Finding, error)
+	GetFindingsStats(ctx context.Context) (map[string]interface{}, error)
+	GetFindingsByProviderAndType(ctx context.Context, provider, findingType string) ([]models.Finding, error)
 }
 
 // InventoryService provides inventory operations.

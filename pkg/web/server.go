@@ -1,4 +1,3 @@
-// Package web provides the HTTP server and API handlers for the Harpia Security dashboard.
 package web
 
 import (
@@ -78,8 +77,11 @@ func (s *Server) setupRoutes(auth *AuthService) {
 		api.DELETE("/scans/:id", s.handler.DeleteScan)
 
 		api.GET("/findings", s.handler.ListFindings)
-		api.GET("/findings/:id", s.handler.GetFinding)
-		api.PUT("/findings/:id", s.handler.UpdateFinding)
+		api.GET("/findings-by-provider", s.handler.ListFindingsByProvider)
+		api.GET("/findings-stats", s.handler.ListFindingsStats)
+		api.GET("/findings/:provider/:type", s.handler.ListFindingsByProviderAndType)
+		api.GET("/finding/:id", s.handler.GetFinding)
+		api.PUT("/finding/:id", s.handler.UpdateFinding)
 		api.GET("/findings/export", s.handler.ExportFindings)
 
 		api.GET("/providers", s.handler.ListProviders)
@@ -111,6 +113,9 @@ func (s *Server) setupRoutes(auth *AuthService) {
 
 	// Inventory routes
 	s.handler.RegisterInventoryRoutes(api)
+
+	// Findings page route
+	s.engine.GET("/findings-page", s.handler.FindingsPage)
 
 	// SPA fallback - serve index.html
 	s.engine.NoRoute(func(c *gin.Context) {
