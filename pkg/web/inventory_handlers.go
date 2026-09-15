@@ -1,13 +1,22 @@
 package web
 
 import (
-	"net/http"
-
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterInventoryRoutes registra rotas de inventário
+// RegisterScanRoutes registers scan-related routes (credentials and real scans)
+func (h *Handler) RegisterScanRoutes(api *gin.RouterGroup) {
+	scans := api.Group("/scans-v2")
+	{
+		scans.GET("", h.ListScans)
+		scans.POST("", h.CreateScan)
+		scans.POST("/credentials", h.CreateCredentials)
+		scans.POST("/run-real", h.RunRealScan)
+	}
+}
+
+// RegisterInventoryRoutes registers inventory-related routes
 func (h *Handler) RegisterInventoryRoutes(api *gin.RouterGroup) {
 	inventoryGroup := api.Group("/inventory-v2")
 	{
@@ -18,7 +27,7 @@ func (h *Handler) RegisterInventoryRoutes(api *gin.RouterGroup) {
 	}
 }
 
-// ListInventoryProvidersV2 lista providers disponíveis
+// ListInventoryProvidersV2 lists available inventory providers
 func (h *Handler) ListInventoryProvidersV2(c *gin.Context) {
 	svc := inventory.NewService()
 	providers := svc.ListProviders()
@@ -31,58 +40,60 @@ func (h *Handler) ListInventoryProvidersV2(c *gin.Context) {
 		})
 	}
 	
-	c.JSON(http.StatusOK, result)
+	c.JSON(200, result)
 }
 
-// ListInventoryTables lista tabelas de um provider
+// ListInventoryTables lists tables for a provider
 func (h *Handler) ListInventoryTables(c *gin.Context) {
 	provider := c.Param("provider")
 	svc := inventory.NewService()
 	tables := svc.ListTables(provider)
 	
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(200, gin.H{
 		"provider": provider,
 		"tables":   tables,
 	})
 }
 
-// ListInventoryResources lista recursos de um provider
+// ListInventoryResources lists resources for a provider
 func (h *Handler) ListInventoryResources(c *gin.Context) {
 	provider := c.Param("provider")
 	service := c.Query("service")
 	region := c.Query("region")
+	category := c.Query("category")
 	
 	svc := inventory.NewService()
 	filter := inventory.Filter{
 		Provider: provider,
 		Service:  service,
 		Region:   region,
+		Category: category,
 	}
 	
 	resources, err := svc.ListResources(provider, service, filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(200, gin.H{
 		"provider":  provider,
 		"count":     len(resources),
 		"resources": resources,
 	})
 }
 
-// SyncInventoryV2 sincroniza recursos de um provider
+// SyncInventoryV2 syncs inventory for a provider
 func (h *Handler) SyncInventoryV2(c *gin.Context) {
 	provider := c.Param("provider")
 	
 	svc := inventory.NewService()
 	if err := svc.SyncResources(provider); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 	
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Sync started for " + provider,
+	c.JSON(200, gin.H{
+		"message": "Sync completed for " + provider,
 	})
 }

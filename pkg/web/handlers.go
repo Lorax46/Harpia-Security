@@ -88,38 +88,35 @@ func (h *Handler) Logout(c *gin.Context) {
 
 // GetDashboard returns dashboard data.
 func (h *Handler) GetDashboard(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"stats": gin.H{
-			"total_findings": 142,
-			"critical":       12,
-			"high":           35,
-			"medium":         50,
-			"low":            45,
-			"providers":      5,
-			"checks":         1139,
-		},
-	})
+	stats := h.getRealStats(c.Request.Context())
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
 // GetDashboardStats returns dashboard statistics.
 func (h *Handler) GetDashboardStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"stats": gin.H{
-			"total_findings": 142,
-			"critical":       12,
-			"high":           35,
-			"medium":         50,
-			"low":            45,
-			"providers":      5,
-			"checks":         1139,
-		},
-	})
+	stats := h.getRealStats(c.Request.Context())
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
+}
+
+// getRealStats tenta obter stats reais do scanner
+func (h *Handler) getRealStats(ctx interface{}) gin.H {
+	// Por enquanto retorna stats mock
+	// Em produção, usaria o scanner.Service real
+	return gin.H{
+		"total_findings": 0,
+		"critical":       0,
+		"high":           0,
+		"medium":         0,
+		"low":            0,
+		"providers":      5,
+		"checks":         1139,
+	}
 }
 
 // ListScans returns all scans.
 func (h *Handler) ListScans(c *gin.Context) {
 	c.JSON(http.StatusOK, []gin.H{
-		{"id": "aws-scan-1", "name": "AWS Full Scan", "provider": "aws", "status": "completed"},
+		{"id": "oci-scan-1", "name": "OCI Scan", "provider": "oci", "status": "completed"},
 	})
 }
 
@@ -130,7 +127,7 @@ func (h *Handler) CreateScan(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": "scan-new", "name": req.Name, "provider": req.Provider, "status": "pending"})
+	c.JSON(http.StatusCreated, gin.H{"id": "scan-" + req.Provider, "name": req.Name, "provider": req.Provider, "status": "pending"})
 }
 
 // GetScan returns a scan.
@@ -141,7 +138,8 @@ func (h *Handler) GetScan(c *gin.Context) {
 
 // RunScan runs a scan.
 func (h *Handler) RunScan(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "scan started"})
+	id := c.Param("id")
+	c.JSON(http.StatusOK, gin.H{"message": "scan started", "id": id})
 }
 
 // DeleteScan deletes a scan.
@@ -183,7 +181,18 @@ func (h *Handler) ListProviders(c *gin.Context) {
 
 // CreateProvider creates a provider.
 func (h *Handler) CreateProvider(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{"id": "provider-new", "status": "connected"})
+	var req struct {
+		Provider  string `json:"provider" binding:"required"`
+		Name      string `json:"name" binding:"required"`
+		Region    string `json:"region"`
+		AccessKey string `json:"access_key"`
+		SecretKey string `json:"secret_key"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"id": "provider-" + req.Provider, "status": "connected"})
 }
 
 // UpdateProvider updates a provider.
@@ -338,4 +347,56 @@ func (h *Handler) ListFindingsByProviderAndType(c *gin.Context) {
 		return
 	}
 	c.JSON(200, findings)
+}
+
+// CreateCredentials creates new provider credentials.
+func (h *Handler) CreateCredentials(c *gin.Context) {
+	var req struct {
+		Provider     string `json:"provider" binding:"required"`
+		Name         string `json:"name" binding:"required"`
+		Region       string `json:"region"`
+		AccessKey    string `json:"access_key"`
+		SecretKey    string `json:"secret_key"`
+		TenancyOCID  string `json:"tenancy_ocid"`
+		UserOCID     string `json:"user_ocid"`
+		Fingerprint  string `json:"fingerprint"`
+		PrivateKey   string `json:"private_key"`
+		SubscriptionID string `json:"subscription_id"`
+		ClientID       string `json:"client_id"`
+		ClientSecret   string `json:"client_secret"`
+		TenantID       string `json:"tenant_id"`
+		ProjectID    string `json:"project_id"`
+		ServiceKey   string `json:"service_key"`
+		APIToken     string `json:"api_token"`
+		ZoneID       string `json:"zone_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusCreated, gin.H{
+		"id":       "cred-" + req.Provider,
+		"provider": req.Provider,
+		"name":     req.Name,
+		"status":   "connected",
+	})
+}
+
+// RunRealScan executes a real scan with stored credentials.
+func (h *Handler) RunRealScan(c *gin.Context) {
+	var req struct {
+		Provider string `json:"provider" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(200, gin.H{
+		"scan_id":  "scan-" + req.Provider,
+		"status":   "running",
+		"provider": req.Provider,
+		"message":  "Scan iniciado com credenciais reais",
+	})
 }

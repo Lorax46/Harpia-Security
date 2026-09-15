@@ -113,7 +113,7 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	// Inventory routes
 	s.handler.RegisterInventoryRoutes(api)
 
-	// Page routes (SPA - all routes serve index.html)
+	// Page routes (SPA)
 	pageRoutes := []string{"/", "/dashboard", "/findings", "/inventory", "/automation", "/configuration"}
 	for _, route := range pageRoutes {
 		s.engine.GET(route, s.handler.Page)
