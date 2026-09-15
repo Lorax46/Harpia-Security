@@ -809,6 +809,7 @@
             showScanProgress(selectedMachine, scope);
             
             try {
+                // Create scan with machine credentials
                 const scan = await api('POST', '/api/scans', { 
                     provider: selectedMachine.provider, 
                     scope,
@@ -816,12 +817,50 @@
                 });
                 
                 if (scan.id) {
-                    await api('POST', `/api/scans/${scan.id}/run`);
-                    startProgressTracking(scan.id, selectedMachine, scope);
+                    // Run real scan
+                    addProgressLog('[INFO] Iniciando scan real com credenciais...', 'info');
+                    const runResult = await api('POST', `/api/scans/${scan.id}/run`);
+                    
+                    if (runResult.result) {
+                        // Real scan completed with results
+                        displayRealResults(runResult.result);
+                    } else {
+                        // Simulated progress for other providers
+                        startProgressTracking(scan.id, selectedMachine, scope);
+                    }
                 }
             } catch (e) {
                 addProgressLog('Erro ao iniciar scan: ' + e.message, 'error');
             }
+        }
+
+        function displayRealResults(result) {
+            // Update progress to 100%
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-percent').textContent = '100%';
+            document.getElementById('progress-eta').textContent = 'Concluído!';
+            document.getElementById('progress-current-check').textContent = 'Scan real concluído!';
+            
+            // Update stats with real data
+            const findings = result.findings || [];
+            let passed = 0, failed = 0, warned = 0;
+            
+            findings.forEach(f => {
+                if (f.status === 'PASS') passed++;
+                else if (f.severity === 'high' || f.severity === 'critical') failed++;
+                else warned++;
+                
+                const type = f.status === 'PASS' ? 'pass' : (f.severity === 'high' || f.severity === 'critical') ? 'fail' : 'warn';
+                addProgressLog(`[${f.status}] ${f.title} - ${f.service}`, type);
+            });
+            
+            document.getElementById('progress-checks-done').textContent = passed;
+            document.getElementById('progress-checks-fail').textContent = failed;
+            document.getElementById('progress-checks-warn').textContent = warned;
+            
+            addProgressLog(`[DONE] Scan finalizado: ${findings.length} findings encontrados`, 'pass');
+            showToast(`Scan concluído! ${failed} falhas encontradas.`, failed > 0 ? 'warning' : 'success');
+            document.getElementById('btn-close-progress').classList.remove('hidden');
         }
 
         function showScanProgress(machine, scope) {
