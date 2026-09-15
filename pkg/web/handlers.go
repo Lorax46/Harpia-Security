@@ -3,6 +3,7 @@ package web
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/Lorax46/Harpia-Security/pkg/credentials"
@@ -423,6 +424,19 @@ func (h *Handler) CreateCredentials(c *gin.Context) {
 	}
 	if req.APIToken != "" {
 		entry.Data["api_token"] = req.APIToken
+	}
+
+	// Auto-unlock vault if not already unlocked
+	if !h.vault.IsUnlocked() {
+		// Try to unlock with env var or default passphrase
+		passphrase := os.Getenv("HARPA_VAULT_PASS")
+		if passphrase == "" {
+			passphrase = "harpia-default-secure-pass-2024"
+		}
+		if err := h.vault.Unlock(passphrase); err != nil {
+			c.JSON(500, gin.H{"error": "failed to unlock vault: " + err.Error()})
+			return
+		}
 	}
 
 	// Salvar no vault criptografado
