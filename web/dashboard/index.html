@@ -424,11 +424,21 @@
         let currentInvProvider = 'all';
 
         async function api(method, path, body) {
-            const res = await fetch(API_BASE + path, {
+            const url = API_BASE + path;
+            const options = {
                 method, headers: { 'Content-Type': 'application/json', ...(TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {}) },
                 body: body ? JSON.stringify(body) : null
-            });
-            return res.json();
+            };
+            console.log(`[API] ${method} ${path}`, body || '');
+            try {
+                const res = await fetch(url, options);
+                const data = await res.json();
+                console.log(`[API] ${method} ${path} -> ${res.status}`, data);
+                return data;
+            } catch (err) {
+                console.error(`[API] ${method} ${path} ERROR:`, err);
+                throw err;
+            }
         }
 
         function showToast(msg, type) { const t = document.createElement('div'); t.className = 'toast toast-' + type; t.textContent = msg; document.body.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000); }
@@ -452,27 +462,6 @@
         function hideScanModal() { document.getElementById('scan-modal').classList.remove('active'); }
         function updateScanServices() {
             const services = { oci: ['Compute', 'Network', 'Storage', 'Identity', 'Cloud Guard'], aws: ['EC2', 'S3', 'IAM', 'RDS', 'CloudTrail'], azure: ['Compute', 'Storage', 'Network', 'Key Vault'], gcp: ['Compute', 'Storage', 'IAM', 'VPC'], cloudflare: ['WAF', 'DNS', 'SSL'] };
-            const list = services[document.getElementById('scan-provider').value] || [];
-            document.getElementById('services-checklist').innerHTML = list.map(s => `<label class="flex items-center gap-2"><input type="checkbox" checked class="size-4 rounded"><span class="text-[12px]">${s}</span></label>`).join('');
-        }
-        async function startScan() {
-            const provider = document.getElementById('scan-provider').value;
-            const scope = document.getElementById('scan-scope').value;
-            if (!provider) { showToast('Selecione um provider', 'error'); return; }
-            try {
-                const scan = await api('POST', '/api/scans', { provider, scope, name: `Scan ${provider.toUpperCase()}` });
-                if (scan.id) {
-                    showToast(`Scan ${scan.id} iniciado!`, 'success');
-                    hideScanModal();
-                    activeScans.push({ id: scan.id, provider, scope, status: 'running', progress: 0 });
-                    renderActiveScans();
-                    await api('POST', `/api/scans/${scan.id}/run`);
-                    simulateScanProgress(scan.id);
-                }
-            } catch (e) { showToast('Erro: ' + e.message, 'error'); }
-        }
-        function simulateScanProgress(id) {
-            const s = activeScans.find(x => x.id === id); if (!s) return;
             const i = setInterval(() => { s.progress += Math.random() * 15; if (s.progress >= 100) { s.progress = 100; s.status = 'completed'; showToast('Scan concluído!', 'success'); clearInterval(i); } renderActiveScans(); }, 1000);
         }
         function renderActiveScans() {
@@ -835,13 +824,6 @@
         }
 
         function displayRealResults(result) {
-            // Update progress to 100%
-            document.getElementById('progress-bar').style.width = '100%';
-            document.getElementById('progress-percent').textContent = '100%';
-            document.getElementById('progress-eta').textContent = 'Concluído!';
-            document.getElementById('progress-current-check').textContent = 'Scan real concluído!';
-            
-            // Update stats with real data
             const findings = result.findings || [];
             let passed = 0, failed = 0, warned = 0;
             
@@ -854,6 +836,10 @@
                 addProgressLog(`[${f.status}] ${f.title} - ${f.service}`, type);
             });
             
+            document.getElementById('progress-bar').style.width = '100%';
+            document.getElementById('progress-percent').textContent = '100%';
+            document.getElementById('progress-eta').textContent = 'Concluído!';
+            document.getElementById('progress-current-check').textContent = '✓ Scan real concluído!';
             document.getElementById('progress-checks-done').textContent = passed;
             document.getElementById('progress-checks-fail').textContent = failed;
             document.getElementById('progress-checks-warn').textContent = warned;
@@ -861,6 +847,9 @@
             addProgressLog(`[DONE] Scan finalizado: ${findings.length} findings encontrados`, 'pass');
             showToast(`Scan concluído! ${failed} falhas encontradas.`, failed > 0 ? 'warning' : 'success');
             document.getElementById('btn-close-progress').classList.remove('hidden');
+            
+            // Reload findings page data
+            loadFindings();
         }
 
         function showScanProgress(machine, scope) {

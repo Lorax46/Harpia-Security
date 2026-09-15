@@ -94,32 +94,14 @@ func (h *Handler) Logout(c *gin.Context) {
 
 // GetDashboard returns dashboard data.
 func (h *Handler) GetDashboard(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"stats": gin.H{
-			"total_findings": 0,
-			"critical":       0,
-			"high":           0,
-			"medium":         0,
-			"low":            0,
-			"providers":      len(h.vault.List()),
-			"checks":         52,
-		},
-	})
+	stats := scanStore.GetStats()
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
 // GetDashboardStats returns dashboard statistics.
 func (h *Handler) GetDashboardStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"stats": gin.H{
-			"total_findings": 0,
-			"critical":       0,
-			"high":           0,
-			"medium":         0,
-			"low":            0,
-			"providers":      len(h.vault.List()),
-			"checks":         52,
-		},
-	})
+	stats := scanStore.GetStats()
+	c.JSON(http.StatusOK, gin.H{"stats": stats})
 }
 
 // ListScans returns all scans.
@@ -137,17 +119,14 @@ func (h *Handler) CreateScan(c *gin.Context) {
 		return
 	}
 
-	// Find credentials for this provider
 	creds := h.vault.GetByProvider(req.Provider)
 	if len(creds) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no credentials found for provider: " + req.Provider})
 		return
 	}
 
-	// Use first credential
 	cred := creds[0]
 
-	// Validate OCI credentials
 	if req.Provider == "oci" {
 		tenancyID := cred.Data["tenancy_ocid"]
 		userID := cred.Data["user_ocid"]
@@ -155,11 +134,10 @@ func (h *Handler) CreateScan(c *gin.Context) {
 		privateKey := cred.Data["private_key"]
 
 		if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "incomplete OCI credentials. Need: tenancy_ocid, user_ocid, fingerprint, private_key"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "incomplete OCI credentials"})
 			return
 		}
 
-		// Create real OCI scanner
 		realScanner, err := scanner.NewRealOCIService(c.Request.Context(), cred.Region, tenancyID, userID, fingerprint, privateKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create OCI scanner: %v", err)})
@@ -167,11 +145,11 @@ func (h *Handler) CreateScan(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"id":         "scan-" + req.Provider,
-			"name":       req.Name,
-			"provider":   req.Provider,
-			"status":     "pending",
-			"checks":     len(realScanner.GetChecks()),
+			"id":       "scan-" + req.Provider,
+			"name":     req.Name,
+			"provider": req.Provider,
+			"status":   "pending",
+			"checks":   len(realScanner.GetChecks()),
 		})
 		return
 	}
@@ -189,7 +167,6 @@ func (h *Handler) GetScan(c *gin.Context) {
 func (h *Handler) RunScan(c *gin.Context) {
 	id := c.Param("id")
 
-	// Extract provider from scan ID
 	parts := strings.Split(id, "-")
 	if len(parts) < 2 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scan ID"})
@@ -197,7 +174,6 @@ func (h *Handler) RunScan(c *gin.Context) {
 	}
 	provider := parts[1]
 
-	// Find credentials for this provider
 	creds := h.vault.GetByProvider(provider)
 	if len(creds) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no credentials found for provider: " + provider})
@@ -206,7 +182,6 @@ func (h *Handler) RunScan(c *gin.Context) {
 
 	cred := creds[0]
 
-	// Run real OCI scan if provider is OCI
 	if provider == "oci" {
 		tenancyID := cred.Data["tenancy_ocid"]
 		userID := cred.Data["user_ocid"]
@@ -219,19 +194,26 @@ func (h *Handler) RunScan(c *gin.Context) {
 			return
 		}
 
-		// Create real OCI scanner
 		realScanner, err := scanner.NewRealOCIService(c.Request.Context(), region, tenancyID, userID, fingerprint, privateKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create OCI scanner: %v", err)})
 			return
 		}
 
-		// Run scan
 		result, err := realScanner.RunScan(c.Request.Context())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
 			return
 		}
+
+		// Save results to scanStore
+		scanStore.Save(Entry{
+			ID:       id,
+			Provider: provider,
+			Region:   result.Region,
+			Status:   "completed",
+			Result:   result,
+		})
 
 		c.JSON(http.StatusOK, gin.H{
 			"scan_id":  id,
@@ -423,23 +405,13 @@ func (h *Handler) Page(c *gin.Context) {
 
 // ListFindingsByProvider returns findings grouped by provider.
 func (h *Handler) ListFindingsByProvider(c *gin.Context) {
-	ctx := c.Request.Context()
-	result, err := h.scanner.GetFindingsByProvider(ctx)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	result := scanStore.GetAll()
 	c.JSON(200, result)
 }
 
 // ListFindingsStats returns statistics for findings.
 func (h *Handler) ListFindingsStats(c *gin.Context) {
-	ctx := c.Request.Context()
-	stats, err := h.scanner.GetFindingsStats(ctx)
-	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
-		return
-	}
+	stats := scanStore.GetStats()
 	c.JSON(200, stats)
 }
 
