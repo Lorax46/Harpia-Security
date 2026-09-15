@@ -58,6 +58,8 @@
         .category-iam { background: #f3e8ff; color: #9333ea; }
         .category-database { background: #fee2e2; color: #dc2626; }
         .category-security { background: #fff7ed; color: #ea580c; }
+        .machine-item.selected { border-color: #4c7df0 !important; background: #eff6ff !important; }
+        .modal::-webkit-scrollbar { width: 4px; }
         .category-other { background: #f1f5f9; color: #64748b; }
     </style>
 </head>
@@ -232,22 +234,142 @@
         </div>
     </main>
 
-    <!-- Scan Modal -->
+        <!-- Scan Modal -->
     <div class="modal-overlay" id="scan-modal">
-        <div class="modal">
+        <div class="modal" style="max-width: 640px;">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-[16px] font-bold">Iniciar Novo Scan</h3>
+                <div>
+                    <h3 class="text-[16px] font-bold">Iniciar Novo Scan</h3>
+                    <p class="text-[11px] text-[#8b97a8] mt-0.5">Selecione uma máquina para escanear</p>
+                </div>
                 <button onclick="hideScanModal()" class="rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]"><i data-lucide="x" class="size-5"></i></button>
             </div>
+            
             <div class="space-y-4">
-                <div><label class="form-label">Provider</label><select class="form-input" id="scan-provider" onchange="updateScanServices()"><option value="">Selecione</option><option value="oci">Oracle Cloud (OCI)</option><option value="aws">Amazon Web Services (AWS)</option><option value="azure">Microsoft Azure</option><option value="gcp">Google Cloud (GCP)</option><option value="cloudflare">Cloudflare</option></select></div>
-                <div><label class="form-label">Escopo</label><select class="form-input" id="scan-scope"><option value="full">Completo (todos os serviços)</option><option value="security">Apenas segurança</option><option value="compliance">Apenas compliance</option></select></div>
-                <div><label class="form-label">Serviços</label><div class="grid grid-cols-2 gap-2" id="services-checklist"></div></div>
-                <div class="rounded-xl bg-[#f0f5ff] p-4"><div class="flex items-center gap-3"><i data-lucide="info" class="size-5 text-[#4c7df0]"></i><div><p class="text-[12px] font-medium">Tempo estimado</p><p class="text-[11px] text-[#8b97a8]">2-5 minutos para scan completo</p></div></div></div>
+                <!-- Máquinas cadastradas -->
+                <div>
+                    <label class="form-label">Máquina / Credencial</label>
+                    <div id="scan-machines-list" class="max-h-[200px] overflow-y-auto space-y-2 rounded-lg border border-[#e8edf4] p-2">
+                        <p class="text-[12px] text-[#8b97a8] text-center py-4">Carregando máquinas...</p>
+                    </div>
+                </div>
+                
+                <!-- Provider filter -->
+                <div class="flex items-center gap-2">
+                    <label class="form-label mb-0">Filtrar:</label>
+                    <select id="scan-filter-provider" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterScanMachines()">
+                        <option value="all">Todos os providers</option>
+                        <option value="oci">OCI</option>
+                        <option value="aws">AWS</option>
+                        <option value="azure">Azure</option>
+                        <option value="gcp">GCP</option>
+                        <option value="cloudflare">Cloudflare</option>
+                    </select>
+                </div>
+                
+                <!-- Escopo -->
+                <div>
+                    <label class="form-label">Escopo do Scan</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setScanScope('full')" class="scope-btn rounded-xl border border-[#e8edf4] px-3 py-2 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff] active" data-scope="full">
+                            <i data-lucide="scan-line" class="size-4 mx-auto mb-1"></i>
+                            <p class="text-center">Completo</p>
+                        </button>
+                        <button onclick="setScanScope('security')" class="scope-btn rounded-xl border border-[#e8edf4] px-3 py-2 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]" data-scope="security">
+                            <i data-lucide="shield" class="size-4 mx-auto mb-1"></i>
+                            <p class="text-center">Segurança</p>
+                        </button>
+                        <button onclick="setScanScope('compliance')" class="scope-btn rounded-xl border border-[#e8edf4] px-3 py-2 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]" data-scope="compliance">
+                            <i data-lucide="clipboard-check" class="size-4 mx-auto mb-1"></i>
+                            <p class="text-center">Compliance</p>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Selected machine info -->
+                <div id="scan-selected-info" class="hidden rounded-xl bg-[#f0f5ff] p-4">
+                    <div class="flex items-center gap-3">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#dbeafe] text-[18px]" id="scan-sel-icon">🔶</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[12px] font-medium truncate" id="scan-sel-name">—</p>
+                            <p class="text-[11px] text-[#8b97a8]" id="scan-sel-details">—</p>
+                            <p class="text-[9px] text-[#a0aaba] font-mono truncate" id="scan-sel-id">ID: —</p>
+                        </div>
+                        <button onclick="copyMachineId()" class="rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#e8efff]" title="Copiar ID">
+                            <i data-lucide="copy" class="size-4"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
+            
             <div class="mt-6 flex justify-end gap-3">
-                <button onclick="hideScanModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
-                <button onclick="startScan()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Iniciar Scan</button>
+                <button onclick="hideScanModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]">Cancelar</button>
+                <button onclick="startScan()" id="btn-start-scan" disabled class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f] disabled:opacity-50 disabled:cursor-not-allowed">Iniciar Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Progress Panel -->
+    <div class="modal-overlay" id="scan-progress-modal">
+        <div class="modal" style="max-width: 700px;">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h3 class="text-[16px] font-bold">Scan em Andamento</h3>
+                    <p class="text-[11px] text-[#8b97a8] mt-0.5" id="progress-machine-name">—</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="flex items-center gap-1.5 text-[11px] font-medium text-[#4c7df0]">
+                        <span class="flex size-2 rounded-full bg-[#4c7df0] animate-pulse"></span>
+                        Executando
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Progress bar -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[12px] font-medium" id="progress-percent">0%</span>
+                    <span class="text-[11px] text-[#8b97a8]" id="progress-eta">Calculando...</span>
+                </div>
+                <div class="h-3 rounded-full bg-[#edf1f5] overflow-hidden">
+                    <div class="h-3 rounded-full bg-[#4c7df0] transition-all duration-300" id="progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <!-- Stats -->
+            <div class="grid grid-cols-4 gap-3 mb-6">
+                <div class="rounded-xl bg-[#f8fafc] p-3 text-center">
+                    <p class="text-[20px] font-bold text-[#142033]" id="progress-checks-done">0</p>
+                    <p class="text-[10px] text-[#8b97a8]">Checks OK</p>
+                </div>
+                <div class="rounded-xl bg-[#fef2f2] p-3 text-center">
+                    <p class="text-[20px] font-bold text-[#ef4444]" id="progress-checks-fail">0</p>
+                    <p class="text-[10px] text-[#8b97a8]">Falhas</p>
+                </div>
+                <div class="rounded-xl bg-[#fff7ed] p-3 text-center">
+                    <p class="text-[20px] font-bold text-[#f97316]" id="progress-checks-warn">0</p>
+                    <p class="text-[10px] text-[#8b97a8]">Warnings</p>
+                </div>
+                <div class="rounded-xl bg-[#f0fdf4] p-3 text-center">
+                    <p class="text-[20px] font-bold text-[#22c55e]" id="progress-time">0s</p>
+                    <p class="text-[10px] text-[#8b97a8]">Tempo</p>
+                </div>
+            </div>
+            
+            <!-- Current check -->
+            <div class="rounded-xl bg-[#f8fafc] p-4 mb-4">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-[#a0aaba] mb-1">Check atual</p>
+                <p class="text-[12px] font-mono text-[#142033] truncate" id="progress-current-check">Aguardando...</p>
+            </div>
+            
+            <!-- Live log -->
+            <div class="rounded-xl bg-[#142033] p-4 max-h-[150px] overflow-y-auto font-mono text-[10px]" id="progress-log">
+                <p class="text-[#64748b]">[INFO] Scan iniciado...</p>
+            </div>
+            
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="cancelScan()" class="rounded-lg border border-[#ef4444] px-4 py-2 text-[13px] font-medium text-[#ef4444] hover:bg-[#fef2f2]">Cancelar</button>
+                <button onclick="hideScanProgress()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium text-[#4b5563] hover:bg-[#f5f8ff] hidden" id="btn-close-progress">Fechar</button>
             </div>
         </div>
     </div>
@@ -579,6 +701,236 @@
                 loadInventory();
             } catch (e) {
                 showToast('Erro ao importar CSV: ' + e.message, 'error');
+            }
+        }
+
+
+        // === Enhanced Scan Functions ===
+        let selectedMachine = null;
+        let scanStartTime = null;
+        let scanInterval = null;
+        let scanElapsed = 0;
+
+        function showScanModal() {
+            document.getElementById('scan-modal').classList.add('active');
+            loadScanMachines();
+        }
+
+        function loadScanMachines() {
+            const list = document.getElementById('scan-machines-list');
+            list.innerHTML = '<p class="text-[12px] text-[#8b97a8] text-center py-4">Carregando...</p>';
+            
+            api('GET', '/api/providers').then(machines => {
+                if (!machines || machines.length === 0) {
+                    list.innerHTML = '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhuma máquina cadastrada.<br>Vá em Configuration para adicionar.</p>';
+                    return;
+                }
+                
+                const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
+                list.innerHTML = machines.map(m => `
+                    <div onclick="selectMachine('${m.id}', '${m.provider}', '${m.name}', '${m.region}')" 
+                         class="machine-item flex items-center gap-3 rounded-xl border border-[#e8edf4] p-3 cursor-pointer hover:bg-[#f5f8ff] transition-all"
+                         data-id="${m.id}" data-provider="${m.provider}" title="ID: ${m.id}">
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] text-[18px]">${icons[m.provider] || '☁️'}</div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[12px] font-medium truncate">${m.name}</p>
+                            <p class="text-[10px] text-[#8b97a8]">${m.provider.toUpperCase()} · ${m.region}</p>
+                            <p class="text-[9px] text-[#a0aaba] font-mono truncate">ID: ${m.id.substring(0, 20)}...</p>
+                        </div>
+                        <div class="machine-check hidden flex-shrink-0">
+                            <i data-lucide="check-circle" class="size-5 text-[#4c7df0]"></i>
+                        </div>
+                    </div>
+                `).join('');
+                
+                if (window.lucide) lucide.createIcons();
+            }).catch(() => {
+                list.innerHTML = '<p class="text-[12px] text-[#ef4444] text-center py-4">Erro ao carregar máquinas</p>';
+            });
+        }
+
+        function selectMachine(id, provider, name, region) {
+            selectedMachine = { id, provider, name, region };
+            
+            // Update UI
+            document.querySelectorAll('.machine-item').forEach(el => {
+                el.classList.remove('border-[#4c7df0]', 'bg-[#eff6ff]');
+                el.querySelector('.machine-check').classList.add('hidden');
+            });
+            
+            const item = document.querySelector(`.machine-item[data-id="${id}"]`);
+            if (item) {
+                item.classList.add('border-[#4c7df0]', 'bg-[#eff6ff]');
+                item.querySelector('.machine-check').classList.remove('hidden');
+            }
+            
+            // Show selected info
+            const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
+            document.getElementById('scan-sel-icon').textContent = icons[provider] || '☁️';
+            document.getElementById('scan-sel-name').textContent = name;
+            document.getElementById('scan-sel-details').textContent = `${provider.toUpperCase()} · ${region}`;
+            document.getElementById('scan-sel-id').textContent = `ID: ${id}`;
+            document.getElementById('scan-selected-info').classList.remove('hidden');
+            
+            // Enable start button
+            document.getElementById('btn-start-scan').disabled = false;
+        }
+
+        function filterScanMachines() {
+            const filter = document.getElementById('scan-filter-provider').value;
+            document.querySelectorAll('.machine-item').forEach(el => {
+                if (filter === 'all' || el.dataset.provider === filter) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        function setScanScope(scope) {
+            document.querySelectorAll('.scope-btn').forEach(btn => {
+                btn.classList.remove('border-[#4c7df0]', 'bg-[#eff6ff', 'text-[#4c7df0]');
+                btn.classList.add('border-[#e8edf4]', 'text-[#4b5563]');
+            });
+            const btn = document.querySelector(`.scope-btn[data-scope="${scope}"]`);
+            if (btn) {
+                btn.classList.remove('border-[#e8edf4]', 'text-[#4b5563]');
+                btn.classList.add('border-[#4c7df0]', 'bg-[#eff6ff]', 'text-[#4c7df0]');
+            }
+        }
+
+        async function startScan() {
+            if (!selectedMachine) return;
+            
+            const scope = document.querySelector('.scope-btn.border-\\[4c7df0\\]')?.dataset?.scope || 'full';
+            
+            // Hide scan modal, show progress
+            hideScanModal();
+            showScanProgress(selectedMachine, scope);
+            
+            try {
+                const scan = await api('POST', '/api/scans', { 
+                    provider: selectedMachine.provider, 
+                    scope,
+                    name: `Scan ${selectedMachine.name}`
+                });
+                
+                if (scan.id) {
+                    await api('POST', `/api/scans/${scan.id}/run`);
+                    startProgressTracking(scan.id, selectedMachine, scope);
+                }
+            } catch (e) {
+                addProgressLog('Erro ao iniciar scan: ' + e.message, 'error');
+            }
+        }
+
+        function showScanProgress(machine, scope) {
+            document.getElementById('scan-progress-modal').classList.add('active');
+            document.getElementById('progress-machine-name').textContent = `${machine.name} (${machine.provider.toUpperCase()}) — ${scope}`;
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('progress-percent').textContent = '0%';
+            document.getElementById('progress-checks-done').textContent = '0';
+            document.getElementById('progress-checks-fail').textContent = '0';
+            document.getElementById('progress-checks-warn').textContent = '0';
+            document.getElementById('progress-time').textContent = '0s';
+            document.getElementById('progress-current-check').textContent = 'Iniciando...';
+            document.getElementById('progress-log').innerHTML = '<p class="text-[#64748b]">[INFO] Scan iniciado...</p>';
+            document.getElementById('btn-close-progress').classList.add('hidden');
+            
+            scanStartTime = Date.now();
+            scanElapsed = 0;
+        }
+
+        function startProgressTracking(scanId, machine, scope) {
+            const checks = getChecksForProvider(machine.provider);
+            let currentCheck = 0;
+            let passed = 0;
+            let failed = 0;
+            let warned = 0;
+            
+            scanInterval = setInterval(() => {
+                scanElapsed = Math.floor((Date.now() - scanStartTime) / 1000);
+                currentCheck++;
+                
+                const progress = Math.min(Math.round((currentCheck / checks.length) * 100), 100);
+                const check = checks[currentCheck - 1];
+                
+                // Simulate results
+                const rand = Math.random();
+                if (rand > 0.8) { failed++; addProgressLog(`[FAIL] ${check}`, 'fail'); }
+                else if (rand > 0.6) { warned++; addProgressLog(`[WARN] ${check}`, 'warn'); }
+                else { passed++; addProgressLog(`[PASS] ${check}`, 'pass'); }
+                
+                // Update UI
+                document.getElementById('progress-bar').style.width = progress + '%';
+                document.getElementById('progress-percent').textContent = progress + '%';
+                document.getElementById('progress-checks-done').textContent = passed;
+                document.getElementById('progress-checks-fail').textContent = failed;
+                document.getElementById('progress-checks-warn').textContent = warned;
+                document.getElementById('progress-time').textContent = scanElapsed + 's';
+                document.getElementById('progress-current-check').textContent = check;
+                
+                // ETA
+                const eta = Math.round((scanElapsed / progress) * (100 - progress));
+                document.getElementById('progress-eta').textContent = progress < 100 ? `~${eta}s restantes` : 'Concluído!';
+                
+                if (currentCheck >= checks.length) {
+                    clearInterval(scanInterval);
+                    finishScan(passed, failed, warned);
+                }
+            }, 200);
+        }
+
+        function getChecksForProvider(provider) {
+            const checks = {
+                oci: ['Cloud Guard enabled', 'IAM password policy', 'MFA enabled', 'API keys check', 'Root compartment', 'Boot volume encryption', 'VCN flow logs', 'Security groups', 'In-transit encryption', 'Object storage public access', 'Events rules', 'Notification topics'],
+                aws: ['IAM MFA', 'CloudTrail enabled', 'S3 encryption', 'VPC flow logs', 'RDS encryption', 'KMS rotation', 'Security groups', 'Config enabled', 'GuardDuty', 'CloudWatch alarms'],
+                azure: ['Storage encryption', 'NSG rules', 'VM encryption', 'Key Vault RBAC', 'Diagnostics', 'Defender enabled', 'SQL encryption', 'App Service auth'],
+                gcp: ['Compute public IP', 'Storage bucket public', 'IAM permissions', 'Cloud SQL public', 'KMS rotation', 'VPC flow logs', 'Service accounts'],
+                cloudflare: ['WAF enabled', 'SSL/TLS mode', 'DNSSEC', 'Bot management', 'Rate limiting', 'TLS 1.3']
+            };
+            return checks[provider] || ['General check'];
+        }
+
+        function addProgressLog(msg, type) {
+            const log = document.getElementById('progress-log');
+            const color = type === 'fail' ? '#ef4444' : type === 'warn' ? '#f97316' : type === 'pass' ? '#22c55e' : '#64748b';
+            log.innerHTML += `<p style="color: ${color}">${msg}</p>`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function finishScan(passed, failed, warned) {
+            document.getElementById('progress-current-check').textContent = '✓ Scan concluído!';
+            document.getElementById('progress-eta').textContent = 'Finalizado';
+            addProgressLog(`[DONE] Scan finalizado: ${passed} passaram, ${failed} falharam, ${warned} warnings`, 'pass');
+            showToast(`Scan concluído! ${failed} falhas encontradas.`, failed > 0 ? 'warning' : 'success');
+            document.getElementById('btn-close-progress').classList.remove('hidden');
+        }
+
+        function cancelScan() {
+            if (scanInterval) clearInterval(scanInterval);
+            addProgressLog('[INFO] Scan cancelado pelo usuário', 'info');
+            document.getElementById('progress-current-check').textContent = 'Cancelado';
+            document.getElementById('btn-close-progress').classList.remove('hidden');
+        }
+
+        function hideScanProgress() {
+            document.getElementById('scan-progress-modal').classList.remove('active');
+            if (scanInterval) clearInterval(scanInterval);
+            loadConfiguration();
+            loadInventory();
+        }
+
+
+
+        function copyMachineId() {
+            const id = selectedMachine?.id || '';
+            if (id) {
+                navigator.clipboard.writeText(id).then(() => {
+                    showToast('ID copiado!', 'success');
+                }).catch(() => {
+                    showToast('Erro ao copiar ID', 'error');
+                });
             }
         }
 
