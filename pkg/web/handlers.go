@@ -2,10 +2,12 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/Lorax46/Harpia-Security/internal/scanner"
 	"github.com/Lorax46/Harpia-Security/pkg/credentials"
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
@@ -17,18 +19,17 @@ type Handler struct {
 	scanner    ScannerService
 	inventory  InventoryService
 	compliance ComplianceService
-	vault      *credentials.SecureVault
+	vault      *credentials.CredentialManager
 }
 
 // NewHandler creates a new HTTP handler.
 func NewHandler(cfg Config, auth *AuthService) *Handler {
-	v, _ := credentials.NewSecureVault()
 	return &Handler{
 		config:     cfg,
 		scanner:    cfg.Scanner,
 		inventory:  cfg.Inventory,
 		compliance: cfg.Compliance,
-		vault:      v,
+		vault:      credentials.GetManager(),
 	}
 }
 
@@ -93,26 +94,32 @@ func (h *Handler) Logout(c *gin.Context) {
 
 // GetDashboard returns dashboard data.
 func (h *Handler) GetDashboard(c *gin.Context) {
-	stats := h.getRealStats(c.Request.Context())
-	c.JSON(http.StatusOK, gin.H{"stats": stats})
+	c.JSON(http.StatusOK, gin.H{
+		"stats": gin.H{
+			"total_findings": 0,
+			"critical":       0,
+			"high":           0,
+			"medium":         0,
+			"low":            0,
+			"providers":      len(h.vault.List()),
+			"checks":         52,
+		},
+	})
 }
 
 // GetDashboardStats returns dashboard statistics.
 func (h *Handler) GetDashboardStats(c *gin.Context) {
-	stats := h.getRealStats(c.Request.Context())
-	c.JSON(http.StatusOK, gin.H{"stats": stats})
-}
-
-func (h *Handler) getRealStats(ctx interface{}) gin.H {
-	return gin.H{
-		"total_findings": 0,
-		"critical":       0,
-		"high":           0,
-		"medium":         0,
-		"low":            0,
-		"providers":      5,
-		"checks":         1139,
-	}
+	c.JSON(http.StatusOK, gin.H{
+		"stats": gin.H{
+			"total_findings": 0,
+			"critical":       0,
+			"high":           0,
+			"medium":         0,
+			"low":            0,
+			"providers":      len(h.vault.List()),
+			"checks":         52,
+		},
+	})
 }
 
 // ListScans returns all scans.
@@ -122,13 +129,53 @@ func (h *Handler) ListScans(c *gin.Context) {
 	})
 }
 
-// CreateScan creates a new scan.
+// CreateScan creates a new scan with real credentials.
 func (h *Handler) CreateScan(c *gin.Context) {
 	var req CreateScanRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Find credentials for this provider
+	creds := h.vault.GetByProvider(req.Provider)
+	if len(creds) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no credentials found for provider: " + req.Provider})
+		return
+	}
+
+	// Use first credential
+	cred := creds[0]
+
+	// Validate OCI credentials
+	if req.Provider == "oci" {
+		tenancyID := cred.Data["tenancy_ocid"]
+		userID := cred.Data["user_ocid"]
+		fingerprint := cred.Data["fingerprint"]
+		privateKey := cred.Data["private_key"]
+
+		if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "incomplete OCI credentials. Need: tenancy_ocid, user_ocid, fingerprint, private_key"})
+			return
+		}
+
+		// Create real OCI scanner
+		realScanner, err := scanner.NewRealOCIService(c.Request.Context(), cred.Region, tenancyID, userID, fingerprint, privateKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create OCI scanner: %v", err)})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"id":         "scan-" + req.Provider,
+			"name":       req.Name,
+			"provider":   req.Provider,
+			"status":     "pending",
+			"checks":     len(realScanner.GetChecks()),
+		})
+		return
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"id": "scan-" + req.Provider, "name": req.Name, "provider": req.Provider, "status": "pending"})
 }
 
@@ -138,10 +185,64 @@ func (h *Handler) GetScan(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"id": id, "name": "Scan", "status": "completed"})
 }
 
-// RunScan runs a scan.
+// RunScan runs a real scan with stored credentials.
 func (h *Handler) RunScan(c *gin.Context) {
 	id := c.Param("id")
-	c.JSON(http.StatusOK, gin.H{"message": "scan started", "id": id})
+
+	// Extract provider from scan ID
+	parts := strings.Split(id, "-")
+	if len(parts) < 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scan ID"})
+		return
+	}
+	provider := parts[1]
+
+	// Find credentials for this provider
+	creds := h.vault.GetByProvider(provider)
+	if len(creds) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no credentials found for provider: " + provider})
+		return
+	}
+
+	cred := creds[0]
+
+	// Run real OCI scan if provider is OCI
+	if provider == "oci" {
+		tenancyID := cred.Data["tenancy_ocid"]
+		userID := cred.Data["user_ocid"]
+		fingerprint := cred.Data["fingerprint"]
+		privateKey := cred.Data["private_key"]
+		region := cred.Region
+
+		if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "incomplete OCI credentials"})
+			return
+		}
+
+		// Create real OCI scanner
+		realScanner, err := scanner.NewRealOCIService(c.Request.Context(), region, tenancyID, userID, fingerprint, privateKey)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create OCI scanner: %v", err)})
+			return
+		}
+
+		// Run scan
+		result, err := realScanner.RunScan(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("scan failed: %v", err)})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"scan_id":  id,
+			"provider": provider,
+			"status":   "completed",
+			"result":   result,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"scan_id": id, "status": "not implemented for provider: " + provider})
 }
 
 // DeleteScan deletes a scan.
@@ -173,11 +274,10 @@ func (h *Handler) ExportFindings(c *gin.Context) {
 	c.Data(http.StatusOK, "text/csv", data)
 }
 
-// ListProviders returns all providers.
+// ListProviders returns all providers from vault.
 func (h *Handler) ListProviders(c *gin.Context) {
 	providers := h.vault.List()
 	if len(providers) == 0 {
-		// Retorna providers padrão se não há credenciais
 		providers = []credentials.CredentialSummary{
 			{ID: "oci-default", Provider: "oci", Name: "OCI Default", Region: "sa-saopaulo-1"},
 			{ID: "aws-default", Provider: "aws", Name: "AWS Default", Region: "us-east-1"},
@@ -380,7 +480,18 @@ func (h *Handler) CreateCredentials(c *gin.Context) {
 		return
 	}
 
-	// Criar entrada de credencial criptografada
+	// Auto-unlock vault if not already unlocked
+	if !h.vault.IsUnlocked() {
+		passphrase := os.Getenv("HARPA_VAULT_PASS")
+		if passphrase == "" {
+			passphrase = "harpia-default-secure-pass-2024"
+		}
+		if err := h.vault.Unlock(passphrase); err != nil {
+			c.JSON(500, gin.H{"error": "failed to unlock vault: " + err.Error()})
+			return
+		}
+	}
+
 	entry := credentials.CredentialEntry{
 		Provider: req.Provider,
 		Name:     req.Name,
@@ -388,7 +499,6 @@ func (h *Handler) CreateCredentials(c *gin.Context) {
 		Data:     make(map[string]string),
 	}
 
-	// Armazenar campos sensíveis criptografados
 	if req.AccessKey != "" {
 		entry.Data["access_key"] = req.AccessKey
 	}
@@ -426,20 +536,6 @@ func (h *Handler) CreateCredentials(c *gin.Context) {
 		entry.Data["api_token"] = req.APIToken
 	}
 
-	// Auto-unlock vault if not already unlocked
-	if !h.vault.IsUnlocked() {
-		// Try to unlock with env var or default passphrase
-		passphrase := os.Getenv("HARPA_VAULT_PASS")
-		if passphrase == "" {
-			passphrase = "harpia-default-secure-pass-2024"
-		}
-		if err := h.vault.Unlock(passphrase); err != nil {
-			c.JSON(500, gin.H{"error": "failed to unlock vault: " + err.Error()})
-			return
-		}
-	}
-
-	// Salvar no vault criptografado
 	if err := h.vault.Add(entry); err != nil {
 		c.JSON(500, gin.H{"error": "failed to save credentials: " + err.Error()})
 		return
