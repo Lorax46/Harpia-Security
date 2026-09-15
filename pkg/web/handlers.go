@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
 )
 
@@ -255,7 +256,8 @@ func (h *Handler) DeleteProvider(c *gin.Context) {
 
 func (h *Handler) ListInventory(c *gin.Context) {
 	provider := c.DefaultQuery("provider", "aws")
-	resources, err := h.inventory.ListResources(c.Request.Context(), provider, "", nil)
+	filter := inventory.Filter{Provider: provider}
+	resources, err := h.inventory.ListResources(c.Request.Context(), provider, "", filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -266,7 +268,8 @@ func (h *Handler) ListInventory(c *gin.Context) {
 func (h *Handler) ListInventoryByType(c *gin.Context) {
 	provider := c.Param("provider")
 	resourceType := c.Param("type")
-	resources, err := h.inventory.ListResources(c.Request.Context(), provider, resourceType, nil)
+	filter := inventory.Filter{Provider: provider}
+	resources, err := h.inventory.ListResources(c.Request.Context(), provider, resourceType, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

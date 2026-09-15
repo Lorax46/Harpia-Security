@@ -208,15 +208,15 @@ func NewMockInventoryService() *MockInventoryService {
 
 func (s *MockInventoryService) ListResources(ctx context.Context, provider, service string, filter inventory.Filter) ([]inventory.Resource, error) {
 	return []inventory.Resource{
-		inventory.BaseResource{
+		inventory.Resource{
 			ID: "aws:ec2:i-12345", Type: "ec2_instance", Provider: "aws", Service: "ec2", Region: "us-east-1",
 			Tags: map[string]string{"Name": "web-server", "Environment": "production"},
 		},
-		inventory.BaseResource{
+		inventory.Resource{
 			ID: "aws:s3:my-bucket", Type: "s3_bucket", Provider: "aws", Service: "s3", Region: "us-east-1",
 			Tags: map[string]string{"Environment": "production"},
 		},
-		inventory.BaseResource{
+		inventory.Resource{
 			ID: "gcp:compute:instance-1", Type: "compute_instance", Provider: "gcp", Service: "compute", Region: "us-central1",
 			Tags: map[string]string{"name": "api-server"},
 		},
@@ -224,7 +224,7 @@ func (s *MockInventoryService) ListResources(ctx context.Context, provider, serv
 }
 
 func (s *MockInventoryService) GetResource(ctx context.Context, provider, service, id string) (inventory.Resource, error) {
-	return inventory.BaseResource{
+	return inventory.Resource{
 		ID: provider + ":" + service + ":" + id, Type: service, Provider: provider, Service: service, Region: "us-east-1",
 		Tags: map[string]string{"Name": "test-resource"},
 	}, nil
