@@ -101,7 +101,7 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 				continue
 			}
 
-			if details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread || details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread {
+			if details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread || details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectreadwithoutlist {
 				findings = append(findings, models.Finding{
 					ID:             c.metadata.CheckID + "_" + *bucket.Name,
 					Title:          c.metadata.CheckTitle,
