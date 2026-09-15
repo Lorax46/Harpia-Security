@@ -208,7 +208,7 @@
                     <div class="rounded-2xl border border-[#e3e9f1] bg-white">
                         <div class="flex items-center justify-between border-b border-[#edf1f5] px-5 py-4">
                             <div><h2 class="text-[14px] font-semibold">Providers Configurados</h2></div>
-                            <button onclick="showAddProviderModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="plus" class="size-3.5"></i> Adicionar</button>
+                            <div class="flex gap-2"><button onclick="showAddProviderModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-4 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="plus" class="size-3.5"></i> Adicionar</button><button onclick="showBulkImportModal()" class="flex items-center gap-2 rounded-lg border border-[#e8edf4] px-4 py-2 text-[12px] font-medium text-[#4b5563] hover:bg-[#f5f8ff]"><i data-lucide="upload" class="size-3.5"></i> Importar em Massa</button></div>
                         </div>
                         <div class="p-4 space-y-3" id="providers-list"></div>
                     </div>
@@ -499,6 +499,89 @@
             renderCredentialsList();
         }
 
+
+        // === Bulk Import Functions ===
+        function showBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.add('active');
+        }
+
+        function hideBulkImportModal() {
+            document.getElementById('bulk-import-modal').classList.remove('active');
+        }
+
+        function switchImportTab(tab) {
+            document.getElementById('tab-json').className = tab === 'json' ? 'rounded-lg px-4 py-2 text-[12px] font-medium bg-[#eff6ff] text-[#4c7df0]' : 'rounded-lg px-4 py-2 text-[12px] font-medium text-[#8b97a8] hover:bg-[#f5f8ff]';
+            document.getElementById('tab-csv').className = tab === 'csv' ? 'rounded-lg px-4 py-2 text-[12px] font-medium bg-[#eff6ff] text-[#4c7df0]' : 'rounded-lg px-4 py-2 text-[12px] font-medium text-[#8b97a8] hover:bg-[#f5f8ff]';
+            document.getElementById('import-json-panel').classList.toggle('hidden', tab !== 'json');
+            document.getElementById('import-csv-panel').classList.toggle('hidden', tab !== 'csv');
+        }
+
+        function handleCSVUpload(input) {
+            if (input.files && input.files[0]) {
+                showToast('Arquivo selecionado: ' + input.files[0].name, 'info');
+            }
+        }
+
+        async function submitBulkImport() {
+            const jsonPanel = document.getElementById('import-json-panel');
+            const isJson = !jsonPanel.classList.contains('hidden');
+            
+            if (isJson) {
+                submitJSONImport();
+            } else {
+                submitCSVImport();
+            }
+        }
+
+        async function submitJSONImport() {
+            const input = document.getElementById('bulk-json-input').value;
+            if (!input.trim()) { showToast('Cole o JSON', 'error'); return; }
+            
+            let data;
+            try {
+                data = JSON.parse(input);
+            } catch (e) {
+                showToast('JSON inválido: ' + e.message, 'error');
+                return;
+            }
+            
+            try {
+                const res = await api('POST', '/api/import/bulk', { providers: data });
+                document.getElementById('bulk-import-result').classList.remove('hidden');
+                document.getElementById('bulk-import-summary').textContent = `${res.succeeded} de ${res.total} credenciais importadas com sucesso`;
+                showToast(`${res.succeeded} credenciais importadas!`, 'success');
+                loadConfiguration();
+                loadInventory();
+            } catch (e) {
+                showToast('Erro ao importar: ' + e.message, 'error');
+            }
+        }
+
+        async function submitCSVImport() {
+            const fileInput = document.getElementById('bulk-csv-file');
+            if (!fileInput.files || !fileInput.files[0]) { showToast('Selecione um arquivo CSV', 'error'); return; }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const res = await fetch(API_BASE + '/api/import/csv', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + TOKEN },
+                    body: formData
+                });
+                const data = await res.json();
+                
+                document.getElementById('bulk-import-result').classList.remove('hidden');
+                document.getElementById('bulk-import-summary').textContent = `${data.succeeded} de ${data.total} credenciais importadas com sucesso`;
+                showToast(`${data.succeeded} credenciais importadas!`, 'success');
+                loadConfiguration();
+                loadInventory();
+            } catch (e) {
+                showToast('Erro ao importar CSV: ' + e.message, 'error');
+            }
+        }
+
 document.addEventListener('DOMContentLoaded', () => { showPage(window.location.pathname.replace('/', '') || 'dashboard'); if (window.lucide) lucide.createIcons(); });
     </script>
 
@@ -530,6 +613,60 @@ document.addEventListener('DOMContentLoaded', () => { showPage(window.location.p
             <div class="mt-6 flex justify-end gap-3">
                 <button onclick="hideVaultModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
                 <button onclick="unlockVault()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Desbloquear</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Bulk Import Modal -->
+    <div class="modal-overlay" id="bulk-import-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-[16px] font-bold">Importação em Massa</h3>
+                <button onclick="hideBulkImportModal()" class="rounded-lg p-1.5 text-[#96a1b2] hover:bg-[#f5f8ff]"><i data-lucide="x" class="size-5"></i></button>
+            </div>
+            <div class="space-y-4">
+                <!-- Tabs -->
+                <div class="flex gap-2 border-b border-[#e8edf4] pb-2">
+                    <button onclick="switchImportTab('json')" id="tab-json" class="rounded-lg px-4 py-2 text-[12px] font-medium bg-[#eff6ff] text-[#4c7df0]">JSON</button>
+                    <button onclick="switchImportTab('csv')" id="tab-csv" class="rounded-lg px-4 py-2 text-[12px] font-medium text-[#8b97a8] hover:bg-[#f5f8ff]">CSV</button>
+                </div>
+                
+                <!-- JSON Tab -->
+                <div id="import-json-panel">
+                    <div class="mb-3 flex items-center justify-between">
+                        <p class="text-[12px] text-[#8b97a8]">Cole o JSON com as credenciais</p>
+                        <a href="/api/import/template?provider=all" target="_blank" class="text-[11px] text-[#4c7df0] hover:underline">Ver template</a>
+                    </div>
+                    <textarea class="form-input font-mono text-[11px]" id="bulk-json-input" rows="8" placeholder='[
+  {"provider":"oci","name":"OCI Prod","region":"sa-saopaulo-1","tenancy_ocid":"ocid1.tenancy...","user_ocid":"ocid1.user...","fingerprint":"xx:xx:xx...","private_key":"-----BEGIN PRIVATE KEY-----..."}
+]'></textarea>
+                </div>
+                
+                <!-- CSV Tab -->
+                <div id="import-csv-panel" class="hidden">
+                    <div class="mb-3 flex items-center justify-between">
+                        <p class="text-[12px] text-[#8b97a8]">Faça upload do arquivo CSV</p>
+                        <a href="/api/import/template?provider=all" target="_blank" class="text-[11px] text-[#4c7df0] hover:underline">Baixar template CSV</a>
+                    </div>
+                    <label class="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[#e8edf4] p-6 cursor-pointer hover:bg-[#f5f8ff]">
+                        <i data-lucide="upload-cloud" class="size-8 text-[#8b97a8]"></i>
+                        <div><p class="text-[13px] font-medium text-[#4b5563]">Clique para selecionar</p><p class="text-[11px] text-[#8b97a8]">ou arraste o arquivo CSV</p></div>
+                        <input type="file" accept=".csv" class="hidden" id="bulk-csv-file" onchange="handleCSVUpload(this)">
+                    </label>
+                </div>
+                
+                <!-- Result -->
+                <div id="bulk-import-result" class="hidden">
+                    <div class="rounded-xl bg-[#f0fdf4] p-4">
+                        <p class="text-[12px] font-medium text-[#16a34a]">✓ Importação concluída!</p>
+                        <p class="text-[11px] text-[#8b97a8] mt-1" id="bulk-import-summary"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="hideBulkImportModal()" class="rounded-lg border border-[#e8edf4] px-4 py-2 text-[13px] font-medium hover:bg-[#f5f8ff]">Cancelar</button>
+                <button onclick="submitBulkImport()" class="rounded-lg bg-[#162d55] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#1e3a6f]">Importar</button>
             </div>
         </div>
     </div>

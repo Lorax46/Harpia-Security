@@ -118,6 +118,11 @@ func (s *Server) setupRoutes(auth *AuthService) {
 	api.POST("/vault/lock", s.handler.LockVault)
 	api.GET("/vault/status", s.handler.GetVaultStatus)
 
+	// Bulk import routes
+	api.POST("/import/bulk", s.handler.BulkImportCredentials)
+	api.POST("/import/csv", s.handler.ImportCredentialsFromCSV)
+	api.GET("/import/template", s.handler.GetImportTemplateCSV)
+
 	// Page routes (SPA)
 	pageRoutes := []string{"/", "/dashboard", "/findings", "/inventory", "/automation", "/configuration"}
 	for _, route := range pageRoutes {
