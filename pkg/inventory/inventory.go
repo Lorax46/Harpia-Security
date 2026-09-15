@@ -1,3 +1,5 @@
+// Package inventory provides resource discovery and querying.
+// Based on Steampipe's architecture: per-provider plugins, per-service tables, query engine with caching.
 package inventory
 
 import (
