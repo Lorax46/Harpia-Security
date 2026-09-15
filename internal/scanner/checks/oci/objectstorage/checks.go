@@ -7,6 +7,7 @@ import (
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/models"
 	"github.com/oracle/oci-go-sdk/v65/common"
+	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
 
@@ -38,9 +39,10 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 	p, ok := provider.(interface {
 		ObjectStore() (objectstorage.ObjectStorageClient, error)
 		TenancyId() string
+		Identity() (identity.IdentityClient, error)
 	})
 	if !ok {
-		return nil, fmt.Errorf("provider não implementa ObjectStore()")
+		return nil, fmt.Errorf("provider não implementa interfaces necessárias")
 	}
 
 	client, err := p.ObjectStore()
@@ -48,9 +50,15 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 		return nil, err
 	}
 
+	idClient, err := p.Identity()
+	if err != nil {
+		return nil, err
+	}
+
 	tenancyId := p.TenancyId()
 	findings := []models.Finding{}
 
+	// Get namespace
 	nsReq := objectstorage.GetNamespaceRequest{
 		CompartmentId: &tenancyId,
 	}
@@ -58,73 +66,85 @@ func (c *BucketNotPubliclyAccessibleCheck) Execute(ctx context.Context, provider
 	if err != nil {
 		return nil, fmt.Errorf("falha ao obter namespace: %w", err)
 	}
-
 	namespace := *nsResp.Value
 
-	req := objectstorage.ListBucketsRequest{
-		NamespaceName: common.String(namespace),
-		CompartmentId: &tenancyId,
+	// List all compartments (including root)
+	complReq := identity.ListCompartmentsRequest{
+		CompartmentId:          &tenancyId,
+		CompartmentIdInSubtree: common.Bool(true),
+		LifecycleState:         identity.CompartmentLifecycleStateActive,
 	}
-
-	buckets, err := client.ListBuckets(ctx, req)
+	complResp, err := idClient.ListCompartments(ctx, complReq)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao listar buckets: %w", err)
+		return nil, fmt.Errorf("falha ao listar compartments: %w", err)
 	}
 
-	for _, bucket := range buckets.Items {
-		getReq := objectstorage.GetBucketRequest{
+	totalBuckets := 0
+	for _, comp := range complResp.Items {
+		req := objectstorage.ListBucketsRequest{
 			NamespaceName: common.String(namespace),
-			BucketName:    common.String(*bucket.Name),
+			CompartmentId: comp.Id,
 		}
-		details, err := client.GetBucket(ctx, getReq)
+		buckets, err := client.ListBuckets(ctx, req)
 		if err != nil {
 			continue
 		}
+		totalBuckets += len(buckets.Items)
 
-		if details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread {
-			findings = append(findings, models.Finding{
-				ID:             c.metadata.CheckID,
-				Title:          c.metadata.CheckTitle,
-				Description:    c.metadata.Description,
-				Severity:       c.metadata.Severity,
-				Status:         models.StatusFail,
-				StatusExtended: fmt.Sprintf("Bucket %s is publicly accessible", *bucket.Name),
-				ResourceID:     *details.Id,
-				Provider:       "oci",
-				Service:        "objectstorage",
-				Remediation:    c.metadata.RemediationText,
-				Categories:     c.metadata.Categories,
-				FoundAt:        time.Now(),
-			})
-		} else {
-			findings = append(findings, models.Finding{
-				ID:             c.metadata.CheckID,
-				Title:          c.metadata.CheckTitle,
-				Description:    c.metadata.Description,
-				Severity:       c.metadata.Severity,
-				Status:         models.StatusPass,
-				StatusExtended: fmt.Sprintf("Bucket %s is private", *bucket.Name),
-				ResourceID:     *details.Id,
-				Provider:       "oci",
-				Service:        "objectstorage",
-				Remediation:    c.metadata.RemediationText,
-				Categories:     c.metadata.Categories,
-				FoundAt:        time.Now(),
-			})
+		for _, bucket := range buckets.Items {
+			getReq := objectstorage.GetBucketRequest{
+				NamespaceName: common.String(namespace),
+				BucketName:    common.String(*bucket.Name),
+			}
+			details, err := client.GetBucket(ctx, getReq)
+			if err != nil {
+				continue
+			}
+
+			if details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread || details.PublicAccessType == objectstorage.BucketPublicAccessTypeObjectread {
+				findings = append(findings, models.Finding{
+					ID:             c.metadata.CheckID + "_" + *bucket.Name,
+					Title:          c.metadata.CheckTitle,
+					Description:    c.metadata.Description,
+					Severity:       c.metadata.Severity,
+					Status:         models.StatusFail,
+					StatusExtended: fmt.Sprintf("Bucket %s (compartment: %s) is publicly accessible", *bucket.Name, *comp.Name),
+					ResourceID:     *details.Id,
+					Provider:       "oci",
+					Service:        "objectstorage",
+					Remediation:    c.metadata.RemediationText,
+					Categories:     c.metadata.Categories,
+					FoundAt:        time.Now(),
+				})
+			} else {
+				findings = append(findings, models.Finding{
+					ID:             c.metadata.CheckID + "_" + *bucket.Name,
+					Title:          c.metadata.CheckTitle,
+					Description:    c.metadata.Description,
+					Severity:       "low",
+					Status:         models.StatusPass,
+					StatusExtended: fmt.Sprintf("Bucket %s (compartment: %s) is private", *bucket.Name, *comp.Name),
+					ResourceID:     *details.Id,
+					Provider:       "oci",
+					Service:        "objectstorage",
+					Categories:     c.metadata.Categories,
+					FoundAt:        time.Now(),
+				})
+			}
 		}
 	}
 
-	if len(findings) == 0 {
+	if totalBuckets == 0 {
 		findings = append(findings, models.Finding{
 			ID:             c.metadata.CheckID,
 			Title:          c.metadata.CheckTitle,
 			Description:    c.metadata.Description,
-			Severity:       c.metadata.Severity,
+			Severity:       "informational",
 			Status:         models.StatusPass,
-			StatusExtended: "No buckets found",
+			StatusExtended: "No object storage buckets found in any compartment",
 			Provider:       "oci",
 			Service:        "objectstorage",
-			Remediation:    c.metadata.RemediationText,
+			Remediation:    "No action needed - no buckets exist",
 			Categories:     c.metadata.Categories,
 			FoundAt:        time.Now(),
 		})
