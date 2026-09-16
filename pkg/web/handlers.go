@@ -539,3 +539,60 @@ func (h *Handler) RunRealScan(c *gin.Context) {
 		"message":  "Scan iniciado com credenciais criptografadas",
 	})
 }
+
+// GetInventory retorna o inventário completo de todos os providers.
+func (h *Handler) GetInventory(c *gin.Context) {
+	inventoryManager := inventory.NewManager()
+	providers := inventoryManager.ListProviders()
+	results, _ := inventoryManager.CollectAll(c.Request.Context(), providers)
+	totals := inventoryManager.GetTotalResources(results)
+	c.JSON(http.StatusOK, gin.H{"providers": providers, "totals": totals, "results": results})
+}
+
+// ListInventoryProviders lista os providers disponíveis para inventário.
+func (h *Handler) ListInventoryProviders(c *gin.Context) {
+	inventoryManager := inventory.NewManager()
+	providers := inventoryManager.ListProviders()
+	result := []gin.H{}
+	for _, p := range providers {
+		types, err := inventoryManager.GetResourceTypes(p)
+		if err != nil {
+			continue
+		}
+		result = append(result, gin.H{"id": p, "resource_count": len(types)})
+	}
+	c.JSON(http.StatusOK, gin.H{"providers": result})
+}
+
+// GetInventoryTypes retorna os tipos de recursos disponíveis.
+func (h *Handler) GetInventoryTypes(c *gin.Context) {
+	provider := c.Query("provider")
+	if provider != "" {
+		inventoryManager := inventory.NewManager()
+		types, err := inventoryManager.GetResourceTypes(provider)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"provider": provider, "types": types})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"types": inventory.GetAllResourceTypes()})
+}
+
+// CollectInventory dispara coleta de inventário para um provider específico.
+func (h *Handler) CollectInventory(c *gin.Context) {
+	provider := c.Query("provider")
+	providers := []string{}
+	if provider != "" {
+		providers = append(providers, provider)
+	}
+	inventoryManager := inventory.NewManager()
+	results, err := inventoryManager.CollectAll(c.Request.Context(), providers)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	totals := inventoryManager.GetTotalResources(results)
+	c.JSON(http.StatusOK, gin.H{"message": "Inventory collection completed", "totals": totals, "results": results})
+}

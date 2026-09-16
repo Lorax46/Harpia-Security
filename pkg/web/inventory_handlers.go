@@ -32,7 +32,7 @@ func (h *Handler) RegisterInventoryRoutes(api *gin.RouterGroup) {
 
 // ListInventoryProvidersV2 lists available inventory providers
 func (h *Handler) ListInventoryProvidersV2(c *gin.Context) {
-	svc := inventory.NewService()
+	svc := inventory.GetService()
 	providers := svc.ListProviders()
 	
 	result := []gin.H{}
@@ -49,7 +49,7 @@ func (h *Handler) ListInventoryProvidersV2(c *gin.Context) {
 // ListInventoryTables lists tables for a provider
 func (h *Handler) ListInventoryTables(c *gin.Context) {
 	provider := c.Param("provider")
-	svc := inventory.NewService()
+	svc := inventory.GetService()
 	tables := svc.ListTables(provider)
 	
 	c.JSON(200, gin.H{
@@ -65,7 +65,7 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 	region := c.Query("region")
 	category := c.Query("category")
 	
-	svc := inventory.NewService()
+	svc := inventory.GetService()
 	filter := inventory.Filter{
 		Provider: provider,
 		Service:  service,
@@ -90,7 +90,7 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 func (h *Handler) SyncInventoryV2(c *gin.Context) {
 	provider := c.Param("provider")
 	
-	svc := inventory.NewService()
+	svc := inventory.GetService()
 	if err := svc.SyncResources(provider); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

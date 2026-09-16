@@ -153,6 +153,12 @@ func setupRoutes(engine *gin.Engine, handler *web.Handler) {
 		api.POST("/users", handler.CreateUser)
 		api.PUT("/users/:id", handler.UpdateUser)
 		api.DELETE("/users/:id", handler.DeleteUser)
+
+		// Inventário
+		api.GET("/inventory", handler.GetInventory)
+		api.GET("/inventory/providers", handler.ListInventoryProviders)
+		api.GET("/inventory/types", handler.GetInventoryTypes)
+		api.GET("/inventory/collect", handler.CollectInventory)
 	}
 
 	// SPA fallback

@@ -136,7 +136,7 @@ func (s *MockInventoryService) ListResources(ctx context.Context, provider, serv
 	return []inventory.Resource{}, nil
 }
 func (s *MockInventoryService) GetResource(ctx context.Context, provider, service, id string) (inventory.Resource, error) {
-	return inventory.Resource{ID: id, Type: service, Provider: provider, Service: service}, nil
+	return inventory.Resource{ID: id, Type: service, Provider: provider}, nil
 }
 func (s *MockInventoryService) SyncResources(ctx context.Context, provider string) error { return nil }
 

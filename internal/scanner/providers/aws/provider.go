@@ -63,6 +63,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/servicecatalog"
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
 	"github.com/aws/aws-sdk-go-v2/service/shield"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/waf"
@@ -404,6 +406,16 @@ func (p *Provider) Firehose(ctx context.Context) (*firehose.Client, error) {
 // FMS retorna o cliente FMS (Firewall Manager)
 func (p *Provider) FMS(ctx context.Context) (*fms.Client, error) {
 	return fms.NewFromConfig(p.cfg), nil
+}
+
+// SNS retorna o cliente SNS
+func (p *Provider) SNS(ctx context.Context) (*sns.Client, error) {
+	return sns.NewFromConfig(p.cfg), nil
+}
+
+// SQS retorna o cliente SQS
+func (p *Provider) SQS(ctx context.Context) (*sqs.Client, error) {
+	return sqs.NewFromConfig(p.cfg), nil
 }
 
 // DMS retorna o cliente DMS

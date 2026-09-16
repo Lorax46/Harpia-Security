@@ -1,5 +1,5 @@
-// Package inventory provides resource discovery and querying.
-// Based on Steampipe's architecture: per-provider plugins, per-service tables, query engine with caching.
+// Package inventory provides cloud resource discovery and inventory.
+// Based on Steampipe's table architecture (588 AWS, 177 Azure, 123 GCP tables).
 package inventory
 
 import (
@@ -9,277 +9,322 @@ import (
 	"time"
 )
 
-// Resource represents a discovered cloud resource
+// Resource represents a discovered cloud resource.
+// Equivalent to a row in a Steampipe table.
 type Resource struct {
 	ID         string                 `json:"id"`
 	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Provider   string                 `json:"provider"`
-	Service    string                 `json:"service"`
-	Category   string                 `json:"category"`
+	Type       string                 `json:"type"`     // aws_iam_user, azure_vm, gcp_compute_instance
+	Provider   string                 `json:"provider"` // aws, azure, gcp
 	Region     string                 `json:"region"`
-	Properties map[string]interface{} `json:"properties"`
-	Tags       map[string]string      `json:"tags"`
-	Discovered time.Time              `json:"discovered"`
+	AccountID  string                 `json:"account_id,omitempty"`
+	Tags       map[string]string      `json:"tags,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Discovered time.Time              `json:"discovered_at"`
 }
 
-// Filter represents query filters
+// ResourceType defines a type of resource that can be inventoried.
+type ResourceType struct {
+	Name        string
+	Provider    string
+	Service     string
+	Description string
+}
+
+// InventoryResult contains the result of an inventory collection.
+type InventoryResult struct {
+	ResourceType string     `json:"resource_type"`
+	Provider     string     `json:"provider"`
+	Total        int        `json:"total"`
+	Resources    []Resource `json:"resources"`
+	CollectedAt  time.Time  `json:"collected_at"`
+	Error        string     `json:"error,omitempty"`
+}
+
+// Filter represents inventory query filters.
 type Filter struct {
-	Provider string            `json:"provider"`
-	Service  string            `json:"service"`
-	Category string            `json:"category"`
-	Type     string            `json:"type"`
-	Region   string            `json:"region"`
-	Tags     map[string]string `json:"tags"`
-	Limit    int               `json:"limit"`
+	Provider string
+	Service  string
+	Region   string
+	Category string
 }
 
-// ListFunc lists resources for a table
-type ListFunc func(ctx context.Context, provider interface{}, filter Filter) ([]Resource, error)
-
-// TableDef defines a resource table
-type TableDef struct {
-	Name        string   `json:"name"`
-	Category    string   `json:"category"`
-	Description string   `json:"description"`
-	List        ListFunc `json:"-"`
+// Collector defines the interface for inventory collectors.
+type Collector interface {
+	Collect(ctx context.Context, resourceType string) (*InventoryResult, error)
+	ListResourceTypes() []ResourceType
 }
 
-// ProviderDef defines a provider plugin
-type ProviderDef struct {
-	Name   string               `json:"name"`
-	Tables map[string]*TableDef `json:"-"`
-}
-
-// NewProvider creates a provider
-func NewProvider(name string) *ProviderDef {
-	return &ProviderDef{
-		Name:   name,
-		Tables: make(map[string]*TableDef),
-	}
-}
-
-// RegisterTable registers a table
-func (p *ProviderDef) RegisterTable(t *TableDef) {
-	p.Tables[t.Name] = t
-}
-
-// ListTables lists tables
-func (p *ProviderDef) ListTables() []string {
-	names := []string{}
-	for n := range p.Tables {
-		names = append(names, n)
-	}
-	return names
-}
-
-// Cache provides in-memory caching
-type Cache struct {
-	mu      sync.RWMutex
-	entries map[string]cacheEntry
-	ttl     time.Duration
-}
-
-type cacheEntry struct {
-	resources  []Resource
-	expiration time.Time
-}
-
-func NewCache() *Cache {
-	c := &Cache{entries: make(map[string]cacheEntry), ttl: 5 * time.Minute}
-	go c.cleanup()
-	return c
-}
-
-func (c *Cache) Get(key string) ([]Resource, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	e, ok := c.entries[key]
-	if !ok || time.Now().After(e.expiration) { return nil, false }
-	return e.resources, true
-}
-
-func (c *Cache) Set(key string, r []Resource) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.entries[key] = cacheEntry{r, time.Now().Add(c.ttl)}
-}
-
-func (c *Cache) cleanup() {
-	t := time.NewTicker(time.Minute)
-	for range t.C {
-		c.mu.Lock(); now := time.Now()
-		for k, e := range c.entries { if now.After(e.expiration) { delete(c.entries, k) } }
-		c.mu.Unlock()
-	}
-}
-
-// Manager manages inventory providers
+// Manager orchestrates inventory collection across providers.
 type Manager struct {
-	mu        sync.RWMutex
-	providers map[string]*ProviderDef
-	cache     *Cache
+	collectors map[string]Collector
+	mu         sync.RWMutex
+	cache      map[string]*InventoryResult
 }
 
-// NewManager creates a manager with all providers pre-registered
+// NewManager creates a new inventory Manager.
 func NewManager() *Manager {
-	m := &Manager{providers: make(map[string]*ProviderDef), cache: NewCache()}
-	m.registerAllProviders()
-	return m
+	return &Manager{
+		collectors: make(map[string]Collector),
+		cache:      make(map[string]*InventoryResult),
+	}
 }
 
-// registerAllProviders registers all cloud providers with their resource tables
-func (m *Manager) registerAllProviders() {
-	// AWS Provider
-	aws := NewProvider("aws")
-	aws.RegisterTable(&TableDef{Name: "ec2_instances", Category: "compute", Description: "EC2 instances"})
-	aws.RegisterTable(&TableDef{Name: "lambda_functions", Category: "compute", Description: "Lambda functions"})
-	aws.RegisterTable(&TableDef{Name: "ecs_tasks", Category: "compute", Description: "ECS tasks"})
-	aws.RegisterTable(&TableDef{Name: "s3_buckets", Category: "storage", Description: "S3 buckets"})
-	aws.RegisterTable(&TableDef{Name: "ebs_volumes", Category: "storage", Description: "EBS volumes"})
-	aws.RegisterTable(&TableDef{Name: "rds_instances", Category: "database", Description: "RDS instances"})
-	aws.RegisterTable(&TableDef{Name: "dynamodb_tables", Category: "database", Description: "DynamoDB tables"})
-	aws.RegisterTable(&TableDef{Name: "vpcs", Category: "network", Description: "VPCs"})
-	aws.RegisterTable(&TableDef{Name: "security_groups", Category: "network", Description: "Security groups"})
-	aws.RegisterTable(&TableDef{Name: "route53_zones", Category: "network", Description: "Route53 zones"})
-	aws.RegisterTable(&TableDef{Name: "iam_users", Category: "iam", Description: "IAM users"})
-	aws.RegisterTable(&TableDef{Name: "iam_roles", Category: "iam", Description: "IAM roles"})
-	aws.RegisterTable(&TableDef{Name: "iam_policies", Category: "iam", Description: "IAM policies"})
-	aws.RegisterTable(&TableDef{Name: "kms_keys", Category: "security", Description: "KMS keys"})
-	aws.RegisterTable(&TableDef{Name: "cloudtrail_trails", Category: "security", Description: "CloudTrail trails"})
-	aws.RegisterTable(&TableDef{Name: "cloudwatch_alarms", Category: "security", Description: "CloudWatch alarms"})
-	m.providers["aws"] = aws
-
-	// OCI Provider
-	oci := NewProvider("oci")
-	oci.RegisterTable(&TableDef{Name: "instances", Category: "compute", Description: "Compute instances"})
-	oci.RegisterTable(&TableDef{Name: "vcns", Category: "network", Description: "VCNs"})
-	oci.RegisterTable(&TableDef{Name: "subnets", Category: "network", Description: "Subnets"})
-	oci.RegisterTable(&TableDef{Name: "security_lists", Category: "network", Description: "Security lists"})
-	oci.RegisterTable(&TableDef{Name: "buckets", Category: "storage", Description: "Object Storage buckets"})
-	oci.RegisterTable(&TableDef{Name: "volumes", Category: "storage", Description: "Block volumes"})
-	oci.RegisterTable(&TableDef{Name: "users", Category: "iam", Description: "Users"})
-	oci.RegisterTable(&TableDef{Name: "groups", Category: "iam", Description: "Groups"})
-	oci.RegisterTable(&TableDef{Name: "policies", Category: "iam", Description: "Policies"})
-	oci.RegisterTable(&TableDef{Name: "cloudguard_rules", Category: "security", Description: "Cloud Guard rules"})
-	oci.RegisterTable(&TableDef{Name: "events_rules", Category: "security", Description: "Events rules"})
-	oci.RegisterTable(&TableDef{Name: "kms_keys", Category: "security", Description: "KMS keys"})
-	m.providers["oci"] = oci
-
-	// Azure Provider
-	azure := NewProvider("azure")
-	azure.RegisterTable(&TableDef{Name: "virtual_machines", Category: "compute", Description: "Virtual machines"})
-	azure.RegisterTable(&TableDef{Name: "storage_accounts", Category: "storage", Description: "Storage accounts"})
-	azure.RegisterTable(&TableDef{Name: "virtual_networks", Category: "network", Description: "Virtual networks"})
-	azure.RegisterTable(&TableDef{Name: "network_security_groups", Category: "network", Description: "Network security groups"})
-	azure.RegisterTable(&TableDef{Name: "sql_databases", Category: "database", Description: "SQL databases"})
-	azure.RegisterTable(&TableDef{Name: "key_vaults", Category: "security", Description: "Key Vaults"})
-	m.providers["azure"] = azure
-
-	// GCP Provider
-	gcp := NewProvider("gcp")
-	gcp.RegisterTable(&TableDef{Name: "compute_instances", Category: "compute", Description: "Compute instances"})
-	gcp.RegisterTable(&TableDef{Name: "cloud_storage_buckets", Category: "storage", Description: "Cloud Storage buckets"})
-	gcp.RegisterTable(&TableDef{Name: "vpc_networks", Category: "network", Description: "VPC networks"})
-	gcp.RegisterTable(&TableDef{Name: "cloud_firewalls", Category: "network", Description: "Cloud Firewall rules"})
-	gcp.RegisterTable(&TableDef{Name: "cloudsql_instances", Category: "database", Description: "Cloud SQL instances"})
-	gcp.RegisterTable(&TableDef{Name: "iam_service_accounts", Category: "iam", Description: "Service accounts"})
-	gcp.RegisterTable(&TableDef{Name: "kms_keys", Category: "security", Description: "KMS keys"})
-	m.providers["gcp"] = gcp
-
-	// Cloudflare Provider
-	cf := NewProvider("cloudflare")
-	cf.RegisterTable(&TableDef{Name: "zones", Category: "network", Description: "DNS zones"})
-	cf.RegisterTable(&TableDef{Name: "waf_rules", Category: "security", Description: "WAF rules"})
-	cf.RegisterTable(&TableDef{Name: "dns_records", Category: "network", Description: "DNS records"})
-	cf.RegisterTable(&TableDef{Name: "ssl_certificates", Category: "security", Description: "SSL certificates"})
-	m.providers["cloudflare"] = cf
+// RegisterCollector registers a collector for a provider.
+func (m *Manager) RegisterCollector(provider string, c Collector) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.collectors[provider] = c
 }
 
-// ListProviders lists providers
+// ListProviders returns all registered providers.
 func (m *Manager) ListProviders() []string {
-	m.mu.RLock(); defer m.mu.RUnlock()
-	names := []string{}
-	for n := range m.providers { names = append(names, n) }
-	return names
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	providers := make([]string, 0, len(m.collectors))
+	for p := range m.collectors {
+		providers = append(providers, p)
+	}
+	return providers
 }
 
-// ListTables lists tables for a provider
-func (m *Manager) ListTables(provider string) []string {
-	m.mu.RLock(); defer m.mu.RUnlock()
-	p, ok := m.providers[provider]
-	if !ok { return nil }
-	return p.ListTables()
+// GetCollector returns the collector for a provider.
+func (m *Manager) GetCollector(provider string) (Collector, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	c, ok := m.collectors[provider]
+	if !ok {
+		return nil, fmt.Errorf("no collector registered for provider: %s", provider)
+	}
+	return c, nil
 }
 
-// ListResources lists resources with filters
-func (m *Manager) ListResources(filter Filter) ([]Resource, error) {
-	m.mu.RLock(); defer m.mu.RUnlock()
-	var all []Resource
-	providers := []string{filter.Provider}
-	if filter.Provider == "" { providers = m.ListProviders() }
-	for _, name := range providers {
-		p, ok := m.providers[name]; if !ok { continue }
-		for _, t := range p.Tables {
-			if filter.Category != "" && t.Category != filter.Category { continue }
-			key := name + ":" + t.Name
-			if cached, hit := m.cache.Get(key); hit { all = append(all, cached...); continue }
-			if t.List != nil {
-				r, err := t.List(context.Background(), nil, filter)
-				if err != nil { continue }
-				m.cache.Set(key, r)
-				for i := range r { r[i].Provider = name }
-				all = append(all, r...)
-			}
+// CollectAll collects inventory from all registered providers concurrently.
+func (m *Manager) CollectAll(ctx context.Context, providers []string) (map[string][]*InventoryResult, error) {
+	if len(providers) == 0 {
+		providers = m.ListProviders()
+	}
+
+	results := make(map[string][]*InventoryResult)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, provider := range providers {
+		collector, err := m.GetCollector(provider)
+		if err != nil {
+			continue
 		}
+
+		wg.Add(1)
+		go func(p string, c Collector) {
+			defer wg.Done()
+			providerResults := m.collectFromProvider(ctx, c)
+			mu.Lock()
+			results[p] = providerResults
+			mu.Unlock()
+		}(provider, collector)
 	}
-	return all, nil
+
+	wg.Wait()
+	return results, nil
 }
 
-var defaultManager = NewManager()
+// collectFromProvider collects all resources from a single provider.
+func (m *Manager) collectFromProvider(ctx context.Context, collector Collector) []*InventoryResult {
+	resourceTypes := collector.ListResourceTypes()
+	var results []*InventoryResult
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-// Default returns the default manager
-func Default() *Manager { return defaultManager }
+	for _, rt := range resourceTypes {
+		wg.Add(1)
+		go func(resourceType string) {
+			defer wg.Done()
+			result, err := collector.Collect(ctx, resourceType)
+			if err != nil {
+				mu.Lock()
+				results = append(results, &InventoryResult{
+					ResourceType: resourceType,
+					Error:        err.Error(),
+					CollectedAt:  time.Now(),
+				})
+				mu.Unlock()
+				return
+			}
+			mu.Lock()
+			results = append(results, result)
+			mu.Unlock()
+		}(rt.Name)
+	}
 
-// Service provides inventory operations
-type Service struct { manager *Manager }
+	wg.Wait()
+	return results
+}
 
-// NewService creates a new service
-func NewService() *Service { return &Service{manager: Default()} }
+// GetTotalResources returns the total resource count per provider.
+func (m *Manager) GetTotalResources(results map[string][]*InventoryResult) map[string]int {
+	totals := make(map[string]int)
+	for provider, providerResults := range results {
+		total := 0
+		for _, r := range providerResults {
+			total += r.Total
+		}
+		totals[provider] = total
+	}
+	return totals
+}
 
-// ListResources lists resources
+// GetResourceTypes returns all resource types for a provider.
+func (m *Manager) GetResourceTypes(provider string) ([]ResourceType, error) {
+	collector, err := m.GetCollector(provider)
+	if err != nil {
+		return nil, err
+	}
+	return collector.ListResourceTypes(), nil
+}
+
+// ListResources returns resources filtered by criteria.
+func (m *Manager) ListResources(provider, service string, filter Filter) ([]Resource, error) {
+	// For now, return empty - this would require caching all results
+	return []Resource{}, nil
+}
+
+// SyncResources triggers a sync for a provider (placeholder).
+func (m *Manager) SyncResources(provider string) error {
+	// This would trigger a fresh collection
+	return nil
+}
+
+// GetService returns a new inventory service.
+func GetService() *Service {
+	return &Service{manager: NewManager()}
+}
+
+// Service provides inventory operations.
+type Service struct {
+	manager *Manager
+}
+
+// ListProviders returns available providers.
+func (s *Service) ListProviders() []string {
+	return s.manager.ListProviders()
+}
+
+// ListTables returns tables (resource types) for a provider.
+func (s *Service) ListTables(provider string) []string {
+	types, err := s.manager.GetResourceTypes(provider)
+	if err != nil {
+		return []string{}
+	}
+	tables := make([]string, len(types))
+	for i, t := range types {
+		tables[i] = t.Name
+	}
+	return tables
+}
+
+// ListResources lists resources for a provider/service.
 func (s *Service) ListResources(provider, service string, filter Filter) ([]Resource, error) {
-	if provider != "" { filter.Provider = provider }
-	if service != "" { filter.Service = service }
-	return s.manager.ListResources(filter)
+	return s.manager.ListResources(provider, service, filter)
 }
 
-// GetResource gets a resource by ID
-func (s *Service) GetResource(provider, service, id string) (*Resource, error) {
-	resources, err := s.ListResources(provider, service, Filter{})
-	if err != nil { return nil, err }
-	for i, r := range resources {
-		if r.ID == id { return &resources[i], nil }
-	}
-	return nil, fmt.Errorf("resource not found: %s", id)
+// SyncResources syncs resources for a provider.
+func (s *Service) SyncResources(provider string) error {
+	return s.manager.SyncResources(provider)
 }
 
-// SyncResources syncs resources for a provider
-func (s *Service) SyncResources(provider string) error { return nil }
+// GetAllResourceTypes returns all resource types across all providers.
+func GetAllResourceTypes() []ResourceType {
+	return steampipeResourceTypes
+}
 
-// ListProviders lists providers
-func (s *Service) ListProviders() []string { return s.manager.ListProviders() }
+// ResourceTypes defines all resource types that can be inventoried.
+// Based on Steampipe tables.
+var steampipeResourceTypes = []ResourceType{
+	// AWS - IAM
+	{Name: "aws_iam_user", Provider: "aws", Service: "iam", Description: "AWS IAM Users"},
+	{Name: "aws_iam_role", Provider: "aws", Service: "iam", Description: "AWS IAM Roles"},
+	{Name: "aws_iam_group", Provider: "aws", Service: "iam", Description: "AWS IAM Groups"},
+	{Name: "aws_iam_policy", Provider: "aws", Service: "iam", Description: "AWS IAM Policies"},
+	{Name: "aws_iam_access_key", Provider: "aws", Service: "iam", Description: "AWS IAM Access Keys"},
 
-// ListTables lists tables
-func (s *Service) ListTables(provider string) []string { return s.manager.ListTables(provider) }
+	// AWS - Compute
+	{Name: "aws_ec2_instance", Provider: "aws", Service: "ec2", Description: "AWS EC2 Instances"},
+	{Name: "aws_ec2_vpc", Provider: "aws", Service: "ec2", Description: "AWS VPCs"},
+	{Name: "aws_ec2_subnet", Provider: "aws", Service: "ec2", Description: "AWS Subnets"},
+	{Name: "aws_ec2_security_group", Provider: "aws", Service: "ec2", Description: "AWS Security Groups"},
+	{Name: "aws_ec2_volume", Provider: "aws", Service: "ec2", Description: "AWS EBS Volumes"},
 
-// GetResourcesByCategory returns resources grouped by category
-func (s *Service) GetResourcesByCategory(provider string) (map[string][]Resource, error) {
-	resources, err := s.ListResources(provider, "", Filter{})
-	if err != nil { return nil, err }
-	categories := make(map[string][]Resource)
-	for _, r := range resources {
-		categories[r.Category] = append(categories[r.Category], r)
-	}
-	return categories, nil
+	// AWS - Storage
+	{Name: "aws_s3_bucket", Provider: "aws", Service: "s3", Description: "AWS S3 Buckets"},
+
+	// AWS - Network
+	{Name: "aws_elbv2_load_balancer", Provider: "aws", Service: "elbv2", Description: "AWS Load Balancers"},
+	{Name: "aws_route53_zone", Provider: "aws", Service: "route53", Description: "AWS Route53 Zones"},
+
+	// AWS - Database
+	{Name: "aws_rds_db_instance", Provider: "aws", Service: "rds", Description: "AWS RDS Instances"},
+	{Name: "aws_dynamodb_table", Provider: "aws", Service: "dynamodb", Description: "AWS DynamoDB Tables"},
+
+	// AWS - Compute (Serverless/Containers)
+	{Name: "aws_lambda_function", Provider: "aws", Service: "lambda", Description: "AWS Lambda Functions"},
+	{Name: "aws_ecs_cluster", Provider: "aws", Service: "ecs", Description: "AWS ECS Clusters"},
+	{Name: "aws_eks_cluster", Provider: "aws", Service: "eks", Description: "AWS EKS Clusters"},
+
+	// AWS - Security
+	{Name: "aws_kms_key", Provider: "aws", Service: "kms", Description: "AWS KMS Keys"},
+	{Name: "aws_secretsmanager_secret", Provider: "aws", Service: "secretsmanager", Description: "AWS Secrets"},
+	{Name: "aws_cloudtrail_trail", Provider: "aws", Service: "cloudtrail", Description: "AWS CloudTrail Trails"},
+	{Name: "aws_organizations_account", Provider: "aws", Service: "organizations", Description: "AWS Accounts"},
+
+	// Azure - Compute
+	{Name: "azure_compute_virtual_machine", Provider: "azure", Service: "compute", Description: "Azure VMs"},
+	{Name: "azure_compute_disk", Provider: "azure", Service: "compute", Description: "Azure Disks"},
+
+	// Azure - Network
+	{Name: "azure_network_virtual_network", Provider: "azure", Service: "network", Description: "Azure VNets"},
+	{Name: "azure_network_subnet", Provider: "azure", Service: "network", Description: "Azure Subnets"},
+	{Name: "azure_network_security_group", Provider: "azure", Service: "network", Description: "Azure NSGs"},
+	{Name: "azure_network_public_ip", Provider: "azure", Service: "network", Description: "Azure Public IPs"},
+
+	// Azure - Storage
+	{Name: "azure_storage_account", Provider: "azure", Service: "storage", Description: "Azure Storage Accounts"},
+
+	// Azure - Database
+	{Name: "azure_sql_server", Provider: "azure", Service: "sql", Description: "Azure SQL Servers"},
+	{Name: "azure_sql_database", Provider: "azure", Service: "sql", Description: "Azure SQL Databases"},
+
+	// Azure - IAM
+	{Name: "azure_ad_user", Provider: "azure", Service: "entra", Description: "Azure AD Users"},
+	{Name: "azure_ad_group", Provider: "azure", Service: "entra", Description: "Azure AD Groups"},
+	{Name: "azure_ad_service_principal", Provider: "azure", Service: "entra", Description: "Azure AD Service Principals"},
+
+	// Azure - Kubernetes
+	{Name: "azure_kubernetes_cluster", Provider: "azure", Service: "aks", Description: "Azure AKS Clusters"},
+
+	// GCP - Compute
+	{Name: "gcp_compute_instance", Provider: "gcp", Service: "compute", Description: "GCP Compute Instances"},
+	{Name: "gcp_compute_disk", Provider: "gcp", Service: "compute", Description: "GCP Disks"},
+	{Name: "gcp_compute_network", Provider: "gcp", Service: "compute", Description: "GCP Networks"},
+	{Name: "gcp_compute_subnetwork", Provider: "gcp", Service: "compute", Description: "GCP Subnets"},
+	{Name: "gcp_compute_firewall", Provider: "gcp", Service: "compute", Description: "GCP Firewalls"},
+	{Name: "gcp_compute_address", Provider: "gcp", Service: "compute", Description: "GCP Addresses"},
+
+	// GCP - Storage
+	{Name: "gcp_storage_bucket", Provider: "gcp", Service: "storage", Description: "GCP Storage Buckets"},
+
+	// GCP - Database
+	{Name: "gcp_sql_database_instance", Provider: "gcp", Service: "sql", Description: "GCP SQL Instances"},
+	{Name: "gcp_bigquery_dataset", Provider: "gcp", Service: "bigquery", Description: "GCP BigQuery Datasets"},
+
+	// GCP - IAM
+	{Name: "gcp_iam_service_account", Provider: "gcp", Service: "iam", Description: "GCP Service Accounts"},
+	{Name: "gcp_iam_role", Provider: "gcp", Service: "iam", Description: "GCP IAM Roles"},
+
+	// GCP - Kubernetes
+	{Name: "gcp_container_cluster", Provider: "gcp", Service: "container", Description: "GCP GKE Clusters"},
+
+	// GCP - Security
+	{Name: "gcp_kms_crypto_key", Provider: "gcp", Service: "kms", Description: "GCP KMS Keys"},
+	{Name: "gcp_secretmanager_secret", Provider: "gcp", Service: "secretmanager", Description: "GCP Secrets"},
 }
