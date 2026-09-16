@@ -11,7 +11,10 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/database"
 	"github.com/oracle/oci-go-sdk/v65/events"
+	"github.com/oracle/oci-go-sdk/v65/filestorage"
 	"github.com/oracle/oci-go-sdk/v65/identity"
+	"github.com/oracle/oci-go-sdk/v65/integration"
+	"github.com/oracle/oci-go-sdk/v65/keymanagement"
 	"github.com/oracle/oci-go-sdk/v65/ons"
 	objectstorage "github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
@@ -169,4 +172,39 @@ func (p *Provider) Region() string {
 // TenancyId retorna o tenancy OCID
 func (p *Provider) TenancyId() string {
 	return p.tenancyId
+}
+
+// FileStorage retorna o cliente File Storage
+func (p *Provider) FileStorage() (filestorage.FileStorageClient, error) {
+	client, err := filestorage.NewFileStorageClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar filestorage client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Integration retorna o cliente Integration
+func (p *Provider) Integration() (integration.IntegrationInstanceClient, error) {
+	client, err := integration.NewIntegrationInstanceClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar integration client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// KmsVault retorna o cliente KMS Vault (para listar vaults)
+func (p *Provider) KmsVault() (keymanagement.KmsVaultClient, error) {
+	client, err := keymanagement.NewKmsVaultClientWithConfigurationProvider(p.config)
+	if err != nil {
+		return client, fmt.Errorf("falha ao criar kms vault client: %w", err)
+	}
+	client.SetRegion(p.region)
+	return client, nil
+}
+
+// Config retorna o ConfigurationProvider para criar clientes customizados
+func (p *Provider) Config() common.ConfigurationProvider {
+	return p.config
 }
