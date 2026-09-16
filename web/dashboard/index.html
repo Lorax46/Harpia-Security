@@ -513,7 +513,8 @@
 
         // === Inventory ===
         async function loadInventory() {
-            const prvs = await api('GET', '/api/inventory-v2/providers');
+            const resp = await api('GET', '/api/inventory/providers');
+            const prvs = resp.providers || [];
             document.getElementById('inv-provider-tabs').innerHTML = [{id:'all',name:'Todos',icon:'🌐'}, ...prvs.map(p => ({id:p.id, name:p.id.toUpperCase(), icon: {aws:'☁️',oci:'🔶',azure:'🔷',gcp:'🌍',cloudflare:'🛡️'}[p.id] || '☁️'}))].map(p => `<button onclick="selectInvProvider('${p.id}')" class="provider-tab ${currentInvProvider === p.id ? 'active' : ''}"><span>${p.icon}</span><span>${p.name}</span></button>`).join('');
             renderInventory(prvs);
         }
@@ -521,12 +522,20 @@
         function renderInventory(invProviders) {
             const container = document.getElementById('inventory-categories');
             const categories = { compute: [], network: [], storage: [], iam: [], database: [], security: [] };
-            invProviders.forEach(p => { (p.tables || []).forEach(t => { const cat = categorizeTable(t); categories[cat].push({ provider: p.id, table: t }); }); });
+            
+            // Usar resource_types retornados pelo backend
+            invProviders.forEach(p => {
+                if (p.resource_types) {
+                    p.resource_types.forEach(t => {
+                        const cat = categorizeTable(t.name || t);
+                        categories[cat].push({ provider: p.id, table: t.name || t, count: p.resource_count || 0 });
+                    });
+                }
+            });
 
             let html = '';
             const catIcons = { compute: 'server', network: 'network', storage: 'hard-drive', iam: 'users', database: 'database', security: 'shield' };
             const catLabels = { compute: 'Compute', network: 'Network', storage: 'Storage', iam: 'IAM', database: 'Database', security: 'Security' };
-            const catColors = { compute: 'category-compute', network: 'category-network', storage: 'category-storage', iam: 'category-iam', database: 'category-database', security: 'category-security' };
 
             for (const [cat, items] of Object.entries(categories)) {
                 if (items.length === 0) continue;

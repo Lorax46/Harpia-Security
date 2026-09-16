@@ -553,14 +553,20 @@ func (h *Handler) GetInventory(c *gin.Context) {
 func (h *Handler) ListInventoryProviders(c *gin.Context) {
 	inventoryManager := inventory.NewManager()
 	providers := inventoryManager.ListProviders()
+
 	result := []gin.H{}
 	for _, p := range providers {
 		types, err := inventoryManager.GetResourceTypes(p)
 		if err != nil {
 			continue
 		}
-		result = append(result, gin.H{"id": p, "resource_count": len(types)})
+		result = append(result, gin.H{
+			"id":             p,
+			"resource_count": len(types),
+			"resource_types": types,
+		})
 	}
+
 	c.JSON(http.StatusOK, gin.H{"providers": result})
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOTVS Horus — Inventory</title>
+<title>Harpia Security — Inventário</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0b0f19;--surface:#141925;--surface-hover:#1a2030;--border:#1e2636;--text:#e4e7ec;--text-dim:#6b7385;--accent:#00d4aa;--sidebar-w:220px;--header-h:56px;--radius:10px}
@@ -38,6 +38,25 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .empty svg{width:56px;height:56px;margin-bottom:16px;opacity:.4}
 .empty h3{font-size:16px;font-weight:500;margin-bottom:8px;color:var(--text)}
 .empty p{font-size:13px;margin-bottom:20px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.stat-value{font-size:28px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:12px;color:var(--text-dim);margin-top:4px}
+.provider-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.provider-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:all .15s}
+.provider-card:hover{border-color:var(--accent)}
+.provider-name{font-size:16px;font-weight:600;margin-bottom:4px}
+.provider-count{font-size:12px;color:var(--text-dim)}
+.provider-resources{margin-top:12px;font-size:12px}
+.resource-type{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)}
+.resource-type:last-child{border-bottom:none}
+.resource-count{color:var(--accent);font-weight:500}
+.tabs{display:flex;gap:8px;margin-bottom:20px}
+.tab{padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--text-dim)}
+.tab.active{background:rgba(0,212,170,.1);color:var(--accent);border-color:var(--accent)}
+.loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text-dim)}
+.loading::after{content:'';width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin-left:12px}
+@keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:768px){.sidebar{transform:translateX(-100%)}.main{margin-left:0}.content{padding:16px}}
 </style>
 </head>
@@ -50,13 +69,13 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 <aside class="sidebar">
     <div class="sidebar-brand">
         <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#00d4aa"/><stop offset="100%" stop-color="#0099ff"/></linearGradient></defs><circle cx="32" cy="32" r="14" fill="none" stroke="url(#g)" stroke-width="2"/><circle cx="32" cy="32" r="5" fill="url(#g)"/><path d="M32 6 L28 18 L32 16 L36 18 Z" fill="url(#g)" opacity=".7"/><path d="M32 58 L28 46 L32 48 L36 46 Z" fill="url(#g)" opacity=".7"/><path d="M6 32 L18 28 L16 32 L18 36 Z" fill="url(#g)" opacity=".7"/><path d="M58 32 L46 28 L48 32 L46 36 Z" fill="url(#g)" opacity=".7"/></svg>
-        <span>TOTVS</span>
+        <span>Harpia</span>
     </div>
     <nav class="nav">
-        <a href="/dashboard"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
+        <a href="/"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>Dashboard</a>
         <a href="/scans"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>Scans</a>
         <a href="/findings"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>Findings</a>
-        <a href="/inventory" class="active"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>Inventory</a>
+        <a href="/inventory" class="active"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>Inventário</a>
         <div class="nav-section">Cloud</div>
         <a href="/providers"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z"/><path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/></svg>Providers</a>
         <a href="/compliance"><svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L9 9.586 8.707 8.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>Compliance</a>
@@ -68,13 +87,17 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
     </div>
 </aside>
 <main class="main">
-    <header class="header"><h1>Inventory</h1><button class="btn btn-primary" onclick="alert('Em produção: sync com providers')">Sync</button></header>
+    <header class="header"><h1>Inventário de Recursos</h1><button class="btn btn-primary" onclick="collectInventory()">Coletar Agora</button></header>
     <div class="content">
-        <div class="empty">
+        <div class="stats" id="stats"></div>
+        <div class="tabs" id="tabs"></div>
+        <div id="providerGrid" class="provider-grid"></div>
+        <div id="loading" class="loading" style="display:none">Carregando inventário...</div>
+        <div id="empty" class="empty" style="display:none">
             <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
             <h3>Inventário vazio</h3>
-            <p>Conecte um provider para descobrir recursos automaticamente.</p>
-            <button class="btn btn-primary" onclick="window.location.href='/settings'">Configurar Providers</button>
+            <p>Nenhum provider configurado ou credenciais não conectadas.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/providers'">Configurar Providers</button>
         </div>
     </div>
 </main>
@@ -85,13 +108,106 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
     document.getElementById('userName').textContent = name;
     document.getElementById('userRole').textContent = role;
     
-    document.querySelector('.user').style.cursor = 'pointer';
     document.querySelector('.user').addEventListener('click', () => {
         if (confirm('Deseja sair?')) {
             localStorage.clear();
             window.location.href = '/login';
         }
     });
+
+    async function apiGet(path) {
+        const token = localStorage.getItem('totvs_horus_token');
+        const resp = await fetch(path, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!resp.ok) throw new Error('API error: ' + resp.status);
+        return resp.json();
+    }
+
+    async function loadProviders() {
+        try {
+            const data = await apiGet('/api/inventory/providers');
+            const tabs = document.getElementById('tabs');
+            tabs.innerHTML = '';
+            data.providers.forEach(p => {
+                const tab = document.createElement('div');
+                tab.className = 'tab';
+                tab.textContent = p.id.toUpperCase() + ' (' + p.resource_count + ')';
+                tab.onclick = () => selectProvider(p.id);
+                tabs.appendChild(tab);
+            });
+        } catch (e) {
+            console.log('Providers:', e.message);
+        }
+    }
+
+    async function selectProvider(provider) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        try {
+            const data = await apiGet('/api/inventory?provider=' + provider);
+            renderInventory(data);
+        } catch (e) {
+            document.getElementById('empty').style.display = 'flex';
+        }
+    }
+
+    async function collectInventory() {
+        document.getElementById('loading').style.display = 'flex';
+        try {
+            const resp = await fetch('/api/inventory/collect', {
+                headers: { 'Authorization': 'Bearer ' + localStorage.getItem('totvs_horus_token') }
+            });
+            const data = await resp.json();
+            renderInventory(data);
+        } catch (e) {
+            alert('Erro ao coletar: ' + e.message);
+        }
+        document.getElementById('loading').style.display = 'none';
+    }
+
+    async function renderInventory(data) {
+        const stats = document.getElementById('stats');
+        const grid = document.getElementById('providerGrid');
+        stats.innerHTML = '';
+        grid.innerHTML = '';
+
+        const totals = data.totals || {};
+        const totalResources = Object.values(totals).reduce((a, b) => a + b, 0);
+        
+        stats.innerHTML = '<div class="stat-card"><div class="stat-value">' + totalResources + '</div><div class="stat-label">Total de Recursos</div></div>' +
+            '<div class="stat-card"><div class="stat-value">' + Object.keys(totals).length + '</div><div class="stat-label">Providers</div></div>';
+
+        const results = data.results || {};
+        if (Object.keys(results).length === 0) {
+            document.getElementById('empty').style.display = 'flex';
+            return;
+        }
+
+        for (const [provider, resources] of Object.entries(results)) {
+            const card = document.createElement('div');
+            card.className = 'provider-card';
+            
+            const resourceTypes = {};
+            resources.forEach(r => {
+                if (r.resource_type && r.total > 0) {
+                    resourceTypes[r.resource_type] = (resourceTypes[r.resource_type] || 0) + r.total;
+                }
+            });
+
+            let typesHtml = '';
+            for (const [type, count] of Object.entries(resourceTypes).sort((a, b) => b[1] - a[1]).slice(0, 10)) {
+                typesHtml += '<div class="resource-type"><span>' + type.replace('aws_', '').replace('azure_', '').replace('gcp_', '') + '</span><span class="resource-count">' + count + '</span></div>';
+            }
+
+            card.innerHTML = '<div class="provider-name">' + provider.toUpperCase() + '</div>' +
+                '<div class="provider-count">' + (totals[provider] || 0) + ' recursos</div>' +
+                '<div class="provider-resources">' + typesHtml + '</div>';
+            grid.appendChild(card);
+        }
+    }
+
+    loadProviders();
 </script>
 </body>
 </html>
