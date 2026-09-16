@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -11,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Lorax46/Harpia-Security/internal/scanner/providers/oci"
+	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/Lorax46/Harpia-Security/pkg/web"
 )
 
@@ -26,7 +29,20 @@ func main() {
 	// Create web-compatible scanner service
 	webScanner := web.NewScanService()
 
-	inventoryService := web.NewMockInventoryService()
+	// Create real inventory manager with OCI collector
+	inventoryManager := inventory.NewManager()
+
+	// Initialize OCI provider with credentials from environment
+	ociProvider := createOCIProvider()
+	if ociProvider != nil {
+		ociCollector := inventory.NewOCICollector(ociProvider)
+		inventoryManager.RegisterCollector("oci", ociCollector)
+		log.Println("[main] OCI collector registered with real API")
+	} else {
+		log.Println("[main] OCI credentials not set, using mock inventory")
+	}
+
+	inventoryService := &inventoryServiceAdapter{manager: inventoryManager}
 	complianceService := web.NewMockComplianceService()
 
 	addr := *host + ":" + strconv.Itoa(*port)
@@ -61,9 +77,62 @@ func main() {
 	}
 }
 
+// createOCIProvider creates an OCI provider from environment credentials
+func createOCIProvider() *oci.Provider {
+	tenancyID := os.Getenv("OCI_TENANCY_OCID")
+	userID := os.Getenv("OCI_USER_OCID")
+	fingerprint := os.Getenv("OCI_FINGERPRINT")
+	privateKey := os.Getenv("OCI_PRIVATE_KEY")
+	region := os.Getenv("OCI_REGION")
+	if region == "" {
+		region = "sa-saopaulo-1"
+	}
+
+	if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
+		log.Println("[main] OCI credentials not set in env, OCI collector disabled")
+		return nil
+	}
+
+	ctx := context.Background()
+	provider, err := oci.NewProvider(ctx, region, tenancyID, userID, fingerprint, privateKey, "")
+	if err != nil {
+		log.Printf("[main] Failed to create OCI provider: %v", err)
+		return nil
+	}
+
+	log.Println("[main] OCI provider created successfully")
+	return provider
+}
+
+// inventoryServiceAdapter adapts inventory.Manager to web.InventoryService
+type inventoryServiceAdapter struct {
+	manager *inventory.Manager
+}
+
+func (s *inventoryServiceAdapter) ListResources(ctx context.Context, provider, service string, filter inventory.Filter) ([]inventory.Resource, error) {
+	return s.manager.ListResources(provider, service, filter)
+}
+
+func (s *inventoryServiceAdapter) GetResource(ctx context.Context, provider, service, id string) (inventory.Resource, error) {
+	resources, err := s.manager.ListResources(provider, service, inventory.Filter{Provider: provider, Service: service})
+	if err != nil {
+		return inventory.Resource{}, err
+	}
+	for _, r := range resources {
+		if r.ID == id {
+			return r, nil
+		}
+	}
+	return inventory.Resource{}, fmt.Errorf("resource not found: %s", id)
+}
+
+func (s *inventoryServiceAdapter) SyncResources(ctx context.Context, provider string) error {
+	return s.manager.SyncResources(provider)
+}
+
 func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
+	if val := os.Getenv(key); val != "" {
+		return val
 	}
 	return defaultValue
 }

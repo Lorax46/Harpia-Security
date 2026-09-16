@@ -134,10 +134,6 @@ func setupRoutes(engine *gin.Engine, handler *web.Handler) {
 		api.DELETE("/providers/:id", handler.DeleteProvider)
 
 		// Inventory
-		api.GET("/inventory", handler.ListInventory)
-		api.GET("/inventory/:provider/:type", handler.ListInventoryByType)
-		api.GET("/inventory/:provider/:type/:id", handler.GetInventoryItem)
-		api.POST("/inventory/sync", handler.SyncInventory)
 
 		// Compliance
 		api.GET("/compliance/frameworks", handler.ListFrameworks)

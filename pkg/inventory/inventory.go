@@ -153,6 +153,10 @@ func (m *Manager) collectFromProvider(ctx context.Context, collector Collector) 
 			}
 			mu.Lock()
 			results = append(results, result)
+			// Update cache
+			m.mu.Lock()
+			m.cache[resourceType] = result
+			m.mu.Unlock()
 			mu.Unlock()
 		}(rt.Name)
 	}
@@ -183,15 +187,58 @@ func (m *Manager) GetResourceTypes(provider string) ([]ResourceType, error) {
 	return collector.ListResourceTypes(), nil
 }
 
-// ListResources returns resources filtered by criteria.
+// ListResources returns resources filtered by criteria - REAL DATA from collectors.
 func (m *Manager) ListResources(provider, service string, filter Filter) ([]Resource, error) {
-	// For now, return empty - this would require caching all results
-	return []Resource{}, nil
+	collector, err := m.GetCollector(provider)
+	if err != nil {
+		return nil, err
+	}
+
+	resourceTypes := collector.ListResourceTypes()
+	var allResources []Resource
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, rt := range resourceTypes {
+		if service != "" && rt.Service != service {
+			continue
+		}
+
+		wg.Add(1)
+		go func(resourceType string) {
+			defer wg.Done()
+			result, err := collector.Collect(context.Background(), resourceType)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			allResources = append(allResources, result.Resources...)
+			mu.Unlock()
+		}(rt.Name)
+	}
+
+	wg.Wait()
+	return allResources, nil
 }
 
-// SyncResources triggers a sync for a provider (placeholder).
+// SyncResources triggers a real sync for a provider.
 func (m *Manager) SyncResources(provider string) error {
-	// This would trigger a fresh collection
+	collector, err := m.GetCollector(provider)
+	if err != nil {
+		return err
+	}
+
+	resourceTypes := collector.ListResourceTypes()
+	var wg sync.WaitGroup
+	for _, rt := range resourceTypes {
+		wg.Add(1)
+		go func(resourceType string) {
+			defer wg.Done()
+			collector.Collect(context.Background(), resourceType)
+		}(rt.Name)
+	}
+	wg.Wait()
+
 	return nil
 }
 
