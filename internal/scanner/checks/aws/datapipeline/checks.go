@@ -34,17 +34,11 @@ func (c *DatapipelinePipelineNoSecretsInDefinition) Metadata() models.CheckMetad
 func (c *DatapipelinePipelineNoSecretsInDefinition) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
     return []models.Finding{
         {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusPass,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "datapipeline",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
+            ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+            Description: c.metadata.Description, Severity: c.metadata.Severity,
+            Status: models.StatusInfo, StatusExtended: "Requires real AWS credentials to list Data Pipeline definitions",
+            Provider: "aws", Service: "datapipeline", Remediation: c.metadata.RemediationText,
+            Categories: c.metadata.Categories, FoundAt: time.Now(),
         },
     }, nil
 }

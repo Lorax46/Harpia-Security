@@ -25,6 +25,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/configservice"
 	"github.com/aws/aws-sdk-go-v2/service/databasemigrationservice"
 	"github.com/aws/aws-sdk-go-v2/service/directoryservice"
+	"github.com/aws/aws-sdk-go-v2/service/dlm"
+	"github.com/aws/aws-sdk-go-v2/service/drs"
+	"github.com/aws/aws-sdk-go-v2/service/datasync"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
@@ -36,6 +39,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancing"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/aws/aws-sdk-go-v2/service/emr"
+	"github.com/aws/aws-sdk-go-v2/service/firehose"
+	"github.com/aws/aws-sdk-go-v2/service/fms"
 	"github.com/aws/aws-sdk-go-v2/service/fsx"
 	"github.com/aws/aws-sdk-go-v2/service/glue"
 	"github.com/aws/aws-sdk-go-v2/service/guardduty"
@@ -374,6 +379,31 @@ func (p *Provider) WAF(ctx context.Context) (*waf.Client, error) {
 // WAFv2 retorna o cliente WAFv2
 func (p *Provider) WAFv2(ctx context.Context) (*wafv2.Client, error) {
 	return wafv2.NewFromConfig(p.cfg), nil
+}
+
+// DLM retorna o cliente DLM (Data Lifecycle Manager)
+func (p *Provider) DLM(ctx context.Context) (*dlm.Client, error) {
+	return dlm.NewFromConfig(p.cfg), nil
+}
+
+// DRS retorna o cliente DRS (Disaster Recovery Service)
+func (p *Provider) DRS(ctx context.Context) (*drs.Client, error) {
+	return drs.NewFromConfig(p.cfg), nil
+}
+
+// DataSync retorna o cliente DataSync
+func (p *Provider) DataSync(ctx context.Context) (*datasync.Client, error) {
+	return datasync.NewFromConfig(p.cfg), nil
+}
+
+// Firehose retorna o cliente Firehose
+func (p *Provider) Firehose(ctx context.Context) (*firehose.Client, error) {
+	return firehose.NewFromConfig(p.cfg), nil
+}
+
+// FMS retorna o cliente FMS (Firewall Manager)
+func (p *Provider) FMS(ctx context.Context) (*fms.Client, error) {
+	return fms.NewFromConfig(p.cfg), nil
 }
 
 // DMS retorna o cliente DMS

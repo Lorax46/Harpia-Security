@@ -100,10 +100,16 @@ github.com/aws/aws-sdk-go-v2/service/configservice v1.72.0 h1:B0lIlVQoUY2OuhLjOd
 github.com/aws/aws-sdk-go-v2/service/configservice v1.72.0/go.mod h1:lsA0mDG/e5EZ/wKapeWEll7Ceb8kQEu4UGRr/2rlbAY=
 github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.70.0 h1:+FZC0YTs3ivKAV0PDyKPblrW/mkMlN9aix4xCm7Ff6Q=
 github.com/aws/aws-sdk-go-v2/service/databasemigrationservice v1.70.0/go.mod h1:9cVHexm2m5A3TmYFPOmKXQJVCK5mTrqPEyyWhfyNf54=
+github.com/aws/aws-sdk-go-v2/service/datasync v1.67.0 h1:5SbFTbK3M0+s8tVehYi+nN/tyuV5yvnHpEXUxW+2NIE=
+github.com/aws/aws-sdk-go-v2/service/datasync v1.67.0/go.mod h1:zreYSp4eD43ZhyHIpHIWZvhNWxsvkvtoS4Qu3SiKjbk=
 github.com/aws/aws-sdk-go-v2/service/directoryservice v1.46.0 h1:yHOuV3H0w5JDx7TUDgaCAOuuhqHBn8CC6CBmsZVkIHY=
 github.com/aws/aws-sdk-go-v2/service/directoryservice v1.46.0/go.mod h1:eejkXBXlv2nPcyin/N6oblqa8LDqJSVzEnTGF+dW6Sg=
+github.com/aws/aws-sdk-go-v2/service/dlm v1.45.0 h1:uN+ulim+cIvfZ+lBmTyIrUjS5IUnGkcZZgfWYdOqxHw=
+github.com/aws/aws-sdk-go-v2/service/dlm v1.45.0/go.mod h1:kzKaiU/HaBnHJUAf2i0uIuWmv+Uvgkgwk5aoco7LCRc=
 github.com/aws/aws-sdk-go-v2/service/docdb v1.55.0 h1:nZvPBCxqbEeHESA8d9jGmMm3UX4bVSTDTH8LvqUV7rg=
 github.com/aws/aws-sdk-go-v2/service/docdb v1.55.0/go.mod h1:BYO6En9FhGG0Z8qI5eod5PnOytrjqFb0ywotG7qmFjM=
+github.com/aws/aws-sdk-go-v2/service/drs v1.50.0 h1:rdm0AOT0JSXFvB9POFesoIOYQrdIWN047Tpa+3IwYms=
+github.com/aws/aws-sdk-go-v2/service/drs v1.50.0/go.mod h1:qC6DjlYt1C3z0YqOEauRoExSnmQJme2jYdfXcVEr+48=
 github.com/aws/aws-sdk-go-v2/service/dynamodb v1.67.0 h1:Qs5KY7LC+/lMasuJOujgDtl3In6MHxnceULr2+V/Ldc=
 github.com/aws/aws-sdk-go-v2/service/dynamodb v1.67.0/go.mod h1:xZ68tXuET4F9jrz4kQCXN6JIex933g0Izh6FM+YtFsg=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.328.0 h1:83ydTd4o/PyZB5XRhzwHwTCWjXlgtejbKf9W/eqU5LY=
@@ -128,6 +134,10 @@ github.com/aws/aws-sdk-go-v2/service/emr v1.61.0 h1:UnZwbKfznBFckwdAnNam32u962E+
 github.com/aws/aws-sdk-go-v2/service/emr v1.61.0/go.mod h1:1S1eAF900ZKnbWSSt1hLeAQm44f6fHrQtIjwzRdISiM=
 github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0 h1:aSMmkgdgDL7vr8VNAAPU4Ak8r3+mdomp0pfnmC1U91A=
 github.com/aws/aws-sdk-go-v2/service/eventbridge v1.54.0/go.mod h1:ORQiOBGYQL5PgFE6xtviANm2mYO0NPMPgDXTItKYiSg=
+github.com/aws/aws-sdk-go-v2/service/firehose v1.52.0 h1:X4cbW2CghEUztNps1xmj9NPAbHOKPaygTREdldxMYE4=
+github.com/aws/aws-sdk-go-v2/service/firehose v1.52.0/go.mod h1:sjgfIn5ydhyGvNZSbO7ytABOdrBEyMGkU0Pheh90UNo=
+github.com/aws/aws-sdk-go-v2/service/fms v1.53.0 h1:MhYZJcoP1u59p/fFdk8EaUrb6UBeCu1pTgjQg9eWh7c=
+github.com/aws/aws-sdk-go-v2/service/fms v1.53.0/go.mod h1:puLtpTjfYnYUJErn6HrMBbK6NAGXHWTcE7GHd5GhryU=
 github.com/aws/aws-sdk-go-v2/service/fsx v1.74.0 h1:Gjt5Z+DAHJzSgH72Gv782C5tQ35r3shiHQnRkxyaJjA=
 github.com/aws/aws-sdk-go-v2/service/fsx v1.74.0/go.mod h1:76QizgEl4w4lkKNceVh0GmcpM66HbYcUinT6GhurvnQ=
 github.com/aws/aws-sdk-go-v2/service/glacier v1.40.0 h1:AjKUHPyOrGCZCSvUA2iNlpTdkboE8GU608tEnTUG50w=

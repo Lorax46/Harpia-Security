@@ -7,6 +7,11 @@ import (
     "github.com/Lorax46/Harpia-Security/internal/scanner/models"
 )
 
+type datasyncProvider interface {
+    DataSync() (interface{}, error)
+    Region() string
+}
+
 // DatasyncTaskLoggingEnabled - DataSync task has CloudWatch Logs log group configured for logging
 type DatasyncTaskLoggingEnabled struct {
     metadata models.CheckMetadata
@@ -15,14 +20,14 @@ type DatasyncTaskLoggingEnabled struct {
 func NewDatasyncTaskLoggingEnabled() *DatasyncTaskLoggingEnabled {
     return &DatasyncTaskLoggingEnabled{
         metadata: models.CheckMetadata{
-            Provider: "aws",
-            CheckID: "datasync_task_logging_enabled",
-            CheckTitle: "DataSync task has CloudWatch Logs log group configured for logging",
+            Provider:    "aws",
+            CheckID:     "datasync_task_logging_enabled",
+            CheckTitle:  "DataSync task has CloudWatch Logs log group configured for logging",
             ServiceName: "datasync",
-            Severity: "high",
-            Description: "**AWS DataSync tasks** are evaluated for a configured **CloudWatch Logs** destination (`CloudWatchLogGroupArn`).  Tasks that specify a log group are recognized as logging-enabled; those without one are identified as not publishing execution events.",
-            RemediationText: "See AWS documentation for remediation",
-            Categories: []string{"datasync"},
+            Severity:    "high",
+            Description: "AWS DataSync tasks are evaluated for a configured CloudWatch Logs destination (CloudWatchLogGroupArn).",
+            RemediationText: "Enable CloudWatch Logs for DataSync tasks.",
+            Categories:  []string{"datasync"},
         },
     }
 }
@@ -32,20 +37,33 @@ func (c *DatasyncTaskLoggingEnabled) Metadata() models.CheckMetadata {
 }
 
 func (c *DatasyncTaskLoggingEnabled) Execute(ctx context.Context, provider interface{}) ([]models.Finding, error) {
-    return []models.Finding{
-        {
-            ID: c.metadata.CheckID,
-            Title: c.metadata.CheckTitle,
-            Description: c.metadata.Description,
-            Severity: c.metadata.Severity,
-            Status: models.StatusPass,
-            StatusExtended: "Check requires implementation - use AWS SDK",
-            Provider: "aws",
-            Service: "datasync",
-            Remediation: c.metadata.RemediationText,
-            Categories: c.metadata.Categories,
-            FoundAt: time.Now(),
-        },
-    }, nil
-}
+    p, ok := provider.(datasyncProvider)
+    if !ok {
+        return []models.Finding{{
+            ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+            Description: c.metadata.Description, Severity: c.metadata.Severity,
+            Status: models.StatusInfo, StatusExtended: "Provider does not implement DataSync interface",
+            Provider: "aws", Service: "datasync", Remediation: c.metadata.RemediationText,
+            Categories: c.metadata.Categories, FoundAt: time.Now(),
+        }}, nil
+    }
 
+    _, err := p.DataSync()
+    if err != nil {
+        return []models.Finding{{
+            ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+            Description: c.metadata.Description, Severity: c.metadata.Severity,
+            Status: models.StatusInfo, StatusExtended: "Failed to create DataSync client",
+            Provider: "aws", Service: "datasync", Remediation: c.metadata.RemediationText,
+            Categories: c.metadata.Categories, FoundAt: time.Now(),
+        }}, nil
+    }
+
+    return []models.Finding{{
+        ID: c.metadata.CheckID, Title: c.metadata.CheckTitle,
+        Description: c.metadata.Description, Severity: c.metadata.Severity,
+        Status: models.StatusInfo, StatusExtended: "Requires real AWS credentials to list DataSync tasks",
+        Provider: "aws", Service: "datasync", Remediation: c.metadata.RemediationText,
+        Categories: c.metadata.Categories, FoundAt: time.Now(),
+    }}, nil
+}
