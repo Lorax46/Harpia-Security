@@ -1,0 +1,23 @@
+# docker-compose.production.yml
+version: '3.8'
+
+services:
+  harpia:
+    image: ghcr.io/lorax46/harpia-security:latest
+    ports:
+      - "9090:9090"
+    environment:
+      - TZ=America/Sao_Paulo
+      - LOG_LEVEL=info
+    volumes:
+      - harpia-data:/app/data
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  harpia-data:
+    driver: local

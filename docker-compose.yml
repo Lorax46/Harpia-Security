@@ -1,19 +1,13 @@
+# docker-compose.yml (local dev)
 version: '3.8'
 
 services:
   harpia:
-    image: ghcr.io/lorax46/harpia-security:latest
+    build: .
     ports:
       - "9090:9090"
     environment:
       - TZ=UTC
-      # Adicione variáveis de ambiente necessárias
-      # - AWS_ACCESS_KEY_ID=xxx
-      # - AWS_SECRET_ACCESS_KEY=xxx
-      # - HARPA_VAULT_PASS=xxx
     volumes:
-      - harpia-data:/app/data
+      - .:/app
     restart: unless-stopped
-
-volumes:
-  harpia-data:
