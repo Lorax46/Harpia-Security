@@ -6,51 +6,101 @@ package inventory
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Lorax46/Harpia-Security/internal/scanner/providers/oci"
+	"github.com/Lorax46/Harpia-Security/pkg/credentials"
 	"github.com/oracle/oci-go-sdk/v65/common"
 	"github.com/oracle/oci-go-sdk/v65/core"
 	"github.com/oracle/oci-go-sdk/v65/identity"
 	"github.com/oracle/oci-go-sdk/v65/objectstorage"
 )
 
-// OCIProvider interface wraps the OCI SDK clients needed for inventory.
-type OCIProvider interface {
-	Identity() (identity.IdentityClient, error)
-	Compute() (core.ComputeClient, error)
-	Network() (core.VirtualNetworkClient, error)
-	ObjectStore() (objectstorage.ObjectStorageClient, error)
-	Storage() (core.BlockstorageClient, error)
-	Region() string
-	TenancyId() string
-}
-
 // OCICollector implements the Collector interface for OCI.
+// Credentials are read from vault lazily on first Collect call.
 type OCICollector struct {
-	provider OCIProvider
+	provider *oci.Provider
 	cache    map[string]*InventoryResult
 	mu       sync.RWMutex
+	creds    *credentials.CredentialEntry
 }
 
-// NewOCICollector creates a new OCI collector.
-func NewOCICollector(provider OCIProvider) *OCICollector {
+// NewOCICollector creates a new OCI collector that reads credentials from vault on demand.
+func NewOCICollector() *OCICollector {
 	return &OCICollector{
-		provider: provider,
-		cache:    make(map[string]*InventoryResult),
+		cache: make(map[string]*InventoryResult),
 	}
+}
+
+// ensureProvider initializes the OCI provider from vault credentials if not already done.
+func (c *OCICollector) ensureProvider() error {
+	if c.provider != nil {
+		return nil
+	}
+
+	vault := credentials.GetManager()
+	log.Printf("[OCI Collector] Vault unlocked: %v", vault.IsUnlocked())
+	if !vault.IsUnlocked() {
+		return fmt.Errorf("vault not unlocked")
+	}
+
+	creds := vault.GetByProvider("oci")
+	log.Printf("[OCI Collector] Found %d OCI credentials", len(creds))
+	if len(creds) == 0 {
+		return fmt.Errorf("no OCI credentials in vault")
+	}
+
+	cred := creds[0]
+	tenancyID := cred.Data["tenancy_ocid"]
+	userID := cred.Data["user_ocid"]
+	fingerprint := cred.Data["fingerprint"]
+	privateKey := cred.Data["private_key"]
+	region := cred.Region
+	if region == "" {
+		region = "sa-saopaulo-1"
+	}
+
+	log.Printf("[OCI Collector] Credentials: tenancy=%s, user=%s, region=%s, hasKey=%v",
+		tenancyID[:20]+"...", userID[:20]+"...", region, privateKey != "")
+
+	if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
+		return fmt.Errorf("incomplete OCI credentials: missing required fields")
+	}
+
+	provider, err := oci.NewProvider(context.Background(), region, tenancyID, userID, fingerprint, privateKey, "")
+	if err != nil {
+		return fmt.Errorf("failed to create OCI provider: %w", err)
+	}
+
+	c.provider = provider
+	c.creds = &cred
+	log.Printf("[OCI Collector] Provider created successfully")
+	return nil
 }
 
 // Collect collects resources of the specified type from OCI.
 func (c *OCICollector) Collect(ctx context.Context, resourceType string) (*InventoryResult, error) {
+	log.Printf("[OCI Collector] Collect called for %s", resourceType)
+	
 	c.mu.RLock()
 	if cached, ok := c.cache[resourceType]; ok {
 		c.mu.RUnlock()
+		log.Printf("[OCI Collector] Returning cached result for %s", resourceType)
 		return cached, nil
 	}
 	c.mu.RUnlock()
 
+	log.Printf("[OCI Collector] Lazy-init provider for %s", resourceType)
+	// Lazy-init provider from vault
+	if err := c.ensureProvider(); err != nil {
+		log.Printf("[OCI Collector] ensureProvider failed: %v", err)
+		return nil, err
+	}
+
+	log.Printf("[OCI Collector] Provider ready, collecting %s", resourceType)
 	result := &InventoryResult{
 		ResourceType: resourceType,
 		Provider:     "oci",

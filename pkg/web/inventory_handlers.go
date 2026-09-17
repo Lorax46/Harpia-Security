@@ -2,6 +2,7 @@
 package web
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
@@ -89,14 +90,14 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 	service := c.Query("service")
 	region := c.Query("region")
 	category := c.Query("category")
-	
+
 	filter := inventory.Filter{
 		Provider: provider,
 		Service:  service,
 		Region:   region,
 		Category: category,
 	}
-	
+
 	var resources []inventory.Resource
 	var err error
 	if h.inventoryMgr != nil {
@@ -109,7 +110,7 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(200, gin.H{
 		"provider":  provider,
 		"count":     len(resources),
@@ -120,7 +121,10 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 // SyncInventoryV2 syncs inventory for a provider
 func (h *Handler) SyncInventoryV2(c *gin.Context) {
 	provider := c.Param("provider")
-	
+
+	log.Printf("[HANDLER] SyncInventoryV2 called for provider: %s", provider)
+	log.Printf("[HANDLER] h.inventoryMgr is nil: %v", h.inventoryMgr == nil)
+
 	var err error
 	if h.inventoryMgr != nil {
 		err = h.inventoryMgr.SyncResources(provider)
@@ -129,13 +133,19 @@ func (h *Handler) SyncInventoryV2(c *gin.Context) {
 		err = svc.SyncResources(provider)
 	}
 	if err != nil {
+		log.Printf("[HANDLER] Sync error for %s: %v", provider, err)
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(200, gin.H{
 		"message": "Sync completed for " + provider,
 	})
+}
+
+// ensureOCICollector creates the OCI collector from vault credentials
+func ensureOCICollector(mgr *inventory.Manager) {
+	// This is handled by the collector's lazy init
 }
 
 // UnlockVault unlocks the credential vault with a passphrase
@@ -147,12 +157,12 @@ func (h *Handler) UnlockVault(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	if err := h.vault.Unlock(req.Passphrase); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid passphrase"})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Vault unlocked"})
 }
 

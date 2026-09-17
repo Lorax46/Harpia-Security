@@ -5,6 +5,7 @@ package inventory
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 )
@@ -225,20 +226,38 @@ func (m *Manager) ListResources(provider, service string, filter Filter) ([]Reso
 func (m *Manager) SyncResources(provider string) error {
 	collector, err := m.GetCollector(provider)
 	if err != nil {
+		log.Printf("[INVENTORY] ERROR: no collector for %s: %v", provider, err)
 		return err
 	}
 
+	// Clear cache for this provider
+	m.mu.Lock()
+	for key := range m.cache {
+		delete(m.cache, key)
+	}
+	m.mu.Unlock()
+
+	// Trigger collection for all resource types
 	resourceTypes := collector.ListResourceTypes()
+	log.Printf("[INVENTORY] Syncing %s: %d resource types", provider, len(resourceTypes))
+
 	var wg sync.WaitGroup
 	for _, rt := range resourceTypes {
 		wg.Add(1)
 		go func(resourceType string) {
 			defer wg.Done()
-			collector.Collect(context.Background(), resourceType)
+			log.Printf("[INVENTORY] Collecting %s...", resourceType)
+			result, err := collector.Collect(context.Background(), resourceType)
+			if err != nil {
+				log.Printf("[INVENTORY] ERROR collecting %s: %v", resourceType, err)
+				return
+			}
+			log.Printf("[INVENTORY] Collected %d %s resources", len(result.Resources), resourceType)
 		}(rt.Name)
 	}
 	wg.Wait()
 
+	log.Printf("[INVENTORY] Sync complete for %s", provider)
 	return nil
 }
 
