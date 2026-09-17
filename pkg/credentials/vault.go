@@ -438,6 +438,23 @@ func (v *CredentialManager) IsUnlocked() bool {
 	return v.key != nil
 }
 
+// Reload reloads the vault from disk.
+// This is useful in multi-process scenarios where credentials were added via API.
+func (v *CredentialManager) Reload() error {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+
+	if v.key == nil {
+		return errors.New("vault not unlocked")
+	}
+
+	// Clear current items
+	v.items = make(map[string]CredentialEntry)
+
+	// Reload from disk
+	return v.load()
+}
+
 // CredentialSummary is a non-sensitive credential summary
 type CredentialSummary struct {
 	ID        string    `json:"id"`

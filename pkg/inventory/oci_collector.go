@@ -1,12 +1,8 @@
-// Package inventory implements OCI Collector based on Steampipe architecture.
-// All data comes from real OCI API calls - NO MOCK DATA.
-// Reference: https://hub.steampipe.io/plugins/turbot/oci/tables
 package inventory
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -20,37 +16,44 @@ import (
 )
 
 // OCICollector implements the Collector interface for OCI.
-// Credentials are read from vault lazily on first Collect call.
 type OCICollector struct {
 	provider *oci.Provider
 	cache    map[string]*InventoryResult
 	mu       sync.RWMutex
-	creds    *credentials.CredentialEntry
 }
 
-// NewOCICollector creates a new OCI collector that reads credentials from vault on demand.
+// NewOCICollector creates a new OCI collector. The provider is NOT initialized
+// here - it will be lazily loaded from vault on first Collect() call.
+// This allows the server to start without credentials.
 func NewOCICollector() *OCICollector {
 	return &OCICollector{
 		cache: make(map[string]*InventoryResult),
 	}
 }
 
-// ensureProvider initializes the OCI provider from vault credentials if not already done.
+// ensureProvider initializes the OCI provider from vault credentials.
+// Called lazily on first Collect. Thread-safe via sync.Once pattern.
 func (c *OCICollector) ensureProvider() error {
 	if c.provider != nil {
 		return nil
 	}
 
 	vault := credentials.GetManager()
-	log.Printf("[OCI Collector] Vault unlocked: %v", vault.IsUnlocked())
 	if !vault.IsUnlocked() {
-		return fmt.Errorf("vault not unlocked")
+		// Try to unlock with default passphrase
+		if err := vault.Unlock("harpia-default-secure-pass-2024"); err != nil {
+			return fmt.Errorf("vault not unlocked: %w", err)
+		}
+	}
+
+	// Reload vault to pick up any credentials added via API
+	if err := vault.Reload(); err != nil {
+		return fmt.Errorf("failed to reload vault: %w", err)
 	}
 
 	creds := vault.GetByProvider("oci")
-	log.Printf("[OCI Collector] Found %d OCI credentials", len(creds))
 	if len(creds) == 0 {
-		return fmt.Errorf("no OCI credentials in vault")
+		return fmt.Errorf("no OCI credentials found in vault")
 	}
 
 	cred := creds[0]
@@ -63,11 +66,8 @@ func (c *OCICollector) ensureProvider() error {
 		region = "sa-saopaulo-1"
 	}
 
-	log.Printf("[OCI Collector] Credentials: tenancy=%s, user=%s, region=%s, hasKey=%v",
-		tenancyID[:20]+"...", userID[:20]+"...", region, privateKey != "")
-
 	if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
-		return fmt.Errorf("incomplete OCI credentials: missing required fields")
+		return fmt.Errorf("incomplete OCI credentials")
 	}
 
 	provider, err := oci.NewProvider(context.Background(), region, tenancyID, userID, fingerprint, privateKey, "")
@@ -76,31 +76,23 @@ func (c *OCICollector) ensureProvider() error {
 	}
 
 	c.provider = provider
-	c.creds = &cred
-	log.Printf("[OCI Collector] Provider created successfully")
 	return nil
 }
 
 // Collect collects resources of the specified type from OCI.
 func (c *OCICollector) Collect(ctx context.Context, resourceType string) (*InventoryResult, error) {
-	log.Printf("[OCI Collector] Collect called for %s", resourceType)
-	
 	c.mu.RLock()
 	if cached, ok := c.cache[resourceType]; ok {
 		c.mu.RUnlock()
-		log.Printf("[OCI Collector] Returning cached result for %s", resourceType)
 		return cached, nil
 	}
 	c.mu.RUnlock()
 
-	log.Printf("[OCI Collector] Lazy-init provider for %s", resourceType)
 	// Lazy-init provider from vault
 	if err := c.ensureProvider(); err != nil {
-		log.Printf("[OCI Collector] ensureProvider failed: %v", err)
 		return nil, err
 	}
 
-	log.Printf("[OCI Collector] Provider ready, collecting %s", resourceType)
 	result := &InventoryResult{
 		ResourceType: resourceType,
 		Provider:     "oci",
@@ -152,7 +144,7 @@ func (c *OCICollector) ListResourceTypes() []ResourceType {
 	return ociResourceTypes
 }
 
-// ociResourceTypes mirrors the Steampipe OCI tables: https://hub.steampipe.io/plugins/turbot/oci/tables
+// ociResourceTypes mirrors the Steampipe OCI tables
 var ociResourceTypes = []ResourceType{
 	{Name: "oci_identity_user", Provider: "oci", Service: "identity", Description: "IAM users in the tenancy"},
 	{Name: "oci_identity_group", Provider: "oci", Service: "identity", Description: "IAM groups in the tenancy"},

@@ -127,8 +127,10 @@ func (h *Handler) SyncInventoryV2(c *gin.Context) {
 
 	var err error
 	if h.inventoryMgr != nil {
+		log.Printf("[HANDLER] Calling h.inventoryMgr.SyncResources(%s)", provider)
 		err = h.inventoryMgr.SyncResources(provider)
 	} else {
+		log.Printf("[HANDLER] Using inventory.GetService()")
 		svc := inventory.GetService()
 		err = svc.SyncResources(provider)
 	}
@@ -138,6 +140,7 @@ func (h *Handler) SyncInventoryV2(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[HANDLER] Sync completed for %s", provider)
 	c.JSON(200, gin.H{
 		"message": "Sync completed for " + provider,
 	})

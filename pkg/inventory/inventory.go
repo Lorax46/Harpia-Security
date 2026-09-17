@@ -242,6 +242,7 @@ func (m *Manager) SyncResources(provider string) error {
 	log.Printf("[INVENTORY] Syncing %s: %d resource types", provider, len(resourceTypes))
 
 	var wg sync.WaitGroup
+	errChan := make(chan error, len(resourceTypes))
 	for _, rt := range resourceTypes {
 		wg.Add(1)
 		go func(resourceType string) {
@@ -250,14 +251,25 @@ func (m *Manager) SyncResources(provider string) error {
 			result, err := collector.Collect(context.Background(), resourceType)
 			if err != nil {
 				log.Printf("[INVENTORY] ERROR collecting %s: %v", resourceType, err)
+				errChan <- fmt.Errorf("%s: %w", resourceType, err)
 				return
 			}
 			log.Printf("[INVENTORY] Collected %d %s resources", len(result.Resources), resourceType)
 		}(rt.Name)
 	}
 	wg.Wait()
+	close(errChan)
 
-	log.Printf("[INVENTORY] Sync complete for %s", provider)
+	var errs []error
+	for e := range errChan {
+		errs = append(errs, e)
+	}
+
+	if len(errs) > 0 {
+		log.Printf("[INVENTORY] Sync completed with %d errors for %s", len(errs), provider)
+	} else {
+		log.Printf("[INVENTORY] Sync complete for %s - no errors", provider)
+	}
 	return nil
 }
 

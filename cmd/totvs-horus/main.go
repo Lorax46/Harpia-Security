@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/Lorax46/Harpia-Security/pkg/credentials"
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/Lorax46/Harpia-Security/pkg/web"
 )
@@ -32,27 +32,15 @@ func main() {
 	// Create real inventory manager with OCI collector
 	inventoryManager := inventory.NewManager()
 
-	// Always register OCI collector - it will lazy-init from vault when needed
+	// Register OCI collector (lazy-init from vault on first use)
 	ociCollector := inventory.NewOCICollector()
 	inventoryManager.RegisterCollector("oci", ociCollector)
 	log.Println("[main] OCI collector registered (lazy-init from vault)")
 
-	// Unlock vault with default passphrase (for production, use a secure passphrase from config)
-	// This must happen AFTER collector registration so it uses the same vault instance
-	vault := credentials.GetManager()
-	if !vault.IsUnlocked() {
-		passphrase := getEnv("HARPA_VAULT_PASS", "harpia-default-secure-pass-2024")
-		if err := vault.Unlock(passphrase); err != nil {
-			log.Printf("[main] Failed to unlock vault: %v", err)
-		} else {
-			log.Println("[main] Vault unlocked successfully")
-		}
-	}
-
 	inventoryService := &inventoryServiceAdapter{manager: inventoryManager}
 	complianceService := web.NewMockComplianceService()
 
-	addr := *host + ":" + strconv.Itoa(*port)
+	addr := net.JoinHostPort(*host, strconv.Itoa(*port))
 
 	// Create HTTP server
 	server := web.NewServer(web.Config{
