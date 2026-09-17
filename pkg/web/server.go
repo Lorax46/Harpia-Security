@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,6 +47,11 @@ func NewServer(cfg Config) *Server {
 
 	s.setupRoutes(auth)
 	return s
+}
+
+// SetInventoryManager sets the inventory manager on the handler.
+func (s *Server) SetInventoryManager(mgr *inventory.Manager) {
+	s.handler.SetInventoryManager(mgr)
 }
 
 // setupRoutes registers all routes.

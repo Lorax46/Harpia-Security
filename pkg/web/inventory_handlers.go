@@ -32,26 +32,51 @@ func (h *Handler) RegisterInventoryRoutes(api *gin.RouterGroup) {
 
 // ListInventoryProvidersV2 lists available inventory providers
 func (h *Handler) ListInventoryProvidersV2(c *gin.Context) {
-	svc := inventory.GetService()
-	providers := svc.ListProviders()
-	
+	var providers []string
+	if h.inventoryMgr != nil {
+		providers = h.inventoryMgr.ListProviders()
+	} else {
+		svc := inventory.GetService()
+		providers = svc.ListProviders()
+	}
+
 	result := []gin.H{}
 	for _, p := range providers {
+		var tables []string
+		if h.inventoryMgr != nil {
+			if types, err := h.inventoryMgr.GetResourceTypes(p); err == nil {
+				for _, t := range types {
+					tables = append(tables, t.Name)
+				}
+			}
+		} else {
+			svc := inventory.GetService()
+			tables = svc.ListTables(p)
+		}
 		result = append(result, gin.H{
 			"id":     p,
-			"tables": svc.ListTables(p),
+			"tables": tables,
 		})
 	}
-	
+
 	c.JSON(200, result)
 }
 
 // ListInventoryTables lists tables for a provider
 func (h *Handler) ListInventoryTables(c *gin.Context) {
 	provider := c.Param("provider")
-	svc := inventory.GetService()
-	tables := svc.ListTables(provider)
-	
+	var tables []string
+	if h.inventoryMgr != nil {
+		if types, err := h.inventoryMgr.GetResourceTypes(provider); err == nil {
+			for _, t := range types {
+				tables = append(tables, t.Name)
+			}
+		}
+	} else {
+		svc := inventory.GetService()
+		tables = svc.ListTables(provider)
+	}
+
 	c.JSON(200, gin.H{
 		"provider": provider,
 		"tables":   tables,
@@ -65,7 +90,6 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 	region := c.Query("region")
 	category := c.Query("category")
 	
-	svc := inventory.GetService()
 	filter := inventory.Filter{
 		Provider: provider,
 		Service:  service,
@@ -73,7 +97,14 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 		Category: category,
 	}
 	
-	resources, err := svc.ListResources(provider, service, filter)
+	var resources []inventory.Resource
+	var err error
+	if h.inventoryMgr != nil {
+		resources, err = h.inventoryMgr.ListResources(provider, service, filter)
+	} else {
+		svc := inventory.GetService()
+		resources, err = svc.ListResources(provider, service, filter)
+	}
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -90,8 +121,14 @@ func (h *Handler) ListInventoryResources(c *gin.Context) {
 func (h *Handler) SyncInventoryV2(c *gin.Context) {
 	provider := c.Param("provider")
 	
-	svc := inventory.GetService()
-	if err := svc.SyncResources(provider); err != nil {
+	var err error
+	if h.inventoryMgr != nil {
+		err = h.inventoryMgr.SyncResources(provider)
+	} else {
+		svc := inventory.GetService()
+		err = svc.SyncResources(provider)
+	}
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

@@ -15,11 +15,12 @@ import (
 
 // Handler handles HTTP requests.
 type Handler struct {
-	config     Config
-	scanner    ScannerService
-	inventory  InventoryService
-	compliance ComplianceService
-	vault      *credentials.CredentialManager
+	config       Config
+	scanner      ScannerService
+	inventory    InventoryService
+	compliance   ComplianceService
+	vault        *credentials.CredentialManager
+	inventoryMgr *inventory.Manager
 }
 
 // NewHandler creates a new HTTP handler.
@@ -30,7 +31,13 @@ func NewHandler(cfg Config, auth *AuthService) *Handler {
 		inventory:  cfg.Inventory,
 		compliance: cfg.Compliance,
 		vault:      credentials.GetManager(),
+		inventoryMgr: nil,
 	}
+}
+
+// SetInventoryManager sets the inventory manager for handlers (called from main).
+func (h *Handler) SetInventoryManager(mgr *inventory.Manager) {
+	h.inventoryMgr = mgr
 }
 
 // AuthMiddleware validates the bearer token.

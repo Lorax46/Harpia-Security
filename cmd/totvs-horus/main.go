@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Lorax46/Harpia-Security/internal/scanner/providers/oci"
+	"github.com/Lorax46/Harpia-Security/pkg/credentials"
 	"github.com/Lorax46/Harpia-Security/pkg/inventory"
 	"github.com/Lorax46/Harpia-Security/pkg/web"
 )
@@ -32,14 +33,17 @@ func main() {
 	// Create real inventory manager with OCI collector
 	inventoryManager := inventory.NewManager()
 
-	// Initialize OCI provider with credentials from environment
-	ociProvider := createOCIProvider()
+	// Try to initialize OCI provider from vault first, then env
+	ociProvider := createOCIProviderFromVault()
+	if ociProvider == nil {
+		ociProvider = createOCIProviderFromEnv()
+	}
 	if ociProvider != nil {
 		ociCollector := inventory.NewOCICollector(ociProvider)
 		inventoryManager.RegisterCollector("oci", ociCollector)
 		log.Println("[main] OCI collector registered with real API")
 	} else {
-		log.Println("[main] OCI credentials not set, using mock inventory")
+		log.Println("[main] OCI credentials not found, inventory will be empty")
 	}
 
 	inventoryService := &inventoryServiceAdapter{manager: inventoryManager}
@@ -55,6 +59,9 @@ func main() {
 		Inventory:  inventoryService,
 		Compliance: complianceService,
 	})
+
+	// Connect real inventory manager to handlers
+	server.SetInventoryManager(inventoryManager)
 
 	// Handle graceful shutdown
 	quit := make(chan os.Signal, 1)
@@ -77,8 +84,48 @@ func main() {
 	}
 }
 
-// createOCIProvider creates an OCI provider from environment credentials
-func createOCIProvider() *oci.Provider {
+// createOCIProviderFromVault reads credentials from the encrypted vault
+func createOCIProviderFromVault() *oci.Provider {
+	vault := credentials.GetManager()
+	if !vault.IsUnlocked() {
+		// Try to unlock with default passphrase
+		if err := vault.Unlock("harpia-default-secure-pass-2024"); err != nil {
+			return nil
+		}
+	}
+
+	creds := vault.GetByProvider("oci")
+	if len(creds) == 0 {
+		return nil
+	}
+
+	cred := creds[0]
+	tenancyID := cred.Data["tenancy_ocid"]
+	userID := cred.Data["user_ocid"]
+	fingerprint := cred.Data["fingerprint"]
+	privateKey := cred.Data["private_key"]
+	region := cred.Region
+	if region == "" {
+		region = "sa-saopaulo-1"
+	}
+
+	if tenancyID == "" || userID == "" || fingerprint == "" || privateKey == "" {
+		return nil
+	}
+
+	ctx := context.Background()
+	provider, err := oci.NewProvider(ctx, region, tenancyID, userID, fingerprint, privateKey, "")
+	if err != nil {
+		log.Printf("[main] Failed to create OCI provider from vault: %v", err)
+		return nil
+	}
+
+	log.Println("[main] OCI provider created from vault credentials")
+	return provider
+}
+
+// createOCIProviderFromEnv creates an OCI provider from environment credentials (fallback)
+func createOCIProviderFromEnv() *oci.Provider {
 	tenancyID := os.Getenv("OCI_TENANCY_OCID")
 	userID := os.Getenv("OCI_USER_OCID")
 	fingerprint := os.Getenv("OCI_FINGERPRINT")
@@ -96,11 +143,11 @@ func createOCIProvider() *oci.Provider {
 	ctx := context.Background()
 	provider, err := oci.NewProvider(ctx, region, tenancyID, userID, fingerprint, privateKey, "")
 	if err != nil {
-		log.Printf("[main] Failed to create OCI provider: %v", err)
+		log.Printf("[main] Failed to create OCI provider from env: %v", err)
 		return nil
 	}
 
-	log.Println("[main] OCI provider created successfully")
+	log.Println("[main] OCI provider created from env credentials")
 	return provider
 }
 
