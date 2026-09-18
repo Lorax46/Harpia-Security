@@ -103,19 +103,11 @@ func (s *ScanService) GetStats() map[string]interface{} {
 }
 
 func (s *ScanService) GetFindingsByProvider(ctx context.Context) (map[string][]models.Finding, error) {
-	result := make(map[string][]models.Finding)
-	return result, nil
+	return scanStore.GetAll(), nil
 }
 
 func (s *ScanService) GetFindingsStats(ctx context.Context) (map[string]interface{}, error) {
-	return map[string]interface{}{
-		"total":    0,
-		"critical": 0,
-		"high":     0,
-		"medium":   0,
-		"low":      0,
-		"providers": map[string]map[string]int{},
-	}, nil
+	return scanStore.GetStats(), nil
 }
 
 func (s *ScanService) GetFindingsByProviderAndType(ctx context.Context, provider, findingType string) ([]models.Finding, error) {

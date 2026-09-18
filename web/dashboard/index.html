@@ -289,7 +289,7 @@
                 <!-- Selected machine info -->
                 <div id="scan-selected-info" class="hidden rounded-xl bg-[#f0f5ff] p-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#dbeafe] text-[18px]" id="scan-sel-icon">🔶</div>
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#dbeafe] text-[18px] overflow-hidden" id="scan-sel-icon"><img src="/static/logos/oci.png" class="size-6" onerror="this.style.display='none'"></div>
                         <div class="flex-1 min-w-0">
                             <p class="text-[12px] font-medium truncate" id="scan-sel-name">—</p>
                             <p class="text-[11px] text-[#8b97a8]" id="scan-sel-details">—</p>
@@ -477,8 +477,8 @@
             document.getElementById('stat-critical').textContent = stats.critical || 0;
             document.getElementById('stat-high').textContent = stats.high || 0;
 
-            const pts = [{id:'all',name:'Todos',icon:'🌐'},{id:'oci',name:'OCI',icon:'🔶'},{id:'aws',name:'AWS',icon:'☁️'},{id:'azure',name:'Azure',icon:'🔷'},{id:'gcp',name:'GCP',icon:'🌍'},{id:'cloudflare',name:'Cloudflare',icon:'🛡️'}];
-            document.getElementById('provider-tabs').innerHTML = pts.map(p => `<button onclick="selectProvider('${p.id}')" class="provider-tab ${currentProvider === p.id ? 'active' : ''}"><span>${p.icon}</span><span>${p.name}</span>${stats.providers && stats.providers[p.id] ? `<span class="ml-1 rounded-full bg-[#e8efff] px-1.5 py-0.5 text-[10px] font-bold text-[#4c7df0]">${stats.providers[p.id].total}</span>` : ''}</button>`).join('');
+            const pts = [{id:'all',name:'Todos',icon:'🌐'},{id:'oci',name:'OCI',logo:'/static/logos/oci.png'},{id:'aws',name:'AWS',logo:'/static/logos/aws.png'},{id:'azure',name:'Azure',logo:'/static/logos/azure.png'},{id:'gcp',name:'GCP',logo:'/static/logos/gcp.png'},{id:'cloudflare',name:'Cloudflare',logo:'/static/logos/cloudflare.png'}];
+            document.getElementById('provider-tabs').innerHTML = pts.map(p => `<button onclick="selectProvider('${p.id}')" class="provider-tab ${currentProvider === p.id ? 'active' : ''}">${p.logo ? `<img src="${p.logo}" class="size-4">` : `<span>${p.icon}</span>`}<span>${p.name}</span>${stats.providers && stats.providers[p.id] ? `<span class="ml-1 rounded-full bg-[#e8efff] px-1.5 py-0.5 text-[10px] font-bold text-[#4c7df0]">${stats.providers[p.id].total}</span>` : ''}</button>`).join('');
             allFindings = await api('GET', '/api/findings-by-provider'); renderFindings();
         }
         function selectProvider(p) { currentProvider = p; loadFindings(); }
@@ -511,11 +511,21 @@
         }
         function filterFindings() { renderFindings(); }
 
+function logoFor(provider, size='sm') {
+  const s = size === 'sm' ? 'size-5' : size === 'md' ? 'size-8' : size === 'lg' ? 'size-10' : size;
+  const logos = { aws: '/static/logos/aws.png', azure: '/static/logos/azure.png', gcp: '/static/logos/gcp.png', oci: '/static/logos/oci.png', cloudflare: '/static/logos/cloudflare.png' };
+  return `<img src="${logos[provider] || ''}" class="${s}" onerror="this.style.display='none'">`;
+}
+
         // === Inventory ===
         async function loadInventory() {
-            const resp = await api('GET', '/api/inventory/providers');
-            const prvs = resp.providers || [];
-            document.getElementById('inv-provider-tabs').innerHTML = [{id:'all',name:'Todos',icon:'🌐'}, ...prvs.map(p => ({id:p.id, name:p.id.toUpperCase(), icon: {aws:'☁️',oci:'🔶',azure:'🔷',gcp:'🌍',cloudflare:'🛡️'}[p.id] || '☁️'}))].map(p => `<button onclick="selectInvProvider('${p.id}')" class="provider-tab ${currentInvProvider === p.id ? 'active' : ''}"><span>${p.icon}</span><span>${p.name}</span></button>`).join('');
+            const resp = await api('GET', '/api/inventory-v2/providers');
+            const prvs = resp.providers || resp || [];
+            const logoMap = { aws: '/static/logos/aws.png', azure: '/static/logos/azure.png', gcp: '/static/logos/gcp.png', oci: '/static/logos/oci.png', cloudflare: '/static/logos/cloudflare.png' };
+            document.getElementById('inv-provider-tabs').innerHTML = [{id:'all',name:'Todos',icon:'🌐'}, ...prvs.map(p => {
+                    const logos = {aws:'/static/logos/aws.png',oci:'/static/logos/oci.png',azure:'/static/logos/azure.png',gcp:'/static/logos/gcp.png',cloudflare:'/static/logos/cloudflare.png'};
+                    return {id:p.id, name:p.id.toUpperCase(), logo: logos[p.id] || ''};
+                })].map(p => `<button onclick="selectInvProvider('${p.id}')" class="provider-tab ${currentInvProvider === p.id ? 'active' : ''}"><img src="${p.logo}" class="size-5" onerror="this.style.display='none'"><span>${p.name}</span></button>`).join('');
             renderInventory(prvs);
         }
 
@@ -523,14 +533,13 @@
             const container = document.getElementById('inventory-categories');
             const categories = { compute: [], network: [], storage: [], iam: [], database: [], security: [] };
             
-            // Usar resource_types retornados pelo backend
             invProviders.forEach(p => {
-                if (p.resource_types) {
-                    p.resource_types.forEach(t => {
-                        const cat = categorizeTable(t.name || t);
-                        categories[cat].push({ provider: p.id, table: t.name || t, count: p.resource_count || 0 });
-                    });
-                }
+                const tables = p.tables || p.resource_types || [];
+                tables.forEach(t => {
+                    const name = typeof t === 'string' ? t : (t.name || t);
+                    const cat = categorizeTable(name);
+                    categories[cat].push({ provider: p.id, table: name, count: p.resource_count || 0 });
+                });
             });
 
             let html = '';
@@ -539,9 +548,28 @@
 
             for (const [cat, items] of Object.entries(categories)) {
                 if (items.length === 0) continue;
-                html += `<div class="inventory-section"><div class="inventory-section-header"><div class="flex items-center gap-3"><i data-lucide="${catIcons[cat]}" class="size-5 text-[#64748b]"></i><span class="text-[13px] font-semibold">${catLabels[cat]}</span><span class="resource-count">${items.length}</span></div></div><div class="px-2 py-2">${items.map(i => `<div class="resource-row flex items-center justify-between px-3 py-2 rounded-lg"><div class="flex items-center gap-3"><div class="flex size-8 items-center justify-center rounded-lg bg-[#f1f5f9]"><i data-lucide="database" class="size-4 text-[#64748b]"></i></div><div><p class="text-[12px] font-medium">${i.table}</p><p class="text-[10px] text-[#8b97a8]">${i.provider.toUpperCase()}</p></div></div><button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="syncInv('${i.provider}')">Sync</button></div>`).join('')}</div></div>`;
+                html += `<div class="inventory-section"><div class="inventory-section-header"><div class="flex items-center gap-3"><i data-lucide="${catIcons[cat]}" class="size-5 text-[#64748b]"></i><span class="text-[13px] font-semibold">${catLabels[cat]}</span><span class="resource-count">${items.length}</span></div></div><div class="px-2 py-2">${items.map(i => `<div class="resource-row flex items-center justify-between px-3 py-2 rounded-lg"><div class="flex items-center gap-3"><div class="flex size-8 items-center justify-center rounded-lg bg-[#f1f5f9]"><i data-lucide="database" class="size-4 text-[#64748b]"></i></div><div><p class="text-[12px] font-medium">${i.table}</p><p class="text-[10px] text-[#8b97a8]">${i.provider.toUpperCase()}</p></div></div><div class="flex gap-1"><button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="showResources('${i.provider}')">Ver Recursos</button><button class="rounded-lg border border-[#e8edf4] px-2 py-1 text-[10px] hover:bg-[#f5f8ff]" onclick="syncInv('${i.provider}')" title="Forçar Sync"><i data-lucide="refresh-cw" class="size-3"></i></button></div></div>`).join('')}</div></div>`;
             }
             container.innerHTML = html || '<p class="text-[13px] text-[#8b97a8] text-center py-8">Cadastre credenciais para ver os recursos</p>';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Show real collected resources
+        async function showResources(provider) {
+            const resp = await api('GET', '/api/inventory-v2/' + provider + '/resources');
+            const resources = resp.resources || [];
+            const container = document.getElementById('inventory-categories');
+            if (resources.length === 0) {
+                showToast('Nenhum recurso coletado. Clique em Sync primeiro.', 'warning');
+                return;
+            }
+            let html = '<div class="mb-3 flex items-center gap-2"><button onclick="loadInventory()" class="rounded-lg border px-2 py-1 text-[10px] hover:bg-[#f5f8ff]">← Voltar</button><span class="text-[12px] font-medium">' + provider.toUpperCase() + ' — ' + resources.length + ' recursos</span></div>';
+            html += '<div class="grid gap-1">';
+            resources.forEach(r => {
+                html += '<div class="flex items-center justify-between rounded-lg px-3 py-2 bg-[#f8fafc]"><div class="flex items-center gap-2"><i data-lucide="box" class="size-3 text-[#64748b]"></i><span class="text-[11px] font-medium">' + r.name + '</span></div><span class="text-[10px] text-[#8b97a8]">' + r.type + '</span></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
             if (window.lucide) lucide.createIcons();
         }
 
@@ -563,8 +591,7 @@
         function loadConfiguration() { renderProvidersList(); }
         function renderProvidersList() {
             const list = document.getElementById('providers-list');
-            const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
-            list.innerHTML = providers.length ? providers.map(p => `<div class="provider-card flex items-center justify-between"><div class="flex items-center gap-3"><div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] text-[18px]">${icons[p.type] || '☁️'}</div><div><p class="text-[13px] font-medium">${p.name}</p><p class="text-[11px] text-[#8b97a8]">${p.type.toUpperCase()} · ${p.region}</p></div></div><div class="flex items-center gap-2"><span class="flex items-center gap-1.5 text-[11px] ${p.status === 'connected' ? 'text-[#22c55e]' : 'text-[#9ca3af]'}"><span class="flex size-2 rounded-full ${p.status === 'connected' ? 'bg-[#22c55e]' : 'bg-[#9ca3af]'}"></span>${p.status === 'connected' ? 'Ativo' : 'Offline'}</span><button onclick="deleteProvider('${p.id}')" class="rounded-lg p-1.5 text-[#ef4444] hover:bg-[#fef2f2]"><i data-lucide="trash-2" class="size-3.5"></i></button></div></div>`).join('') : '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum provider</p>';
+            list.innerHTML = providers.length ? providers.map(p => `<div class="provider-card flex items-center justify-between"><div class="flex items-center gap-3"><div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] overflow-hidden"><img src="${logoFor(p.type)}" class="size-8" onerror="this.style.display='none'"></div><div><p class="text-[13px] font-medium">${p.name}</p><p class="text-[11px] text-[#8b97a8]">${p.type.toUpperCase()} · ${p.region}</p></div></div><div class="flex items-center gap-2"><span class="flex items-center gap-1.5 text-[11px] ${p.status === 'connected' ? 'text-[#22c55e]' : 'text-[#9ca3af]'}"><span class="flex size-2 rounded-full ${p.status === 'connected' ? 'bg-[#22c55e]' : 'bg-[#9ca3af]'}"></span>${p.status === 'connected' ? 'Ativo' : 'Offline'}</span><button onclick="deleteProvider('${p.id}')" class="rounded-lg p-1.5 text-[#ef4444] hover:bg-[#fef2f2]"><i data-lucide="trash-2" class="size-3.5"></i></button></div></div>`).join('') : '<p class="text-[12px] text-[#8b97a8] text-center py-4">Nenhum provider</p>';
             if (window.lucide) lucide.createIcons();
         }
         function showAddProviderModal() { document.getElementById('add-provider-modal').classList.add('active'); renderProviderFields(); }
@@ -743,12 +770,12 @@
                     return;
                 }
                 
-                const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
+                const icons = { aws: '/static/logos/aws.png', oci: '/static/logos/oci.png', azure: '/static/logos/azure.png', gcp: '/static/logos/gcp.png', cloudflare: '/static/logos/cloudflare.png' };
                 list.innerHTML = machines.map(m => `
                     <div onclick="selectMachine('${m.id}', '${m.provider}', '${m.name}', '${m.region}')" 
                          class="machine-item flex items-center gap-3 rounded-xl border border-[#e8edf4] p-3 cursor-pointer hover:bg-[#f5f8ff] transition-all"
                          data-id="${m.id}" data-provider="${m.provider}" title="ID: ${m.id}">
-                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] text-[18px]">${icons[m.provider] || '☁️'}</div>
+                        <div class="flex size-10 items-center justify-center rounded-lg bg-[#f1f5f9] overflow-hidden"><img src="${icons[m.provider] || ''}" class="size-8" onerror="this.style.display='none'"></div>
                         <div class="flex-1 min-w-0">
                             <p class="text-[12px] font-medium truncate">${m.name}</p>
                             <p class="text-[10px] text-[#8b97a8]">${m.provider.toUpperCase()} · ${m.region}</p>
@@ -782,8 +809,8 @@
             }
             
             // Show selected info
-            const icons = { aws: '☁️', oci: '🔶', azure: '🔷', gcp: '🌍', cloudflare: '🛡️' };
-            document.getElementById('scan-sel-icon').textContent = icons[provider] || '☁️';
+            const icons = { aws: '/static/logos/aws.png', oci: '/static/logos/oci.png', azure: '/static/logos/azure.png', gcp: '/static/logos/gcp.png', cloudflare: '/static/logos/cloudflare.png' };
+            document.getElementById('scan-sel-icon').innerHTML = '<img src="' + (icons[provider] || '') + '" class="size-6" onerror="this.style.display=\'none\'">';
             document.getElementById('scan-sel-name').textContent = name;
             document.getElementById('scan-sel-details').textContent = `${provider.toUpperCase()} · ${region}`;
             document.getElementById('scan-sel-id').textContent = `ID: ${id}`;
