@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1.4
+# Harpia Security v1.2.0 - Multi-provider CNAPP
+# Supports: linux/amd64, linux/arm64
+
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates curl jq bash tzdata && \
+    addgroup -S harpia && adduser -S harpia -G harpia
+
+WORKDIR /app
+
+# Copy pre-built binary
+COPY totvs-horus /usr/local/bin/totvs-horus
+RUN chmod +x /usr/local/bin/totvs-horus
+
+ENV TZ=UTC
+EXPOSE 9090
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:9090/health || exit 1
+
+USER harpia
+
+ENTRYPOINT ["totvs-horus"]
+CMD ["-port", "9090"]

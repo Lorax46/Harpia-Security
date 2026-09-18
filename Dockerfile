@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-# Multi-stage build for Harpia Security v1.2.0
+# Harpia Security v1.2.1 - Multi-provider CNAPP
 # Supports: linux/amd64, linux/arm64
 
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
@@ -38,9 +38,9 @@ COPY --from=builder /src/scripts/ /opt/harpia/scripts/
 RUN chmod +x /opt/harpia/scripts/*.sh 2>/dev/null || true
 
 ENV TZ=UTC
-EXPOSE 8080 9090
+EXPOSE 9090
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:9090/health || exit 1
 
 USER harpia

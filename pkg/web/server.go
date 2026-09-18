@@ -45,6 +45,14 @@ func NewServer(cfg Config) *Server {
 		auth:    auth,
 	}
 
+	// Health check (no auth required)
+	engine.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"version": "1.2.0",
+			"time":    time.Now(),
+		})
+
 	s.setupRoutes(auth)
 	return s
 }
