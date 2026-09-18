@@ -392,3 +392,9 @@ func (p *Provider) Zone() string {
 func (p *Provider) Region() string {
 	return p.region
 }
+
+// ClientOptions retorna as opções de cliente para autenticação.
+// Método exportado para uso por coletores no pacote inventory.
+func (p *Provider) ClientOptions(ctx context.Context) ([]option.ClientOption, error) {
+	return p.clientOptions(ctx)
+}

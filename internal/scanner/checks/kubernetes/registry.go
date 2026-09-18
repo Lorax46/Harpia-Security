@@ -1,0 +1,143 @@
+// Package kubernetes provides a registry of all Kubernetes checks grouped
+// by service component.
+package kubernetes
+
+import (
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/apiserver"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/controllermanager"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/core"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/etcd"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/extra"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/kubelet"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/rbac"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/checks/kubernetes/scheduler"
+	"github.com/Lorax46/Harpia-Security/internal/scanner/executor"
+)
+
+// Registry maps service names to their list of checks.
+var Registry = map[string][]executor.Check{
+	"apiserver": {
+		apiserver.NewApiserverAlwaysPullImagesCheck(),
+		apiserver.NewApiserverAnonymousRequestsCheck(),
+		apiserver.NewApiserverAuditLogMaxageCheck(),
+		apiserver.NewApiserverAuditLogMaxbackupCheck(),
+		apiserver.NewApiserverAuditLogMaxsizeCheck(),
+		apiserver.NewApiserverAuditLogPathCheck(),
+		apiserver.NewApiserverAuthModeNodeCheck(),
+		apiserver.NewApiserverAuthModeRbacCheck(),
+		apiserver.NewApiserverAuthModeNotAlwaysAllowCheck(),
+		apiserver.NewApiserverClientCaFileCheck(),
+		apiserver.NewApiserverDenyServiceExternalIpsCheck(),
+		apiserver.NewApiserverDisableProfilingCheck(),
+		apiserver.NewApiserverEncryptionProviderConfigCheck(),
+		apiserver.NewApiserverEtcdCafileCheck(),
+		apiserver.NewApiserverEtcdTlsCheck(),
+		apiserver.NewApiserverEventRateLimitCheck(),
+		apiserver.NewApiserverKubeletCertAuthCheck(),
+		apiserver.NewApiserverKubeletTlsAuthCheck(),
+		apiserver.NewApiserverNamespaceLifecycleCheck(),
+		apiserver.NewApiserverNoAlwaysAdmitCheck(),
+		apiserver.NewApiserverNoTokenAuthFileCheck(),
+		apiserver.NewApiserverNodeRestrictionCheck(),
+		apiserver.NewApiserverRequestTimeoutCheck(),
+		apiserver.NewApiserverSecurityContextDenyCheck(),
+		apiserver.NewApiserverServiceAccountKeyFileCheck(),
+		apiserver.NewApiserverServiceAccountLookupCheck(),
+		apiserver.NewApiserverServiceAccountPluginCheck(),
+		apiserver.NewApiserverStrongCiphersCheck(),
+		apiserver.NewApiserverTlsCheck(),
+		apiserver.NewApiserverEtcdAutoTlsCheck(),
+	},
+	"controllermanager": {
+		controllermanager.NewControllermanagerBindAddressCheck(),
+		controllermanager.NewControllermanagerDisableProfilingCheck(),
+		controllermanager.NewControllermanagerGarbageCollectionCheck(),
+		controllermanager.NewControllermanagerRootCaFileCheck(),
+		controllermanager.NewControllermanagerRotateKubeletServerCertCheck(),
+		controllermanager.NewControllermanagerServiceAccountCredentialsCheck(),
+		controllermanager.NewControllermanagerServiceAccountPrivateKeyCheck(),
+	},
+	"core": {
+		core.NewCoreCpuLimitsCheck(),
+		core.NewCoreCpuRequestsCheck(),
+		core.NewCoreImageTagFixedCheck(),
+		core.NewCoreLivenessProbeCheck(),
+		core.NewCoreMemoryLimitsCheck(),
+		core.NewCoreMemoryRequestsCheck(),
+		core.NewCoreMinimizeHostPortCheck(),
+		core.NewCoreMinimizeAllowPrivEscCheck(),
+		core.NewCoreMinimizeAddedCapabilitiesCheck(),
+		core.NewCoreMinimizeHostIpcCheck(),
+		core.NewCoreMinimizeHostNetworkCheck(),
+		core.NewCoreMinimizeHostPidCheck(),
+		core.NewCoreMinimizeHostpathCheck(),
+		core.NewCoreMinimizeNetRawCheck(),
+		core.NewCoreMinimizePrivilegedCheck(),
+		core.NewCoreMinimizeRootCheck(),
+		core.NewCoreNoSecretsEnvCheck(),
+		core.NewCoreReadinessProbeCheck(),
+		core.NewCoreReadonlyRootFsCheck(),
+		core.NewCoreSeccompProfileCheck(),
+		core.NewCoreSecurityContextCheck(),
+		core.NewCoreSeccompRuntimeDefaultCheck(),
+		core.NewCoreMinimizeHostProcessCheck(),
+		core.NewCoreDropCapabilitiesCheck(),
+	},
+	"etcd": {
+		etcd.NewEtcdClientCertAuthCheck(),
+		etcd.NewEtcdNoAutoTlsCheck(),
+		etcd.NewEtcdNoPeerAutoTlsCheck(),
+		etcd.NewEtcdPeerClientCertAuthCheck(),
+		etcd.NewEtcdPeerTlsCheck(),
+		etcd.NewEtcdTlsCheck(),
+		etcd.NewEtcdUniqueCaCheck(),
+	},
+	"kubelet": {
+		kubelet.NewKubeletAuthorizationModeCheck(),
+		kubelet.NewKubeletClientCaFileCheck(),
+		kubelet.NewKubeletConfFileOwnershipCheck(),
+		kubelet.NewKubeletConfFilePermissionsCheck(),
+		kubelet.NewKubeletConfigYamlOwnershipCheck(),
+		kubelet.NewKubeletConfigYamlPermissionsCheck(),
+		kubelet.NewKubeletDisableAnonymousAuthCheck(),
+		kubelet.NewKubeletDisableReadOnlyPortCheck(),
+		kubelet.NewKubeletEventRecordQpsCheck(),
+		kubelet.NewKubeletManageIptablesCheck(),
+		kubelet.NewKubeletRotateCertificatesCheck(),
+		kubelet.NewKubeletServiceFileOwnershipCheck(),
+		kubelet.NewKubeletServiceFilePermissionsCheck(),
+		kubelet.NewKubeletStreamingConnectionTimeoutCheck(),
+		kubelet.NewKubeletStrongCiphersCheck(),
+		kubelet.NewKubeletTlsCertAndKeyCheck(),
+	},
+	"rbac": {
+		rbac.NewRbacClusterAdminUsageCheck(),
+		rbac.NewRbacMinimizeCsrApprovalCheck(),
+		rbac.NewRbacMinimizeNodeProxyCheck(),
+		rbac.NewRbacMinimizePodCreationCheck(),
+		rbac.NewRbacMinimizePvCreationCheck(),
+		rbac.NewRbacMinimizeSecretAccessCheck(),
+		rbac.NewRbacMinimizeTokenCreationCheck(),
+		rbac.NewRbacMinimizeWebhookConfigCheck(),
+		rbac.NewRbacMinimizeWildcardCheck(),
+		rbac.NewRbacServiceAccountTokenMountCheck(),
+	},
+	"scheduler": {
+		scheduler.NewSchedulerBindAddressCheck(),
+		scheduler.NewSchedulerProfilingCheck(),
+	},
+	"extra": {
+		extra.NewNetworkPolicyDefaultDCheck(),
+		extra.NewPodSecurityPolicyRestrictedCheck(),
+		extra.NewResourceQuotaSetCheck(),
+		extra.NewLimitRangeSetCheck(),
+		extra.NewHorizontalPodAutoscalerSetCheck(),
+		extra.NewIngressTlsCheck(),
+		extra.NewStorageClassEncryptionCheck(),
+		extra.NewPersistentVolumeEncryptionCheck(),
+		extra.NewServiceAccountTokenAutoMountCheck(),
+		extra.NewNodeTaintSetCheck(),
+		extra.NewPodDisruptionBudgetSetCheck(),
+		extra.NewPriorityClassSetCheck(),
+	},
+}

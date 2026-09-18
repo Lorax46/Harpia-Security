@@ -25,7 +25,7 @@ func main() {
 		log.Fatal("No OCI creds")
 	}
 
-	cred := regs[0]
+	cred := creds[0]
 	fmt.Printf("Tenancy: %s...\n", cred.Data["tenancy_ocid"][:20])
 	fmt.Printf("User: %s...\n", cred.Data["user_ocid"][:20])
 	fmt.Printf("Region: %s\n", cred.Region)

@@ -46,12 +46,28 @@
         .toast-error { background: #ef4444; }
         .toast-info { background: #3b82f6; }
         .toast-warning { background: #f59e0b; }
-        .category-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .resource-row { transition: background 0.15s; }
-        .resource-row:hover { background: #f5f8ff; }
-        .inventory-section { margin-bottom: 24px; }
-        .inventory-section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f8fafc; border-radius: 8px; margin-bottom: 8px; }
-        .resource-count { background: #e8efff; color: #4c7df0; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .search-tab { border: 1px solid #e8edf4; background: white; color: #4b5563; transition: all 0.15s; }
+        .search-tab:hover { border-color: #4c7df0; background: #f5f8ff; }
+        .search-tab.active { background: #eff6ff; border-color: #4c7df0; color: #4c7df0; font-weight: 600; }
+        .result-item { transition: all 0.15s; border: 1px solid transparent; }
+        .result-item:hover { background: #f5f8ff; border-color: #e8edf4; }
+        .result-type { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .resource-row { transition: all 0.15s; border: 1px solid transparent; }
+        .resource-row:hover { background: #f5f8ff; border-color: #e8edf4; }
+        @media (max-width: 640px) {
+            .resource-row .text-\[12px\] { font-size: 11px !important; }
+            .resource-row .text-\[10px\] { font-size: 9px !important; }
+            .resource-row button { padding: 4px 6px !important; font-size: 9px !important; }
+            .resource-row .size-8 { width: 28px !important; height: 28px !important; }
+            .resource-row .size-4 { width: 14px !important; height: 14px !important; }
+            .inventory-section-header .text-\[13px\] { font-size: 12px !important; }
+            .inventory-section-header .size-5 { width: 18px !important; height: 18px !important; }
+            #inventory-categories { padding: 8px !important; }
+        }
+        .inventory-section { margin-bottom: 16px; }
+        .inventory-section-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #f8fafc; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+        .inventory-section-header:hover { background: #eef2f7; }
+        .resource-count { background: #e8efff; color: #4c7df0; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
         .category-compute { background: #fef3c7; color: #d97706; }
         .category-network { background: #dbeafe; color: #2563eb; }
         .category-storage { background: #dcfce7; color: #16a34a; }
@@ -81,6 +97,7 @@
                 <a href="/findings" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="findings"><i data-lucide="alert-triangle" class="size-4"></i> Findings</a>
                 <a href="/inventory" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="inventory"><i data-lucide="archive" class="size-4"></i> Inventory</a>
                 <a href="/automation" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="automation"><i data-lucide="zap" class="size-4"></i> Automation</a>
+                <a href="/search" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="search"><i data-lucide="search" class="size-4"></i> Pesquisa</a>
                 <a href="/configuration" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium hover:bg-[#f5f8ff]" data-route="configuration"><i data-lucide="settings" class="size-4"></i> Configuration</a>
             </div>
         </nav>
@@ -93,6 +110,10 @@
                 <h1 class="text-[16px] lg:text-[18px] font-bold" id="page-title">Dashboard</h1>
             </div>
             <div class="flex items-center gap-2">
+                <div class="relative hidden md:block">
+                    <input type="text" id="global-search" placeholder="Buscar..." class="w-48 lg:w-64 rounded-lg border border-[#e8edf4] px-3 py-2 pl-9 text-[12px] focus:border-[#4c7df0] focus:outline-none" oninput="handleGlobalSearch(this.value)">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 size-4 text-[#8b97a8]"></i>
+                </div>
                 <button onclick="showScanModal()" class="flex items-center gap-2 rounded-lg bg-[#162d55] px-3 py-2 text-[12px] font-semibold text-white hover:bg-[#1e3a6f]"><i data-lucide="scan-line" class="size-3.5"></i> Novo Scan</button>
                 <div class="flex size-8 items-center justify-center rounded-lg bg-[#e8efff] text-[11px] font-bold text-[#4c7df0]">AC</div>
             </div>
@@ -149,8 +170,8 @@
                             <select id="status-filter" class="rounded-lg border border-[#e8edf4] px-3 py-1.5 text-[12px] bg-white" onchange="filterFindings()"><option value="all">Status</option><option value="PASS">Pass</option><option value="FAIL">Fail</option><option value="INFORMATIONAL">Info</option><option value="MANUAL">Manual</option></select>
                         </div>
                     </div>
-                    <table class="w-full"><thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Data/Hora</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Detalhes</th></tr></thead>
-                    <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody></table>
+                    <div class="overflow-x-auto"><table class="w-full min-w-[700px]"><thead><tr class="border-b border-[#edf1f5] text-left"><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Status</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Finding</th><th class="hidden sm:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Provider</th><th class="hidden md:table-cell px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Service</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Severidade</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Data/Hora</th><th class="px-4 lg:px-5 py-3 text-[10px] font-bold uppercase tracking-wider text-[#a0aaba]">Detalhes</th></tr></thead>
+                    <tbody id="findings-list"><tr><td colspan="5" class="px-5 py-8 text-center text-[13px] text-[#8b97a8]">Carregando...</td></tr></tbody></table></div>
                 </div>
             </div>
 
@@ -201,6 +222,28 @@
                     <h2 class="text-[18px] font-bold mb-2">Automation</h2>
                     <p class="text-[14px] text-[#8b97a8] mb-6">Automatize scans e remediações de segurança</p>
                     <button class="rounded-xl bg-[#162d55] px-6 py-3 text-[14px] font-semibold text-white hover:bg-[#1e3a6f]">Em breve</button>
+                </div>
+            </div>
+
+            <!-- Search Page -->
+            <div id="page-search" class="page-section">
+                <div class="rounded-2xl border border-[#e3e9f1] bg-white">
+                    <div class="border-b border-[#edf1f5] px-4 lg:px-5 py-4">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-1">
+                                <i data-lucide="search" class="absolute left-3 top-3 size-4 text-[#8b97a8]"></i>
+                                <input type="text" id="search-input" placeholder="Buscar recursos, findings, providers..." class="w-full rounded-lg border border-[#e8edf4] pl-10 pr-4 py-2.5 text-[13px] focus:border-[#4c7df0] focus:outline-none" oninput="performSearch(this.value)">
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="setSearchTab('all')" id="search-tab-all" class="search-tab active rounded-lg px-3 py-2 text-[12px] font-medium">Todos</button>
+                                <button onclick="setSearchTab('findings')" id="search-tab-findings" class="search-tab rounded-lg px-3 py-2 text-[12px] font-medium">Findings</button>
+                                <button onclick="setSearchTab('inventory')" id="search-tab-inventory" class="search-tab rounded-lg px-3 py-2 text-[12px] font-medium">Inventory</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 lg:p-5" id="search-results">
+                        <p class="text-[13px] text-[#8b97a8] text-center py-8">Digite algo para pesquisar</p>
+                    </div>
                 </div>
             </div>
 
@@ -449,7 +492,7 @@
             const page = document.getElementById('page-' + route); if (page) page.classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             const nav = document.querySelector(`.nav-item[data-route="${route}"]`); if (nav) nav.classList.add('active');
-            const titles = { dashboard: 'Dashboard', findings: 'Findings', inventory: 'Cloud Inventory', automation: 'Automation', configuration: 'Configuration' };
+            const titles = { dashboard: 'Dashboard', findings: 'Findings', inventory: 'Cloud Inventory', automation: 'Automation', search: 'Pesquisa', configuration: 'Configuration' };
             document.getElementById('page-title').textContent = titles[route] || 'Dashboard';
             if (route === 'findings') loadFindings();
             if (route === 'inventory') loadInventory();
@@ -521,12 +564,28 @@ function logoFor(provider, size='sm') {
         async function loadInventory() {
             const resp = await api('GET', '/api/inventory-v2/providers');
             const prvs = resp.providers || resp || [];
-            const logoMap = { aws: '/static/logos/aws.png', azure: '/static/logos/azure.png', gcp: '/static/logos/gcp.png', oci: '/static/logos/oci.png', cloudflare: '/static/logos/cloudflare.png' };
             document.getElementById('inv-provider-tabs').innerHTML = [{id:'all',name:'Todos',icon:'🌐'}, ...prvs.map(p => {
                     const logos = {aws:'/static/logos/aws.png',oci:'/static/logos/oci.png',azure:'/static/logos/azure.png',gcp:'/static/logos/gcp.png',cloudflare:'/static/logos/cloudflare.png'};
                     return {id:p.id, name:p.id.toUpperCase(), logo: logos[p.id] || ''};
                 })].map(p => `<button onclick="selectInvProvider('${p.id}')" class="provider-tab ${currentInvProvider === p.id ? 'active' : ''}"><img src="${p.logo}" class="size-5" onerror="this.style.display='none'"><span>${p.name}</span></button>`).join('');
             renderInventory(prvs);
+            // Update stat cards
+            const stats = { total: 0, compute: 0, network: 0, storage: 0 };
+            for (const p of prvs) {
+                const r = await api('GET', '/api/inventory-v2/' + p.id + '/resources');
+                const resources = r.resources || [];
+                stats.total += resources.length;
+                resources.forEach(res => {
+                    const t = (res.type || '').toLowerCase();
+                    if (t.includes('instance') || t.includes('vm') || t.includes('compute')) stats.compute++;
+                    else if (t.includes('vcn') || t.includes('subnet') || t.includes('security_list') || t.includes('network')) stats.network++;
+                    else if (t.includes('volume') || t.includes('bucket') || t.includes('storage') || t.includes('boot')) stats.storage++;
+                });
+            }
+            document.getElementById('inv-total').textContent = stats.total;
+            document.getElementById('inv-compute').textContent = stats.compute;
+            document.getElementById('inv-network').textContent = stats.network;
+            document.getElementById('inv-storage').textContent = stats.storage;
         }
 
         function renderInventory(invProviders) {
@@ -585,7 +644,7 @@ function logoFor(provider, size='sm') {
         }
 
         function selectInvProvider(p) { currentInvProvider = p; loadInventory(); }
-        function syncInv(p) { api('POST', '/api/inventory-v2/' + p + '/sync').then(() => loadInventory()); }
+        async function syncInv(p) { await api('POST', '/api/inventory-v2/' + p + '/sync'); await loadInventory(); }
 
         // === Configuration ===
         function loadConfiguration() { renderProvidersList(); }
@@ -1018,6 +1077,118 @@ function logoFor(provider, size='sm') {
         }
 
 document.addEventListener('DOMContentLoaded', () => { showPage(window.location.pathname.replace('/', '') || 'dashboard'); if (window.lucide) lucide.createIcons(); });
+
+        // === Search Functionality ===
+        let currentSearchTab = 'all';
+        let searchTimeout = null;
+        let cachedFindings = null;
+        let cachedInventory = [];
+
+        async function ensureSearchData() {
+            if (!cachedFindings) {
+                cachedFindings = await api('GET', '/api/findings-by-provider') || {};
+            }
+            if (cachedInventory.length === 0) {
+                const providers = await api('GET', '/api/inventory-v2/providers');
+                const prvs = providers.providers || providers || [];
+                for (const p of prvs) {
+                    const r = await api('GET', '/api/inventory-v2/' + p.id + '/resources');
+                    const res = r.resources || [];
+                    res.forEach(item => { item.provider = p.id; cachedInventory.push(item); });
+                }
+            }
+        }
+
+        function handleGlobalSearch(val) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                if (val.length >= 2) {
+                    showPage('search');
+                    document.getElementById('search-input').value = val;
+                    performSearch(val);
+                }
+            }, 300);
+        }
+
+        function setSearchTab(tab) {
+            currentSearchTab = tab;
+            document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('search-tab-' + tab).classList.add('active');
+            const val = document.getElementById('search-input').value;
+            if (val.length >= 2) performSearch(val);
+        }
+
+        async function performSearch(query) {
+            if (!query || query.length < 2) {
+                document.getElementById('search-results').innerHTML = '<p class="text-[13px] text-[#8b97a8] text-center py-8">Digite pelo menos 2 caracteres para pesquisar</p>';
+                return;
+            }
+            await ensureSearchData();
+            const q = query.toLowerCase();
+            const results = [];
+
+            // Search findings
+            if (currentSearchTab === 'all' || currentSearchTab === 'findings') {
+                for (const [provider, findings] of Object.entries(cachedFindings)) {
+                    findings.forEach(f => {
+                        const text = (f.title + ' ' + f.id + ' ' + f.severity + ' ' + f.status + ' ' + f.service).toLowerCase();
+                        if (text.includes(q)) {
+                            results.push({ type: 'finding', data: f, provider });
+                        }
+                    });
+                }
+            }
+
+            // Search inventory
+            if (currentSearchTab === 'all' || currentSearchTab === 'inventory') {
+                cachedInventory.forEach(r => {
+                    const text = (r.name + ' ' + r.type + ' ' + r.provider + ' ' + (r.region || '')).toLowerCase();
+                    if (text.includes(q)) {
+                        results.push({ type: 'inventory', data: r, provider: r.provider });
+                    }
+                });
+            }
+
+            // Search providers
+            if (currentSearchTab === 'all') {
+                const providers = { aws: 'AWS', azure: 'Azure', gcp: 'GCP', oci: 'OCI', cloudflare: 'Cloudflare' };
+                for (const [id, name] of Object.entries(providers)) {
+                    if (id.includes(q) || name.toLowerCase().includes(q)) {
+                        results.push({ type: 'provider', data: { id, name }, provider: id });
+                    }
+                }
+            }
+
+            renderSearchResults(results, query);
+        }
+
+        function renderSearchResults(results, query) {
+            const container = document.getElementById('search-results');
+            if (results.length === 0) {
+                container.innerHTML = '<p class="text-[13px] text-[#8b97a8] text-center py-8">Nenhum resultado encontrado para "<span class="font-medium">' + query + '</span>"</p>';
+                return;
+            }
+            let html = '<p class="text-[11px] text-[#8b97a8] mb-3">' + results.length + ' resultado(s) encontrado(s)</p>';
+            html += '<div class="grid gap-2">';
+            results.slice(0, 100).forEach(r => {
+                if (r.type === 'finding') {
+                    const f = r.data;
+                    const sevColor = f.severity === 'critical' ? '#dc2626' : f.severity === 'high' ? '#ea580c' : f.severity === 'medium' ? '#ca8a04' : '#16a34a';
+                    const statusBg = f.status === 'PASS' ? '#dcfce7' : '#fee2e2';
+                    const statusText = f.status === 'PASS' ? '#22c55e' : '#ef4444';
+                    html += '<div class="result-item flex items-center justify-between rounded-lg px-3 py-2"><div class="flex items-center gap-3 min-w-0"><span class="result-type" style="background:' + statusBg + ';color:' + statusText + '">' + f.status + '</span><div class="min-w-0"><p class="text-[12px] font-medium truncate">' + (f.title || f.id) + '</p><p class="text-[10px] text-[#8b97a8] truncate">' + (f.provider || '').toUpperCase() + ' · ' + (f.service || '') + '</p></div></div><span class="result-type" style="background:#fef2f2;color:' + sevColor + '">' + (f.severity || '').toUpperCase() + '</span></div>';
+                } else if (r.type === 'inventory') {
+                    const d = r.data;
+                    html += '<div class="result-item flex items-center justify-between rounded-lg px-3 py-2"><div class="flex items-center gap-3 min-w-0"><span class="result-type" style="background:#dbeafe;color:#2563eb">INVENTORY</span><div class="min-w-0"><p class="text-[12px] font-medium truncate">' + d.name + '</p><p class="text-[10px] text-[#8b97a8] truncate">' + (d.provider || '').toUpperCase() + ' · ' + d.type + '</p></div></div></div>';
+                } else if (r.type === 'provider') {
+                    const p = r.data;
+                    html += '<div class="result-item flex items-center gap-3 rounded-lg px-3 py-2"><span class="result-type" style="background:#eff6ff;color:#4c7df0">PROVIDER</span><span class="text-[12px] font-medium">' + p.name + '</span></div>';
+                }
+            });
+            html += '</div>';
+            container.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+        }
     </script>
 
     <!-- Vault Unlock Modal -->

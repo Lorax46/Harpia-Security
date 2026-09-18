@@ -29,13 +29,38 @@ func main() {
 	// Create web-compatible scanner service
 	webScanner := web.NewScanService()
 
-	// Create real inventory manager with OCI collector
+	// Create real inventory manager with all collectors
 	inventoryManager := inventory.NewManager()
 
 	// Register OCI collector (lazy-init from vault on first use)
 	ociCollector := inventory.NewOCICollector()
 	inventoryManager.RegisterCollector("oci", ociCollector)
 	log.Println("[main] OCI collector registered (lazy-init from vault)")
+
+	// Register AWS collector (lazy-init from vault)
+	awsCollector := inventory.NewAWSCollector(nil) // provider set on first use
+	inventoryManager.RegisterCollector("aws", awsCollector)
+	log.Println("[main] AWS collector registered")
+
+	// Register Azure collector (lazy-init from vault)
+	azureCollector := inventory.NewAzureCollector()
+	inventoryManager.RegisterCollector("azure", azureCollector)
+	log.Println("[main] Azure collector registered")
+
+	// Register GCP collector (lazy-init from vault)
+	gcpCollector := inventory.NewGCPCollector(nil) // provider set on first use
+	inventoryManager.RegisterCollector("gcp", gcpCollector)
+	log.Println("[main] GCP collector registered")
+
+	// Register Kubernetes collector (provider nil = not configured)
+	k8sCollector := inventory.NewKubernetesCollector(nil)
+	inventoryManager.RegisterCollector("kubernetes", k8sCollector)
+	log.Println("[main] Kubernetes collector registered")
+
+	// Register Google Workspace collector (provider nil = not configured)
+	gwCollector := inventory.NewGoogleWorkspaceCollector(nil)
+	inventoryManager.RegisterCollector("googleworkspace", gwCollector)
+	log.Println("[main] Google Workspace collector registered")
 
 	inventoryService := &inventoryServiceAdapter{manager: inventoryManager}
 	complianceService := web.NewMockComplianceService()
