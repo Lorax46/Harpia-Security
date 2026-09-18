@@ -1,13 +1,37 @@
-# docker-compose.yml (local dev)
-version: '3.8'
+# Build: docker compose build harpia
+# Run: docker compose up -d
+# Push: docker push ghcr.io/lorax46/harpia-security:v1.2.0
 
 services:
   harpia:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/lorax46/harpia-security:latest
+    container_name: harpia
+    restart: unless-stopped
     ports:
       - "9090:9090"
     environment:
       - TZ=UTC
+      - HORUS_JWT_SECRET=${HORUS_JWT_SECRET:-harpia-secret-key-change-in-production}
     volumes:
-      - .:/app
-    restart: unless-stopped
+      - harpia-data:/app/data
+      - ./config:/app/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    labels:
+      - "com.harpia.service=cnapp"
+      - "com.harpia.version=1.2.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  harpia-data:

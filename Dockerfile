@@ -1,4 +1,7 @@
 # syntax=docker/dockerfile:1.4
+# Multi-stage build for Harpia Security v1.2.0
+# Supports: linux/amd64, linux/arm64
+
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
@@ -14,7 +17,7 @@ ARG TARGETOS=linux
 ARG TARGETARCH
 ENV GOOS=$TARGETOS GOARCH=$TARGETARCH
 
-RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=$(cat VERSION 2>/dev/null || echo 'dev')" -o /bin/totvs-horus ./cmd/totvs-horus/ \
+RUN CGO_ENABLED=0 go build -ldflags="-s -w -X main.Version=$(cat VERSION 2>/dev/null || echo 'dev') -X main.BuildDate=$(date -u +%Y%m%d)" -o /bin/totvs-horus ./cmd/totvs-horus/ \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /bin/gateway ./cmd/gateway/ \
  && CGO_ENABLED=0 go build -ldflags="-s -w" -o /bin/scan ./cmd/scan/
 
